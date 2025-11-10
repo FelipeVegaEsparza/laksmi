@@ -45,9 +45,7 @@ export class MessageRouter {
           client = await ClientModel.create({
             name: `Web Visitor ${request.clientId.substring(0, 8)}`,
             phone: `web_${request.clientId.substring(0, 8)}`,
-            email: request.metadata?.email || '',
-            source: 'web_chat',
-            notes: `Cliente creado automáticamente desde chat web. ID original: ${request.clientId}`
+            email: request.metadata?.email || ''
           });
           logger.info(`New web client created: ${client.id} for web ID: ${request.clientId}`);
           // Actualizar el clientId del request para usar el ID real de la BD
