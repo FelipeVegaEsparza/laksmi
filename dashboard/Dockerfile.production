@@ -12,24 +12,21 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
-# Build de producción (sin variables de entorno, se inyectarán en runtime)
+# Usar ARG para la URL del API (se pasa en build time)
+ARG VITE_API_URL=http://localhost:3000
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build de producción
 RUN npm run build
 
 # Etapa de producción con nginx
 FROM nginx:alpine
-
-# Instalar bash para el script de inicio
-RUN apk add --no-cache bash
 
 # Copiar build al directorio de nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copiar configuración personalizada de nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar script de inicio
-COPY env.sh /docker-entrypoint.d/env.sh
-RUN chmod +x /docker-entrypoint.d/env.sh
 
 # Exponer puerto
 EXPOSE 80
@@ -38,5 +35,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# Comando de inicio (ejecuta el script que inyecta variables)
-CMD ["/docker-entrypoint.d/env.sh"]
+# Comando de inicio
+CMD ["nginx", "-g", "daemon off;"]
