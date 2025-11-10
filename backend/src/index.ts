@@ -64,17 +64,17 @@ async function startServer() {
       logger.info(`❤️  Health check: http://localhost:${config.port}/health`);
       logger.info(`📊 API Base: http://localhost:${config.port}/api/${config.apiVersion}`);
       
-      // Iniciar servicio de programación de notificaciones
-      SchedulerService.start();
-      logger.info('Notification scheduler service started');
+      // TEMPORALMENTE DESHABILITADO: Iniciar servicio de programación de notificaciones
+      // SchedulerService.start();
+      logger.info('⚠️  Notification scheduler service DISABLED temporarily (SQL compatibility issues)');
       
       // Iniciar limpieza automática de contextos de IA
       ContextManager.startCleanupInterval();
       logger.info('AI context cleanup service started');
       
-      // Inicializar servicio de alertas
-      AlertService.initialize();
-      logger.info('Alert service initialized');
+      // TEMPORALMENTE DESHABILITADO: Inicializar servicio de alertas
+      // AlertService.initialize();
+      logger.info('⚠️  Alert service DISABLED temporarily (SQL compatibility issues)');
       
       // Inicializar servicio de Twilio
       TwilioService.initialize();
