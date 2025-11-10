@@ -2,6 +2,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Log de variables de entorno cargadas
+console.log('🔧 Cargando configuración del servidor...');
+console.log(`   PORT: ${process.env.PORT || '3000 (default)'}`);
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development (default)'}`);
+console.log(`   DB_HOST: ${process.env.DB_HOST || 'localhost (default)'}`);
+console.log(`   DB_NAME: ${process.env.DB_NAME || 'clinica_belleza (default)'}`);
+
 const config = {
   // Servidor
   port: parseInt(process.env.PORT || '3000', 10),

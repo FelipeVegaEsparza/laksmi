@@ -17,23 +17,33 @@ const server = createServer(app);
 // Función para inicializar el servidor
 async function startServer() {
   try {
+    logger.info('=== INICIANDO SERVIDOR LAKSMI ===');
+    logger.info(`Node version: ${process.version}`);
+    logger.info(`Platform: ${process.platform}`);
+    logger.info(`Environment: ${config.nodeEnv}`);
+    logger.info(`Port configured: ${config.port}`);
+    
     // Redis deshabilitado temporalmente
     logger.info('Redis disabled - running without cache');
 
     // Verificar conexión a la base de datos
+    logger.info('Attempting database connection...');
     await db.raw('SELECT 1');
-    logger.info('Database connected successfully');
+    logger.info('✅ Database connected successfully');
 
     // Inicializar servicio de notificaciones en tiempo real
     RealTimeNotificationService.initialize(server);
     logger.info('Real-time notification service initialized');
 
     // Iniciar servidor
+    logger.info(`Attempting to start server on port ${config.port}...`);
     server.listen(config.port, () => {
-      logger.info(`Servidor iniciado en puerto ${config.port}`);
-      logger.info(`Ambiente: ${config.nodeEnv}`);
-      logger.info(`API Version: ${config.apiVersion}`);
-      logger.info(`Health check: http://localhost:${config.port}/health`);
+      logger.info('=== ✅ SERVIDOR INICIADO EXITOSAMENTE ===');
+      logger.info(`🚀 Servidor escuchando en puerto ${config.port}`);
+      logger.info(`🌍 Ambiente: ${config.nodeEnv}`);
+      logger.info(`📦 API Version: ${config.apiVersion}`);
+      logger.info(`❤️  Health check: http://localhost:${config.port}/health`);
+      logger.info(`📊 API Base: http://localhost:${config.port}/api/${config.apiVersion}`);
       
       // Iniciar servicio de programación de notificaciones
       SchedulerService.start();
@@ -64,7 +74,12 @@ async function startServer() {
       logger.info('GDPR consent cleanup service started');
     });
   } catch (error) {
-    logger.error('Error al iniciar el servidor:', error);
+    logger.error('❌ ERROR CRÍTICO AL INICIAR EL SERVIDOR:');
+    logger.error('Error details:', error);
+    if (error instanceof Error) {
+      logger.error('Error message:', error.message);
+      logger.error('Error stack:', error.stack);
+    }
     process.exit(1);
   }
 }

@@ -35,6 +35,8 @@ import knowledgeRoutes from './routes/knowledge';
 
 const app: express.Application = express();
 
+logger.info('🔧 Configurando aplicación Express...');
+
 // CONFIGURACIÓN CORS LIMPIA - UNA SOLA VEZ
 const corsConfig = {
   origin: config.nodeEnv === 'development' 
@@ -46,11 +48,14 @@ const corsConfig = {
   exposedHeaders: ['Content-Range', 'X-Content-Range']
 };
 
+logger.info(`📡 CORS configurado para: ${JSON.stringify(corsConfig.origin)}`);
+
 // MIDDLEWARE EN ORDEN CORRECTO
 // 1. Seguridad básica
 // app.use(helmet()); // ELIMINADO: Redundante y conflictivo con securityHeaders
 
 // 2. CORS (una sola configuración)
+logger.info('✅ Aplicando middleware CORS...');
 app.use(cors(corsConfig));
 
 // 3. Security middleware
@@ -97,6 +102,7 @@ app.use('/uploads', (req, res, next) => {
 }, express.static(path.join(__dirname, '..', 'uploads')));
 
 // 9. Health check
+logger.info('✅ Configurando health check endpoint...');
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -107,6 +113,7 @@ app.get('/health', (req, res) => {
 });
 
 // 10. API Routes - LIMPIAS Y ORGANIZADAS
+logger.info('✅ Registrando rutas de API...');
 app.use(`/api/${config.apiVersion}/auth`, authRoutes);
 app.use(`/api/${config.apiVersion}/clients`, clientRoutes);
 app.use(`/api/${config.apiVersion}/loyalty`, loyaltyRoutes);
@@ -205,11 +212,22 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // 13. Manejo de rutas no encontradas
 app.use('*', (req, res) => {
+  logger.warn(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     success: false,
     error: 'Ruta no encontrada',
     path: req.originalUrl
   });
 });
+
+logger.info('✅ Aplicación Express configurada completamente');
+logger.info('📋 Rutas registradas:');
+logger.info(`   - GET  /health`);
+logger.info(`   - POST /api/${config.apiVersion}/auth/login`);
+logger.info(`   - GET  /api/${config.apiVersion}/products`);
+logger.info(`   - GET  /api/${config.apiVersion}/clients`);
+logger.info(`   - GET  /api/${config.apiVersion}/services`);
+logger.info(`   - GET  /api/${config.apiVersion}/bookings`);
+logger.info(`   - GET  /api/${config.apiVersion}/conversations`);
 
 export default app;
