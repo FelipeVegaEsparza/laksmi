@@ -56,7 +56,9 @@ module.exports = {
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       charset: 'utf8mb4',
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      connectTimeout: 60000,
+      acquireTimeout: 60000
     },
     migrations: {
       directory: './src/database/migrations',
@@ -66,8 +68,14 @@ module.exports = {
       directory: './src/database/seeds'
     },
     pool: {
-      min: 2,
-      max: 20
+      min: 1,
+      max: 5,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 30000,
+      destroyTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200
     }
   }
 };
