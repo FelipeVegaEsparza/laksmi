@@ -12,10 +12,10 @@ export const processMessageSchema = Joi.object({
       'any.required': 'El contenido del mensaje es requerido'
     }),
   clientId: Joi.string()
-    .uuid()
+    .min(1)
     .required()
     .messages({
-      'string.uuid': 'El ID del cliente debe ser un UUID válido',
+      'string.min': 'El ID del cliente es requerido',
       'any.required': 'El ID del cliente es requerido'
     }),
   channel: Joi.string()
