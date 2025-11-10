@@ -2,6 +2,8 @@
 export const API_CONFIG = {
   // Primary API URLs to try in order
   urls: [
+    // @ts-ignore - window.ENV is injected at runtime
+    typeof window !== 'undefined' && window.ENV?.VITE_API_URL,
     import.meta.env.VITE_API_URL,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
