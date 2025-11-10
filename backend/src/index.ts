@@ -28,16 +28,35 @@ async function startServer() {
 
     // Verificar conexión a la base de datos
     logger.info('Attempting database connection...');
-    await db.raw('SELECT 1');
-    logger.info('✅ Database connected successfully');
+    try {
+      await db.raw('SELECT 1');
+      logger.info('✅ Database connected successfully');
+    } catch (dbError) {
+      logger.error('❌ Database connection failed:', dbError);
+      throw dbError;
+    }
 
     // Inicializar servicio de notificaciones en tiempo real
-    RealTimeNotificationService.initialize(server);
-    logger.info('Real-time notification service initialized');
+    logger.info('Initializing real-time notification service...');
+    try {
+      RealTimeNotificationService.initialize(server);
+      logger.info('✅ Real-time notification service initialized');
+    } catch (rtError) {
+      logger.error('❌ Real-time notification service failed:', rtError);
+      throw rtError;
+    }
 
     // Iniciar servidor
     logger.info(`Attempting to start server on port ${config.port}...`);
-    server.listen(config.port, () => {
+    
+    // Agregar timeout para detectar si el servidor no inicia
+    const startTimeout = setTimeout(() => {
+      logger.error('❌ Server failed to start within 30 seconds');
+      process.exit(1);
+    }, 30000);
+    
+    server.listen(config.port, '0.0.0.0', () => {
+      clearTimeout(startTimeout);
       logger.info('=== ✅ SERVIDOR INICIADO EXITOSAMENTE ===');
       logger.info(`🚀 Servidor escuchando en puerto ${config.port}`);
       logger.info(`🌍 Ambiente: ${config.nodeEnv}`);
@@ -101,7 +120,29 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Manejar errores del servidor HTTP
+server.on('error', (error: any) => {
+  logger.error('❌ Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${config.port} is already in use`);
+  }
+  process.exit(1);
+});
+
+// Manejar errores no capturados
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
 // Iniciar servidor
-startServer();
+startServer().catch((error) => {
+  logger.error('❌ Failed to start server:', error);
+  process.exit(1);
+});
 
 export default app;
