@@ -36,6 +36,9 @@ import dashboardRoutes from './routes/dashboard';
 
 const app: express.Application = express();
 
+// Trust proxy para Easypanel/reverse proxy
+app.set('trust proxy', true);
+
 logger.info('🔧 Configurando aplicación Express...');
 
 // CONFIGURACIÓN CORS LIMPIA - UNA SOLA VEZ
