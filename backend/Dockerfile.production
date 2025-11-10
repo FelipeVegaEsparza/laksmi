@@ -1,6 +1,11 @@
 # Backend Production Dockerfile
 FROM node:20-alpine AS builder
 
+# Configurar repositorios alternativos de Alpine (por si los principales fallan)
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/community" >> /etc/apk/repositories && \
+    apk update || true
+
 # Instalar dependencias del sistema
 RUN apk add --no-cache python3 make g++ cairo-dev jpeg-dev pango-dev giflib-dev
 
@@ -21,6 +26,11 @@ RUN npm run build
 
 # Etapa de producción
 FROM node:20-alpine
+
+# Configurar repositorios alternativos de Alpine
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/community" >> /etc/apk/repositories && \
+    apk update || true
 
 # Instalar dependencias runtime
 RUN apk add --no-cache cairo jpeg pango giflib
