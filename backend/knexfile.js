@@ -57,8 +57,7 @@ module.exports = {
       database: process.env.DB_NAME,
       charset: 'utf8mb4',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      connectTimeout: 60000,
-      acquireTimeout: 60000
+      connectTimeout: 60000
     },
     migrations: {
       directory: './src/database/migrations',
