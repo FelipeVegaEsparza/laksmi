@@ -1,0 +1,136 @@
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: clinica-belleza-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: clinica_belleza
+      MYSQL_USER: clinica_user
+      MYSQL_PASSWORD: clinica_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinica-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: clinica-belleza-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinica-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clinica-belleza-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: clinica_belleza
+      DB_USER: clinica_user
+      DB_PASSWORD: clinica_pass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: mi-super-secreto-jwt-2024-docker
+      JWT_REFRESH_SECRET: mi-super-secreto-refresh-2024-docker
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      FRONTEND_URL: http://localhost:3001
+      DASHBOARD_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:3001,http://localhost:5173
+      BCRYPT_ROUNDS: 12
+      ENCRYPTION_KEY: tu-clave-256-bits-aqui-cambiar-en-produccion-docker
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - clinica-network
+    command: npm run dev
+
+  # Dashboard Admin
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: clinica-belleza-dashboard
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_NODE_ENV: development
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - clinica-network
+    command: npm run dev -- --host
+
+  # Frontend Web
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clinica-belleza-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+      NEXT_PUBLIC_DASHBOARD_URL: http://localhost:5173
+      NODE_ENV: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - clinica-network
+    command: npm run dev
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  clinica-network:
+    driver: bridge

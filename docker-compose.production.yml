@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: clinica-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-clinica_belleza}
+      MYSQL_USER: ${MYSQL_USER:-clinica_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinica-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: clinica-redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinica-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    container_name: clinica-backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      
+      # Database
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-clinica_belleza}
+      DB_USER: ${MYSQL_USER:-clinica_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      
+      # Twilio
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
+      TWILIO_WEBHOOK_URL: ${TWILIO_WEBHOOK_URL}
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4}
+      
+      # URLs
+      FRONTEND_URL: ${FRONTEND_URL}
+      DASHBOARD_URL: ${DASHBOARD_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      
+      # Security
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      
+      # Uploads
+      UPLOAD_PATH: uploads
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-image/jpeg,image/png,image/webp}
+      
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - clinica-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+
+  # Dashboard Admin
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.production
+      args:
+        VITE_API_URL: https://api.${DOMAIN}
+    container_name: clinica-dashboard
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - clinica-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=80"
+
+  # Frontend Web
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.production
+      args:
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/api/v1
+        NEXT_PUBLIC_DASHBOARD_URL: https://dashboard.${DOMAIN}
+    container_name: clinica-frontend
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - clinica-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  clinica-network:
+    driver: bridge

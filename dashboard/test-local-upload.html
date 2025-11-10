@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local Upload</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        img { max-width: 200px; margin: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Test Local Upload (Sin Backend)</h1>
+    
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <button onclick="testLocalUpload()">Subir Localmente</button>
+    <button onclick="showStoredImages()">Mostrar Imágenes Guardadas</button>
+    <button onclick="clearStorage()">Limpiar Storage</button>
+    
+    <div id="results"></div>
+    <div id="images"></div>
+    
+    <script>
+        async function testLocalUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            const results = document.getElementById('results');
+            
+            if (files.length === 0) {
+                results.innerHTML = '<p class="error">Selecciona al menos un archivo</p>';
+                return;
+            }
+            
+            results.innerHTML = '<p class="info">Procesando archivos...</p>';
+            
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Convert to base64
+                    const base64 = await fileToBase64(file);
+                    
+                    // Create file info
+                    const fileInfo = {
+                        filename: `local-${Date.now()}-${i}.${file.name.split('.').pop()}`,
+                        originalName: file.name,
+                        size: file.size,
+                        mimetype: file.type,
+                        url: base64,
+                        uploadedAt: new Date().toISOString()
+                    };
+                    
+                    // Store in localStorage
+                    const storageKey = `uploaded_services_${fileInfo.filename}`;
+                    localStorage.setItem(storageKey, JSON.stringify(fileInfo));
+                    
+                    console.log('Stored:', storageKey, fileInfo);
+                }
+                
+                results.innerHTML = `<p class="success">✅ ${files.length} archivos subidos localmente!</p>`;
+                showStoredImages();
+                
+            } catch (error) {
+                results.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Error reading file'));
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function showStoredImages() {
+            const imagesDiv = document.getElementById('images');
+            imagesDiv.innerHTML = '<h3>Imágenes Guardadas:</h3>';
+            
+            let count = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                
+                if (key && key.startsWith('uploaded_services_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        
+                        const imgContainer = document.createElement('div');
+                        imgContainer.style.display = 'inline-block';
+                        imgContainer.style.margin = '10px';
+                        imgContainer.style.textAlign = 'center';
+                        
+                        const img = document.createElement('img');
+                        img.src = data.url;
+                        img.alt = data.originalName;
+                        img.title = `${data.originalName} (${(data.size / 1024).toFixed(1)} KB)`;
+                        
+                        const label = document.createElement('p');
+                        label.textContent = data.originalName;
+                        label.style.fontSize = '12px';
+                        label.style.margin = '5px 0';
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(label);
+                        imagesDiv.appendChild(imgContainer);
+                        
+                        count++;
+                    } catch (error) {
+                        console.error('Error parsing stored data:', error);
+                    }
+                }
+            }
+            
+            if (count === 0) {
+                imagesDiv.innerHTML += '<p class="info">No hay imágenes guardadas</p>';
+            } else {
+                imagesDiv.innerHTML = `<h3>Imágenes Guardadas (${count}):</h3>` + imagesDiv.innerHTML.replace('<h3>Imágenes Guardadas:</h3>', '');
+            }
+        }
+        
+        function clearStorage() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('uploaded_')) {
+                    keys.push(key);
+                }
+            }
+            
+            keys.forEach(key => localStorage.removeItem(key));
+            
+            document.getElementById('results').innerHTML = `<p class="success">✅ ${keys.length} imágenes eliminadas del storage</p>`;
+            document.getElementById('images').innerHTML = '';
+        }
+        
+        // Show stored images on load
+        window.onload = showStoredImages;
+    </script>
+</body>
+</html>

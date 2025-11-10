@@ -1,0 +1,42 @@
+{
+  "name": "sistema-gestion-clinica-belleza",
+  "version": "1.0.0",
+  "description": "Sistema integral de gestión para clínica de belleza con agente IA multicanal",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:dashboard\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:dashboard": "cd dashboard && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:dashboard",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:dashboard": "cd dashboard && npm run build",
+    "start": "cd backend && npm start",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:dashboard",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:dashboard": "cd dashboard && npm test",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:ps": "docker-compose ps",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v",
+    "docker:build": "docker-compose build"
+  },
+  "keywords": [
+    "clinica",
+    "belleza",
+    "gestion",
+    "ia",
+    "whatsapp",
+    "twilio",
+    "reservas"
+  ],
+  "author": "Sistema Clínica Belleza",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
