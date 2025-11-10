@@ -7,6 +7,7 @@
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:minimal": "node dist/index-minimal.js",
     "start:prod": "sh start-production.sh",
     "test": "jest",
     "test:watch": "jest --watch",

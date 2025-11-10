@@ -18,5 +18,5 @@ else
 fi
 
 echo "✅ Base de datos lista"
-echo "🚀 Iniciando servidor..."
-exec node dist/index.js
+echo "🚀 Iniciando servidor (versión mínima para diagnóstico)..."
+exec node dist/index-minimal.js
