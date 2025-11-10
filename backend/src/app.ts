@@ -32,6 +32,7 @@ import gdprRoutes from './routes/gdpr';
 import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
 import categoryRoutes from './routes/categories';
 import knowledgeRoutes from './routes/knowledge';
+import dashboardRoutes from './routes/dashboard';
 
 const app: express.Application = express();
 
@@ -85,7 +86,7 @@ app.use(morgan('combined', {
 }));
 
 // 8. Archivos estáticos con CORS headers (CORREGIDO)
-app.use('/uploads', (req, res, next) => {
+const staticMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Headers CORS para imágenes
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
@@ -99,7 +100,10 @@ app.use('/uploads', (req, res, next) => {
   res.header('Cache-Control', 'public, max-age=31536000');
   
   next();
-}, express.static(path.join(__dirname, '..', 'uploads')));
+};
+
+app.use('/uploads', staticMiddleware, express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/images', staticMiddleware, express.static(path.join(__dirname, '..', 'uploads')));
 
 // 9. Health check
 logger.info('✅ Configurando health check endpoint...');
@@ -131,6 +135,7 @@ app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
 app.use(`/api/${config.apiVersion}/upload`, uploadRoutes); // UNA SOLA RUTA DE UPLOAD
 app.use(`/api/${config.apiVersion}/categories`, categoryRoutes);
 app.use(`/api/${config.apiVersion}/knowledge`, knowledgeRoutes);
+app.use(`/api/${config.apiVersion}/dashboard`, dashboardRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {
