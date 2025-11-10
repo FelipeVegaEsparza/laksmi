@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import config from './config';
 import logger from './utils/logger';
 import db from './config/database';
-import app from './app';
+import app from './app-minimal';
 
 const server = createServer(app);
 
