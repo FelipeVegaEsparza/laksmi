@@ -53,9 +53,10 @@ const upload = multer({
 });
 
 // AUTENTICACIÓN CONDICIONAL - Solo en producción
-const conditionalAuth = (req: any, res: any, next: any) => {
+const conditionalAuth = (req: any, res: any, next: any): void => {
   if (config.nodeEnv === 'production') {
-    return authenticateToken(req, res, next);
+    authenticateToken(req, res, next);
+    return;
   }
   next(); // Skip auth in development
 };
