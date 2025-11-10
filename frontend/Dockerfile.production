@@ -26,8 +26,8 @@ WORKDIR /app
 # Copiar package files
 COPY package*.json ./
 
-# Instalar solo dependencias de producción
-RUN npm ci --only=production
+# Instalar solo dependencias de producción + TypeScript para next.config.ts
+RUN npm ci --only=production && npm install typescript
 
 # Copiar build desde builder
 COPY --from=builder /app/.next ./.next
