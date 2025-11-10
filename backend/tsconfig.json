@@ -44,6 +44,15 @@
     "dist",
     "src/tests/**/*",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/**/*-backup.ts",
+    "src/**/*-clean.ts",
+    "src/**/*-temp.ts",
+    "src/**/*-simple.ts",
+    "src/**/*-direct.ts",
+    "src/**/*-final.ts",
+    "src/**/*-working.ts",
+    "src/**/*-working-backup.ts",
+    "src/**/*-fixed.ts"
   ]
 }
