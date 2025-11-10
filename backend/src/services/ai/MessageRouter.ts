@@ -35,24 +35,35 @@ export class MessageRouter {
       // Obtener o crear cliente
       let client = await ClientModel.findById(request.clientId);
       if (!client) {
-        // Si es WhatsApp, intentar buscar por teléfono
-        if (request.channel === 'whatsapp' && request.metadata?.phone) {
-          client = await ClientModel.findByPhone(request.metadata.phone);
-        }
+        // Intentar buscar por teléfono
+        const phoneToSearch = request.channel === 'whatsapp' && request.metadata?.phone
+          ? request.metadata.phone
+          : `web_${request.clientId.substring(0, 8)}`;
+        
+        client = await ClientModel.findByPhone(phoneToSearch);
         
         // Si aún no existe, crear cliente temporal para chat web
         if (!client && request.channel === 'web') {
-          client = await ClientModel.create({
-            name: `Web Visitor ${request.clientId.substring(0, 8)}`,
-            phone: `web_${request.clientId.substring(0, 8)}`,
-            email: request.metadata?.email || ''
-          });
-          logger.info(`New web client created: ${client.id} for web ID: ${request.clientId}`);
-          // Actualizar el clientId del request para usar el ID real de la BD
-          request.clientId = client.id;
+          try {
+            client = await ClientModel.create({
+              name: `Web Visitor ${request.clientId.substring(0, 8)}`,
+              phone: phoneToSearch,
+              email: request.metadata?.email || ''
+            });
+            logger.info(`New web client created: ${client.id} for web ID: ${request.clientId}`);
+          } catch (error: any) {
+            // Si falla por duplicado, intentar buscar de nuevo
+            if (error.message?.includes('Duplicate entry')) {
+              client = await ClientModel.findByPhone(phoneToSearch);
+            }
+            if (!client) throw error;
+          }
         }
         
-        if (!client) {
+        if (client) {
+          // Actualizar el clientId del request para usar el ID real de la BD
+          request.clientId = client.id;
+        } else {
           throw new Error('Client not found');
         }
       }
