@@ -40,6 +40,19 @@ export class MessageRouter {
           client = await ClientModel.findByPhone(request.metadata.phone);
         }
         
+        // Si aún no existe, crear cliente temporal para chat web
+        if (!client && request.channel === 'web') {
+          client = await ClientModel.create({
+            id: request.clientId,
+            name: `Web Visitor ${request.clientId.substring(0, 8)}`,
+            phone: '',
+            email: request.metadata?.email || '',
+            source: 'web_chat',
+            notes: 'Cliente creado automáticamente desde chat web'
+          });
+          logger.info(`New web client created: ${client.id}`);
+        }
+        
         if (!client) {
           throw new Error('Client not found');
         }
