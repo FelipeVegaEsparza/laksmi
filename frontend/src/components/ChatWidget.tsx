@@ -80,9 +80,18 @@ const ChatWidget = () => {
     try {
       const response = await chatApi.sendMessage(inputMessage, clientId);
       
+      // Extraer el mensaje de la respuesta
+      let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
+      
+      if (typeof response === 'string') {
+        messageContent = response;
+      } else if (response && typeof response === 'object') {
+        messageContent = response.response?.message || response.message || response.response || messageContent;
+      }
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response.response || 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?',
+        content: messageContent,
         sender: 'ai',
         timestamp: new Date()
       };
