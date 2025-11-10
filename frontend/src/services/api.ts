@@ -90,7 +90,7 @@ export const bookingsApi = {
 export const chatApi = {
   sendMessage: async (message: string, clientId?: string): Promise<{ response: string; conversationId: string }> => {
     const response = await api.post('/ai/message', {
-      message,
+      content: message,
       clientId,
       channel: 'web'
     });
