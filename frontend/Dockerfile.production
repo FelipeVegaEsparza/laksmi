@@ -12,6 +12,9 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
+# Eliminar next.config.ts si existe (usaremos el .js)
+RUN rm -f next.config.ts
+
 # Build de producción
 RUN npm run build
 
