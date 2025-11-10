@@ -30,7 +30,7 @@ export const servicesApi = {
   getCategories: async (): Promise<Array<{ id: string; name: string }>> => {
     const response = await api.get('/categories/public?type=service&isActive=true');
     const categories = response.data.data || response.data;
-    return categories.map((cat: any) => ({ id: cat.name, name: cat.name }));
+    return categories.map((cat: { name: string }) => ({ id: cat.name, name: cat.name }));
   },
 
   getPopular: async (): Promise<Service[]> => {
@@ -64,7 +64,7 @@ export const productsApi = {
   getCategories: async (): Promise<Array<{ id: string; name: string }>> => {
     const response = await api.get('/categories/public?type=product&isActive=true');
     const categories = response.data.data || response.data;
-    return categories.map((cat: any) => ({ id: cat.name, name: cat.name }));
+    return categories.map((cat: { name: string }) => ({ id: cat.name, name: cat.name }));
   },
 };
 
