@@ -15,6 +15,10 @@ COPY . .
 # Eliminar next.config.ts si existe (usaremos el .js)
 RUN rm -f next.config.ts
 
+# Argumentos de build
+ARG NEXT_PUBLIC_API_URL=https://laksmi-backend.0ieu13.easypanel.host/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build de producción
 RUN npm run build
 
