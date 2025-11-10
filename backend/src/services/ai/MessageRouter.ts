@@ -43,14 +43,15 @@ export class MessageRouter {
         // Si aún no existe, crear cliente temporal para chat web
         if (!client && request.channel === 'web') {
           client = await ClientModel.create({
-            id: request.clientId,
             name: `Web Visitor ${request.clientId.substring(0, 8)}`,
-            phone: '',
+            phone: `web_${request.clientId.substring(0, 8)}`,
             email: request.metadata?.email || '',
             source: 'web_chat',
-            notes: 'Cliente creado automáticamente desde chat web'
+            notes: `Cliente creado automáticamente desde chat web. ID original: ${request.clientId}`
           });
-          logger.info(`New web client created: ${client.id}`);
+          logger.info(`New web client created: ${client.id} for web ID: ${request.clientId}`);
+          // Actualizar el clientId del request para usar el ID real de la BD
+          request.clientId = client.id;
         }
         
         if (!client) {
