@@ -132,9 +132,15 @@ export class MessageRouter {
           };
         }
       } else {
-        // Generar respuesta normal del IA
+        // Generar respuesta usando base de conocimientos
+        const { KnowledgeService } = await import('../KnowledgeService');
+        const knowledgeContext = await KnowledgeService.getContextForAI(request.content, conversation.id);
+        
+        // Generar respuesta normal del IA con contexto de conocimiento
         aiResponse = {
-          message: this.generateSimpleResponse(nluResult.intent.name, client.name),
+          message: knowledgeContext 
+            ? `${this.generateSimpleResponse(nluResult.intent.name, client.name)}\n\n${knowledgeContext}`
+            : this.generateSimpleResponse(nluResult.intent.name, client.name),
           intent: nluResult.intent.name,
           entities: nluResult.entities,
           needsHumanEscalation: nluResult.needsHumanEscalation || false
