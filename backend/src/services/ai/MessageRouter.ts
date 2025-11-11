@@ -76,15 +76,19 @@ export class MessageRouter {
       }
 
       // Guardar mensaje del cliente
+      logger.info('Saving client message...', { metadata: request.metadata });
       const clientMessage = await ConversationModel.addMessage(conversation.id, {
         senderType: 'client',
         content: request.content,
         mediaUrl: request.mediaUrl,
         metadata: request.metadata
       });
+      logger.info('Client message saved:', { messageId: clientMessage.id });
 
       // Actualizar contexto con el nuevo mensaje
+      logger.info('Updating context...');
       await ContextManager.addMessageToContext(conversation.id, clientMessage);
+      logger.info('Context updated');
 
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);

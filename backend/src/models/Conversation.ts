@@ -470,12 +470,26 @@ export class ConversationModel {
   }
 
   private static formatConversation(dbConversation: any): Conversation {
+    // Parsear context solo si es string
+    let context = { lastMessages: [], variables: {} };
+    if (dbConversation.context) {
+      if (typeof dbConversation.context === 'string') {
+        try {
+          context = JSON.parse(dbConversation.context);
+        } catch (error) {
+          logger.error('Error parsing conversation context:', error);
+        }
+      } else {
+        context = dbConversation.context;
+      }
+    }
+    
     return {
       id: dbConversation.id,
       clientId: dbConversation.client_id,
       channel: dbConversation.channel,
       status: dbConversation.status,
-      context: dbConversation.context ? JSON.parse(dbConversation.context) : { lastMessages: [], variables: {} },
+      context,
       lastActivity: new Date(dbConversation.last_activity),
       createdAt: dbConversation.created_at,
       updatedAt: dbConversation.updated_at
@@ -483,13 +497,28 @@ export class ConversationModel {
   }
 
   private static formatMessage(dbMessage: any): Message {
+    // Parsear metadata solo si es string
+    let metadata = undefined;
+    if (dbMessage.metadata) {
+      if (typeof dbMessage.metadata === 'string') {
+        try {
+          metadata = JSON.parse(dbMessage.metadata);
+        } catch (error) {
+          logger.error('Error parsing message metadata:', error);
+          metadata = undefined;
+        }
+      } else {
+        metadata = dbMessage.metadata;
+      }
+    }
+    
     return {
       id: dbMessage.id,
       conversationId: dbMessage.conversation_id,
       senderType: dbMessage.sender_type,
       content: dbMessage.content,
       mediaUrl: dbMessage.media_url,
-      metadata: dbMessage.metadata ? JSON.parse(dbMessage.metadata) : undefined,
+      metadata,
       timestamp: new Date(dbMessage.timestamp)
     };
   }
