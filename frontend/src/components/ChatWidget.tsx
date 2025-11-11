@@ -190,9 +190,9 @@ const ChatWidget = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 z-50 max-w-[calc(100vw-2rem)]">
       <div className={`bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-200 ${
-        isMinimized ? 'w-80 h-16' : 'w-80 h-96'
+        isMinimized ? 'w-80 sm:w-96 h-16' : 'w-80 sm:w-96 h-[32rem] max-h-[calc(100vh-2rem)]'
       }`}>
         {/* Header */}
         <div className="bg-rose-600 text-white p-4 rounded-t-lg flex items-center justify-between">
@@ -221,7 +221,7 @@ const ChatWidget = () => {
         {!isMinimized && (
           <>
             {/* Messages */}
-            <div className="h-64 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: 'calc(100% - 12rem)' }}>
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -256,14 +256,14 @@ const ChatWidget = () => {
 
             {/* Quick Actions */}
             {messages.length <= 1 && (
-              <div className="px-4 pb-2">
-                <div className="text-xs text-gray-500 mb-2">Acciones rápidas:</div>
-                <div className="flex flex-wrap gap-1">
+              <div className="px-4 pb-2 border-t border-gray-100">
+                <div className="text-xs text-gray-500 mb-2 mt-2">Acciones rápidas:</div>
+                <div className="grid grid-cols-2 gap-1">
                   {quickActions.map((action, index) => (
                     <button
                       key={index}
                       onClick={() => handleQuickAction(action.action, action.text)}
-                      className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
+                      className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded transition-colors text-left"
                     >
                       {action.text}
                     </button>
@@ -273,8 +273,8 @@ const ChatWidget = () => {
             )}
 
             {/* Input */}
-            <div className="border-t border-gray-200 p-4">
-              <div className="flex space-x-2">
+            <div className="border-t border-gray-200 p-3">
+              <div className="flex space-x-2 mb-2">
                 <input
                   type="text"
                   value={inputMessage}
@@ -287,22 +287,22 @@ const ChatWidget = () => {
                 <button
                   onClick={sendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 text-white p-2 rounded-lg transition-colors"
+                  className="bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 text-white p-2 rounded-lg transition-colors flex-shrink-0"
                   aria-label="Enviar mensaje"
                 >
                   <Send className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex items-center justify-between mt-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <div className="text-xs text-gray-500">
-                  Conversación segura y privada
+                  Conversación segura
                 </div>
                 <button
                   onClick={transferToWhatsApp}
-                  className="text-xs text-green-600 hover:text-green-700 flex items-center"
+                  className="text-xs text-green-600 hover:text-green-700 flex items-center whitespace-nowrap"
                 >
                   <ExternalLink className="h-3 w-3 mr-1" />
-                  Continuar en WhatsApp
+                  WhatsApp
                 </button>
               </div>
             </div>

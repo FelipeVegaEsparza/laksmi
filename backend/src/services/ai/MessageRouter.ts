@@ -132,16 +132,24 @@ export class MessageRouter {
           };
         }
       } else {
-        // Generar respuesta usando base de conocimientos solo para consultas específicas
+        // Generar respuesta base
         let responseMessage = this.generateSimpleResponse(nluResult.intent.name, client.name);
         
-        // Solo buscar en la base de conocimientos si es una consulta de información
-        if (['service_inquiry', 'product_inquiry', 'price_inquiry', 'information_request'].includes(nluResult.intent.name)) {
-          const { KnowledgeService } = await import('../KnowledgeService');
-          const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
-          
-          if (knowledgeAnswer) {
-            responseMessage = knowledgeAnswer;
+        // Solo buscar en la base de conocimientos si es una pregunta específica (no saludos ni despedidas)
+        const shouldSearchKnowledge = !['greeting', 'goodbye', 'thanks'].includes(nluResult.intent.name) 
+          && request.content.includes('?');
+        
+        if (shouldSearchKnowledge) {
+          try {
+            const { KnowledgeService } = await import('../KnowledgeService');
+            const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
+            
+            if (knowledgeAnswer) {
+              responseMessage = knowledgeAnswer;
+            }
+          } catch (error) {
+            logger.warn('Error fetching knowledge base:', error);
+            // Continuar con la respuesta simple si falla
           }
         }
         
