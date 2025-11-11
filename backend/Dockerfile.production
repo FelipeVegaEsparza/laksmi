@@ -1,10 +1,5 @@
-# Backend Production Dockerfile
+# Dockerfile de Producción - Multi-stage build
 FROM node:20-alpine AS builder
-
-# Configurar repositorios alternativos de Alpine (por si los principales fallan)
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/main" > /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/community" >> /etc/apk/repositories && \
-    apk update || true
 
 # Instalar dependencias del sistema
 RUN apk add --no-cache python3 make g++ cairo-dev jpeg-dev pango-dev giflib-dev
@@ -15,11 +10,13 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instalar dependencias (incluyendo devDependencies para build)
+# Instalar dependencias (incluyendo devDependencies para compilar)
 RUN npm ci
 
 # Copiar código fuente
-COPY . .
+COPY src ./src
+COPY migrations ./migrations
+COPY seeds ./seeds
 
 # Compilar TypeScript
 RUN npm run build
@@ -27,12 +24,7 @@ RUN npm run build
 # Etapa de producción
 FROM node:20-alpine
 
-# Configurar repositorios alternativos de Alpine
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/main" > /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/v3.22/community" >> /etc/apk/repositories && \
-    apk update || true
-
-# Instalar dependencias runtime
+# Instalar dependencias del sistema necesarias en runtime
 RUN apk add --no-cache cairo jpeg pango giflib
 
 WORKDIR /app
@@ -40,17 +32,13 @@ WORKDIR /app
 # Copiar package files
 COPY package*.json ./
 
-# Instalar dependencias de producción + knex para migraciones
-RUN npm ci --only=production && npm install knex
+# Instalar solo dependencias de producción
+RUN npm ci --only=production
 
 # Copiar código compilado desde builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/database ./src/database
-COPY --from=builder /app/knexfile.js ./knexfile.js
-
-# Copiar script de inicio
-COPY start-production.sh ./
-RUN chmod +x start-production.sh
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/seeds ./seeds
 
 # Crear directorios necesarios
 RUN mkdir -p uploads logs
@@ -65,9 +53,9 @@ USER nodejs
 # Exponer puerto
 EXPOSE 3000
 
-# Health check (más tiempo para iniciar)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Comando de inicio (ejecuta migraciones y luego inicia el servidor)
-CMD ["./start-production.sh"]
+# Comando de inicio
+CMD ["node", "dist/index.js"]
