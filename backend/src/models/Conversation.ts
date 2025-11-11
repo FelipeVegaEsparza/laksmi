@@ -51,8 +51,11 @@ export class ConversationModel {
   }
 
   static async updateContext(id: string, context: ConversationContext): Promise<Conversation | null> {
+    // Asegurarse de que context es un objeto antes de stringify
+    const contextToSave = typeof context === 'string' ? context : JSON.stringify(context);
+    
     const updateData = {
-      context: JSON.stringify(context),
+      context: contextToSave,
       last_activity: new Date(),
       updated_at: new Date()
     };
