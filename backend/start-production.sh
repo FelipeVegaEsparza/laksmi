@@ -12,10 +12,15 @@ echo "Using environment: ${NODE_ENV:-production}"
 # 1. Ejecutar migraciones de Knex (sistema viejo - tablas principales)
 echo "📦 Ejecutando migraciones Knex (tablas base)..."
 npm run migrate || echo "⚠️  Migraciones Knex ya ejecutadas"
+echo "✅ Migraciones Knex completadas"
 
 # 2. Ejecutar migraciones SQL (sistema nuevo - tablas adicionales)
 echo "📄 Ejecutando migraciones SQL (nuevas tablas)..."
+echo "📍 Verificando archivo: dist/scripts/run-migrations.js"
+ls -la dist/scripts/ || echo "❌ Carpeta dist/scripts no existe"
+echo "🔄 Ejecutando node dist/scripts/run-migrations.js..."
 node dist/scripts/run-migrations.js
+echo "✅ Migraciones SQL completadas"
 
 echo "🌱 Verificando si necesitamos cargar datos iniciales..."
 # Ejecutar seeds (solo si es necesario)
