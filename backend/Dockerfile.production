@@ -24,24 +24,20 @@ RUN npm run build
 # Etapa de producción
 FROM node:20-alpine
 
-# Instalar dependencias del sistema necesarias en runtime
-# Incluir python3 y build tools para sharp
+# Instalar solo dependencias de runtime necesarias (sin build tools)
 RUN apk add --no-cache \
     cairo \
     jpeg \
     pango \
-    giflib \
-    python3 \
-    make \
-    g++
+    giflib
 
 WORKDIR /app
 
 # Copiar package files
 COPY package*.json ./
 
-# Instalar solo dependencias de producción
-RUN npm ci --only=production
+# Copiar node_modules completo desde builder (incluye sharp ya compilado)
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copiar código compilado desde builder
 COPY --from=builder /app/dist ./dist
