@@ -15,10 +15,7 @@ npm run migrate || echo "⚠️  Migraciones Knex ya ejecutadas"
 
 # 2. Ejecutar migraciones SQL (sistema nuevo - tablas adicionales)
 echo "📄 Ejecutando migraciones SQL (nuevas tablas)..."
-node dist/scripts/run-migrations.js || {
-  echo "❌ Error ejecutando migraciones SQL"
-  exit 1
-}
+node dist/scripts/run-migrations.js
 
 echo "🌱 Verificando si necesitamos cargar datos iniciales..."
 # Ejecutar seeds (solo si es necesario)
