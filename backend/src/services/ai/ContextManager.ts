@@ -91,7 +91,13 @@ export class ContextManager {
   static async addMessageToContext(conversationId: string, message: Message): Promise<ConversationContext> {
     const currentContext = await this.getContext(conversationId);
     
-    const updatedMessages = [...currentContext.lastMessages, message];
+    // Crear una copia del mensaje sin metadata complejo para evitar problemas de serialización
+    const messageForContext = {
+      ...message,
+      metadata: message.metadata ? (typeof message.metadata === 'string' ? message.metadata : JSON.stringify(message.metadata)) : undefined
+    };
+    
+    const updatedMessages = [...currentContext.lastMessages, messageForContext as Message];
     
     return await this.updateContext(conversationId, {
       lastMessages: updatedMessages
