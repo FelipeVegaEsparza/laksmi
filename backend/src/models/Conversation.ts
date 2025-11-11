@@ -1,5 +1,6 @@
 import db from '../config/database';
 import { Conversation, ConversationContext, ConversationChannel, ConversationStatus, Message } from '../types/ai';
+import logger from '../utils/logger';
 
 export class ConversationModel {
   static async findById(id: string): Promise<Conversation | null> {
