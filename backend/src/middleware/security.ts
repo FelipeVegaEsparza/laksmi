@@ -30,15 +30,15 @@ try {
 }
 
 export const loginBruteForce = new ExpressBrute(bruteStore, {
-  freeRetries: 5,
-  minWait: 5 * 60 * 1000, // 5 minutes
-  maxWait: 60 * 60 * 1000, // 1 hour
+  freeRetries: process.env.NODE_ENV === 'development' ? 50 : 5, // 50 intentos en desarrollo, 5 en producción
+  minWait: process.env.NODE_ENV === 'development' ? 1000 : 5 * 60 * 1000, // 1 segundo en dev, 5 minutos en prod
+  maxWait: process.env.NODE_ENV === 'development' ? 5000 : 60 * 60 * 1000, // 5 segundos en dev, 1 hora en prod
   lifetime: 24 * 60 * 60, // 24 hours
   failCallback: (req: Request, res: Response, next: NextFunction) => {
     logger.warn(`Brute force attack detected from IP: ${req.ip}`);
     res.status(429).json({
       error: 'Too many failed login attempts. Please try again later.',
-      retryAfter: '5 minutes'
+      retryAfter: process.env.NODE_ENV === 'development' ? '1 second' : '5 minutes'
     });
   }
 });
@@ -139,17 +139,17 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
   try {
     // Sanitize request body
     if (req.body && typeof req.body === 'object') {
-      req.body = sanitizeObject(req.body);
+      req.body = sanitizeObject(req.body, undefined);
     }
 
     // Sanitize query parameters
     if (req.query && typeof req.query === 'object') {
-      req.query = sanitizeObject(req.query);
+      req.query = sanitizeObject(req.query, undefined);
     }
 
     // Sanitize URL parameters
     if (req.params && typeof req.params === 'object') {
-      req.params = sanitizeObject(req.params);
+      req.params = sanitizeObject(req.params, undefined);
     }
 
     next();
@@ -159,26 +159,55 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
   }
 };
 
+// Fields that should not be sanitized (URLs, paths, etc.)
+const SKIP_SANITIZE_FIELDS = [
+  'logoUrl',
+  'logo_url',
+  'facebookUrl',
+  'facebook_url',
+  'instagramUrl',
+  'instagram_url',
+  'tiktokUrl',
+  'tiktok_url',
+  'xUrl',
+  'x_url',
+  'url',
+  'link',
+  'path',
+  'imageUrl',
+  'image_url',
+  'videoUrl',
+  'video_url',
+  'fileUrl',
+  'file_url'
+];
+
 // Recursive object sanitization
-function sanitizeObject(obj: any): any {
+function sanitizeObject(obj: any, parentKey?: string): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   if (typeof obj === 'string') {
+    // Skip sanitization for URL/path fields
+    if (parentKey && SKIP_SANITIZE_FIELDS.includes(parentKey)) {
+      return obj;
+    }
     return sanitizeString(obj);
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item));
+    return obj.map(item => sanitizeObject(item, parentKey));
   }
 
   if (typeof obj === 'object') {
     const sanitized: any = {};
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
-        const sanitizedKey = sanitizeString(key);
-        sanitized[sanitizedKey] = sanitizeObject(obj[key]);
+        // Don't sanitize the key if it's a URL field
+        const shouldSkipKey = SKIP_SANITIZE_FIELDS.includes(key);
+        const sanitizedKey = shouldSkipKey ? key : sanitizeString(key);
+        sanitized[sanitizedKey] = sanitizeObject(obj[key], key);
       }
     }
     return sanitized;

@@ -28,6 +28,7 @@ import { categoryService } from '@/services/categoryService'
 import { useNotifications } from '@/contexts/NotificationContext'
 import DataTable, { Column } from '@/components/DataTable'
 import FormModal from '@/components/FormModal'
+import { formatPrice } from '@/utils/currency'
 import ServiceForm from '@/components/ServiceForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
@@ -174,7 +175,7 @@ export default function ServicesPage() {
       label: 'Precio',
       minWidth: 100,
       align: 'right',
-      format: (value: number) => `€${value.toFixed(2)}`,
+      format: (value: number) => formatPrice(value),
     },
     {
       id: 'duration',
@@ -334,7 +335,7 @@ export default function ServicesPage() {
                   
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" color="primary">
-                      €{service.price.toFixed(2)}
+                      {formatPrice(service.price)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {service.duration} min

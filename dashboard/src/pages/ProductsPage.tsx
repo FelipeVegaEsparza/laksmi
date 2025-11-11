@@ -26,6 +26,7 @@ import DataTable, { Column } from '@/components/DataTable'
 import FormModal from '@/components/FormModal'
 import ProductForm from '@/components/ProductForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { formatPrice } from '@/utils/currency'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -161,7 +162,7 @@ export default function ProductsPage() {
       label: 'Precio',
       minWidth: 100,
       align: 'right',
-      format: (value: number) => `€${value.toFixed(2)}`,
+      format: (value: number) => formatPrice(value),
     },
     {
       id: 'stock',

@@ -122,10 +122,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
   }
 
   const addRequirement = () => {
-    if (newRequirement.trim() && !formData.requirements.includes(newRequirement.trim())) {
+    const requirements = Array.isArray(formData.requirements) ? formData.requirements : []
+    if (newRequirement.trim() && !requirements.includes(newRequirement.trim())) {
       setFormData(prev => ({
         ...prev,
-        requirements: [...prev.requirements, newRequirement.trim()]
+        requirements: [...requirements, newRequirement.trim()]
       }))
       setNewRequirement('')
     }
@@ -134,7 +135,9 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
   const removeRequirement = (requirement: string) => {
     setFormData(prev => ({
       ...prev,
-      requirements: prev.requirements.filter(req => req !== requirement)
+      requirements: Array.isArray(prev.requirements) 
+        ? prev.requirements.filter(req => req !== requirement)
+        : []
     }))
   }
 
@@ -189,7 +192,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             error={!!errors.price}
             helperText={errors.price}
             InputProps={{
-              startAdornment: <InputAdornment position="start">€</InputAdornment>,
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
             inputProps={{ min: 0, step: 0.01 }}
             required
@@ -259,7 +262,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
           </Box>
           
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {formData.requirements.map((requirement, index) => (
+            {Array.isArray(formData.requirements) && formData.requirements.map((requirement, index) => (
               <Chip
                 key={index}
                 label={requirement}

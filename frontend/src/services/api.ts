@@ -89,11 +89,14 @@ export const bookingsApi = {
 // Chat API (for web widget)
 export const chatApi = {
   sendMessage: async (message: string, clientId?: string): Promise<{ response: string; conversationId: string }> => {
-    const response = await api.post('/ai/message', {
+    const payload = {
       content: message,
-      clientId,
+      clientId: clientId || '',
       channel: 'web'
-    });
+    };
+    console.log('Sending chat message:', payload);
+    const response = await api.post('/ai/message', payload);
+    console.log('Chat response:', response.data);
     return response.data.data || response.data;
   },
 

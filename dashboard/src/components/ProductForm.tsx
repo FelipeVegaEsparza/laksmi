@@ -67,10 +67,15 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     // Fetch services for compatibility selection
     const fetchServices = async () => {
       try {
-        const response = await apiService.get<Service[]>('/services?active=true')
-        setServices(response)
+        const response = await apiService.get<any>('/services?active=true')
+        // Asegurarse de que sea un array
+        const servicesArray = Array.isArray(response) 
+          ? response 
+          : (response?.services || response?.data?.services || [])
+        setServices(servicesArray)
       } catch (error) {
         console.error('Error fetching services:', error)
+        setServices([]) // Establecer array vacío en caso de error
       }
     }
     fetchServices()
@@ -157,9 +162,9 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     }
   }
 
-  const selectedServices = services.filter(service => 
-    formData.compatibleServices.includes(service.id)
-  )
+  const selectedServices = Array.isArray(services) 
+    ? services.filter(service => formData.compatibleServices.includes(service.id))
+    : []
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
@@ -205,7 +210,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             error={!!errors.price}
             helperText={errors.price}
             InputProps={{
-              startAdornment: <InputAdornment position="start">€</InputAdornment>,
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
             inputProps={{ min: 0, step: 0.01 }}
             required

@@ -68,21 +68,37 @@ export class ConversationController {
         .limit(limitNum)
         .offset(offset);
 
-      const formattedConversations = conversations.map(conv => ({
-        id: conv.id,
-        clientId: conv.client_id,
-        channel: conv.channel,
-        status: conv.status,
-        context: conv.context ? JSON.parse(conv.context) : { lastMessages: [], variables: {} },
-        lastActivity: conv.last_activity,
-        createdAt: conv.created_at,
-        client: {
-          id: conv.client_id,
-          name: conv.client_name,
-          phone: conv.client_phone,
-          email: conv.client_email
+      const formattedConversations = conversations.map(conv => {
+        // Parsear context solo si es string
+        let context = { lastMessages: [], variables: {} };
+        if (conv.context) {
+          if (typeof conv.context === 'string') {
+            try {
+              context = JSON.parse(conv.context);
+            } catch (error) {
+              logger.error('Error parsing conversation context:', error);
+            }
+          } else {
+            context = conv.context;
+          }
         }
-      }));
+        
+        return {
+          id: conv.id,
+          clientId: conv.client_id,
+          channel: conv.channel,
+          status: conv.status,
+          context,
+          lastActivity: conv.last_activity,
+          createdAt: conv.created_at,
+          client: {
+            id: conv.client_id,
+            name: conv.client_name,
+            phone: conv.client_phone,
+            email: conv.client_email
+          }
+        };
+      });
 
       res.json({
         success: true,

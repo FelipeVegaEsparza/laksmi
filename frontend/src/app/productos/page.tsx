@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { Product } from '@/types';
 import { productsApi } from '@/services/api';
 import { Search, Filter, ShoppingCart, Sparkles } from 'lucide-react';
+import ServiceImage from '@/components/ServiceImage';
+import { formatPrice } from '@/utils/currency';
 
-const ProductsPage = () => {
+const ProductsContent = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([
@@ -16,6 +19,8 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState<{ [key: string]: number }>({});
+  
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -72,6 +77,20 @@ const ProductsPage = () => {
     loadCategories();
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    // Get category and search from URL params
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    
+    if (category && category !== 'all') {
+      setSelectedCategory(category);
+    }
+    
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, [searchParams]);
 
   const addToCart = (productId: string) => {
     setCart(prev => ({
@@ -180,8 +199,13 @@ const ProductsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                      <div className="h-48 bg-gradient-to-br from-rose-200 to-pink-300 flex items-center justify-center">
-                        <Sparkles className="h-16 w-16 text-rose-600" />
+                      <div className="relative h-48 overflow-hidden">
+                        <ServiceImage
+                          src={product.images?.[0] || ''}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          fallbackClassName="w-full h-full"
+                        />
                       </div>
                       <div className="p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -192,7 +216,7 @@ const ProductsPage = () => {
                         </p>
                         <div className="flex items-center justify-between mb-4">
                           <div className="text-2xl font-bold text-rose-600">
-                            €{product.price}
+                            {formatPrice(product.price)}
                           </div>
                           <div className="text-sm text-gray-500">
                             Stock: {product.stock}
@@ -220,6 +244,27 @@ const ProductsPage = () => {
         </div>
       </div>
     </Layout>
+  );
+};
+
+const ProductsPage = () => {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="bg-gray-50 min-h-screen">
+          <div className="bg-white shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
+                <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 };
 

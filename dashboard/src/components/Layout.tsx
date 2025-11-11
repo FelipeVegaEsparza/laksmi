@@ -34,12 +34,14 @@ import {
   Logout,
   Category as CategoryIcon,
   MenuBook as KnowledgeIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import NotificationPanel from './NotificationPanel'
 import ConnectionStatus from './ConnectionStatus'
+import { useCompanySettings } from '@/hooks/useCompanySettings'
 
 const drawerWidth = 240
 
@@ -57,6 +59,9 @@ const menuItems = [
   { text: 'Conversaciones', icon: <ChatIcon />, path: '/conversations' },
   { text: 'Escalaciones', icon: <WarningIcon />, path: '/escalations' },
   { text: 'Base de Conocimientos', icon: <KnowledgeIcon />, path: '/knowledge' },
+  { text: 'Banner Principal', icon: <BusinessIcon />, path: '/banners' },
+  { text: 'Imágenes Destacadas', icon: <BusinessIcon />, path: '/featured-images' },
+  { text: 'Configuración Empresa', icon: <BusinessIcon />, path: '/company-settings' },
   { text: 'Configuración', icon: <SettingsIcon />, path: '/settings' },
 ]
 
@@ -66,11 +71,15 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null)
+  const [logoError, setLogoError] = useState(false)
   
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
+  const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
+  
+  console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError)
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -100,10 +109,46 @@ export default function Layout({ children }: LayoutProps) {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-          Clínica Belleza
-        </Typography>
+      <Toolbar 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: 1,
+          py: 3
+        }}
+      >
+        {companyLogo && !logoError ? (
+          <Box
+            component="img"
+            src={companyLogo}
+            alt={companyName}
+            onError={() => {
+              console.error('❌ Layout - Error loading logo, showing fallback')
+              setLogoError(true)
+            }}
+            sx={{
+              height: 80,
+              width: 'auto',
+              maxWidth: '90%',
+              objectFit: 'contain'
+            }}
+          />
+        ) : (
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              color: 'primary.main', 
+              fontWeight: 'bold',
+              textAlign: 'center',
+              px: 2
+            }}
+          >
+            {companyName}
+          </Typography>
+        )}
       </Toolbar>
       <Divider />
       <List>

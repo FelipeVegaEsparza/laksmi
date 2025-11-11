@@ -33,6 +33,9 @@ import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
 import categoryRoutes from './routes/categories';
 import knowledgeRoutes from './routes/knowledge';
 import dashboardRoutes from './routes/dashboard';
+import companySettingsRoutes from './routes/companySettings';
+import bannerRoutes from './routes/banners';
+import featuredImagesRoutes from './routes/featuredImages';
 
 const app: express.Application = express();
 
@@ -139,6 +142,9 @@ app.use(`/api/${config.apiVersion}/upload`, uploadRoutes); // UNA SOLA RUTA DE U
 app.use(`/api/${config.apiVersion}/categories`, categoryRoutes);
 app.use(`/api/${config.apiVersion}/knowledge`, knowledgeRoutes);
 app.use(`/api/${config.apiVersion}/dashboard`, dashboardRoutes);
+app.use(`/api/${config.apiVersion}/company-settings`, companySettingsRoutes);
+app.use(`/api/${config.apiVersion}/banners`, bannerRoutes);
+app.use(`/api/${config.apiVersion}/featured-images`, featuredImagesRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {

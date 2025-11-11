@@ -1,17 +1,24 @@
 import { Request, Response } from 'express';
 import { ProductService } from '../services/ProductService';
 import { CreateProductRequest, UpdateProductRequest, ProductFilters } from '../types/product';
+import { processImageUrls, processArrayImageUrls, decodeImageUrls } from '../utils/imageHelper';
 
 export class ProductController {
   static async createProduct(req: Request, res: Response): Promise<void> {
     try {
       const productData: CreateProductRequest = req.body;
+      
+      // Clean image URLs before saving
+      if (productData.images) {
+        productData.images = decodeImageUrls(productData.images);
+      }
+      
       const product = await ProductService.createProduct(productData);
       
       res.status(201).json({
         success: true,
         message: 'Producto creado exitosamente',
-        data: product
+        data: processImageUrls(product)
       });
     } catch (error) {
       res.status(400).json({
@@ -36,9 +43,15 @@ export class ProductController {
 
       const result = await ProductService.getProducts(filters);
       
+      // Clean image URLs in response
+      const cleanedResult = {
+        ...result,
+        products: processArrayImageUrls(result.products)
+      };
+      
       res.json({
         success: true,
-        data: result
+        data: cleanedResult
       });
     } catch (error) {
       res.status(500).json({
@@ -55,7 +68,7 @@ export class ProductController {
       
       res.json({
         success: true,
-        data: product
+        data: processImageUrls(product)
       });
     } catch (error) {
       const statusCode = error instanceof Error && error.message === 'Producto no encontrado' ? 404 : 500;
@@ -70,12 +83,18 @@ export class ProductController {
     try {
       const { id } = req.params;
       const updates: UpdateProductRequest = req.body;
+      
+      // Clean image URLs before saving
+      if (updates.images) {
+        updates.images = decodeImageUrls(updates.images);
+      }
+      
       const product = await ProductService.updateProduct(id, updates);
       
       res.json({
         success: true,
         message: 'Producto actualizado exitosamente',
-        data: product
+        data: processImageUrls(product)
       });
     } catch (error) {
       const statusCode = error instanceof Error && error.message === 'Producto no encontrado' ? 404 : 400;

@@ -3,17 +3,24 @@ import { ServiceService } from '../services/ServiceService';
 import { CreateServiceRequest, UpdateServiceRequest, ServiceFilters } from '../types/service';
 import { AuthenticatedRequest } from '../middleware/auth';
 import logger from '../utils/logger';
+import { processImageUrls, processArrayImageUrls, decodeImageUrls } from '../utils/imageHelper';
 
 export class ServiceController {
   static async createService(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const serviceData: CreateServiceRequest = req.body;
+      
+      // Clean image URLs before saving
+      if (serviceData.images) {
+        serviceData.images = decodeImageUrls(serviceData.images);
+      }
+      
       const service = await ServiceService.createService(serviceData);
       
       res.status(201).json({
         success: true,
         message: 'Servicio creado exitosamente',
-        data: service
+        data: processImageUrls(service)
       });
     } catch (error: any) {
       logger.error('Create service error:', error);
@@ -40,10 +47,16 @@ export class ServiceController {
 
       const result = await ServiceService.getServices(filters);
       
+      // Clean image URLs in response
+      const cleanedResult = {
+        ...result,
+        services: processArrayImageUrls(result.services)
+      };
+      
       res.json({
         success: true,
         message: 'Servicios obtenidos exitosamente',
-        data: result
+        data: cleanedResult
       });
     } catch (error: any) {
       logger.error('Get services error:', error);
@@ -69,10 +82,16 @@ export class ServiceController {
 
       const result = await ServiceService.getActiveServices(filters);
       
+      // Clean image URLs in response
+      const cleanedResult = {
+        ...result,
+        services: processArrayImageUrls(result.services)
+      };
+      
       res.json({
         success: true,
         message: 'Servicios activos obtenidos exitosamente',
-        data: result
+        data: cleanedResult
       });
     } catch (error: any) {
       logger.error('Get active services error:', error);
@@ -99,7 +118,7 @@ export class ServiceController {
       res.json({
         success: true,
         message: 'Servicio obtenido exitosamente',
-        data: service
+        data: processImageUrls(service)
       });
     } catch (error: any) {
       logger.error('Get service by ID error:', error);
@@ -115,6 +134,11 @@ export class ServiceController {
       const { id } = req.params;
       const updates: UpdateServiceRequest = req.body;
       
+      // Clean image URLs before saving
+      if (updates.images) {
+        updates.images = decodeImageUrls(updates.images);
+      }
+      
       const service = await ServiceService.updateService(id, updates);
       
       if (!service) {
@@ -128,7 +152,7 @@ export class ServiceController {
       res.json({
         success: true,
         message: 'Servicio actualizado exitosamente',
-        data: service
+        data: processImageUrls(service)
       });
     } catch (error: any) {
       logger.error('Update service error:', error);

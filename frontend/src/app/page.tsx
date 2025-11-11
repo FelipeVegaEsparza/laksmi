@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import BannerCarousel from '@/components/BannerCarousel';
+import FeaturedImages from '@/components/FeaturedImages';
 import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
 import { Clock, ArrowRight, Sparkles, Heart, Shield } from 'lucide-react';
@@ -65,95 +67,11 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-rose-50 to-pink-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-                Tu belleza es nuestra{' '}
-                <span className="text-rose-600">pasión</span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8">
-                Descubre tratamientos de belleza personalizados con la última tecnología 
-                y productos de alta calidad. Reserva tu cita online las 24 horas.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/reservar"
-                  className="bg-rose-600 text-white px-8 py-4 rounded-full hover:bg-rose-700 transition-colors duration-200 font-semibold text-center"
-                >
-                  Reservar Cita Ahora
-                </Link>
-                <Link
-                  href="/servicios"
-                  className="border-2 border-rose-600 text-rose-600 px-8 py-4 rounded-full hover:bg-rose-600 hover:text-white transition-colors duration-200 font-semibold text-center"
-                >
-                  Ver Servicios
-                </Link>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-rose-200 to-pink-300 rounded-full flex items-center justify-center">
-                <Sparkles className="h-32 w-32 text-rose-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Banner Carousel */}
+      <BannerCarousel />
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              ¿Por qué elegirnos?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Combinamos experiencia, tecnología avanzada y atención personalizada 
-              para ofrecerte los mejores resultados.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="bg-rose-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-rose-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Atención Personalizada
-              </h3>
-              <p className="text-gray-600">
-                Cada tratamiento se adapta a tus necesidades específicas y tipo de piel.
-              </p>
-            </div>
-            
-            <div className="text-center p-6">
-              <div className="bg-rose-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="h-8 w-8 text-rose-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Tecnología Avanzada
-              </h3>
-              <p className="text-gray-600">
-                Utilizamos los equipos más modernos y técnicas innovadoras del mercado.
-              </p>
-            </div>
-            
-            <div className="text-center p-6">
-              <div className="bg-rose-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-rose-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Productos Premium
-              </h3>
-              <p className="text-gray-600">
-                Solo trabajamos con las mejores marcas y productos de alta calidad.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Featured Images */}
+      <FeaturedImages />
 
       {/* Featured Services */}
       <section className="py-16 bg-gray-50">

@@ -47,28 +47,56 @@ export class KnowledgeService {
    */
   static async getContextForAI(query: string, conversationId?: string): Promise<string> {
     try {
+      let context = '';
+      
+      // 1. Buscar en la base de conocimientos
       const searchResults = await this.search({
         query,
         conversationId,
         limit: 5,
       });
       
-      if (searchResults.results.length === 0) {
-        return 'No se encontró información específica en la base de conocimientos.';
+      if (searchResults.results.length > 0) {
+        context += 'INFORMACIÓN DE LA BASE DE CONOCIMIENTOS:\n\n';
+        searchResults.results.forEach((result, index) => {
+          context += `${index + 1}. ${result.title}\n`;
+          context += `   ${result.content}\n\n`;
+        });
       }
       
-      // Format results for AI context
-      let context = 'Información relevante de la base de conocimientos:\n\n';
+      // 2. SIEMPRE incluir lista de servicios para que el AI tenga contexto completo
+      try {
+        const { ServiceService } = await import('./ServiceService');
+        const result = await ServiceService.getServices({ isActive: true, limit: 100 });
+        const services = result.services;
+        
+        if (services && services.length > 0) {
+          context += '\n\nSERVICIOS DISPONIBLES CON PRECIOS OFICIALES:\n\n';
+          services.forEach((service: any) => {
+            context += `• ${service.name}\n`;
+            context += `  Precio: $${service.price}\n`;
+            context += `  Duración: ${service.duration} minutos\n`;
+            if (service.description) {
+              context += `  Descripción: ${service.description}\n`;
+            }
+            context += '\n';
+          });
+          context += '\nIMPORTANTE: Estos son los ÚNICOS servicios y precios oficiales. Si el usuario pregunta por un precio, búscalo en esta lista y responde con el precio exacto. No menciones otros servicios que no estén en esta lista.\n';
+          
+          logger.info(`Services loaded for AI context: ${services.length} services`);
+        }
+      } catch (error) {
+        logger.warn('Error fetching services for AI context:', error);
+      }
       
-      searchResults.results.forEach((result, index) => {
-        context += `${index + 1}. ${result.title}\n`;
-        context += `   ${result.content}\n\n`;
-      });
+      if (!context) {
+        return 'No se encontró información específica en la base de conocimientos. Por favor, solicita hablar con un especialista para obtener información precisa.';
+      }
       
       return context;
     } catch (error) {
       logger.error('Error getting context for AI:', error);
-      return '';
+      return 'Error al buscar información. Por favor, solicita hablar con un especialista.';
     }
   }
 

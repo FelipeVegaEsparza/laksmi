@@ -7,6 +7,8 @@ import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
 import { Search, Filter, Clock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import ServiceImage from '@/components/ServiceImage';
+import { formatPrice } from '@/utils/currency';
 
 const ServicesContent = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -122,10 +124,16 @@ const ServicesContent = () => {
   }, []);
 
   useEffect(() => {
-    // Get category from URL params
+    // Get category and search from URL params
     const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    
     if (category && category !== 'all') {
       setSelectedCategory(category);
+    }
+    
+    if (search) {
+      setSearchTerm(search);
     }
   }, [searchParams]);
 
@@ -222,7 +230,7 @@ const ServicesContent = () => {
                 {/* Price Range */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rango de Precio: €{priceRange[0]} - €{priceRange[1]}
+                    Rango de Precio: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
                   </label>
                   <input
                     type="range"
@@ -273,8 +281,13 @@ const ServicesContent = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredServices.map((service) => (
                     <div key={service.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                      <div className="h-48 bg-gradient-to-br from-rose-200 to-pink-300 flex items-center justify-center">
-                        <Sparkles className="h-16 w-16 text-rose-600" />
+                      <div className="relative h-48 overflow-hidden">
+                        <ServiceImage
+                          src={service.images?.[0] || ''}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                          fallbackClassName="w-full h-full"
+                        />
                       </div>
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-2">
@@ -282,7 +295,7 @@ const ServicesContent = () => {
                             {categories.find(c => c.id === service.category)?.name || service.category}
                           </span>
                           <div className="text-2xl font-bold text-rose-600">
-                            €{service.price}
+                            {formatPrice(service.price)}
                           </div>
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">

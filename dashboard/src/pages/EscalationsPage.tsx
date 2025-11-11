@@ -97,11 +97,22 @@ export default function EscalationsPage() {
         apiService.get<EscalationStats>('/escalations/stats')
       ])
       
-      setEscalations(escalationsResponse)
-      setStats(statsResponse)
+      // El apiService.get ya extrae response.data.data, así que debería funcionar
+      setEscalations(Array.isArray(escalationsResponse) ? escalationsResponse : [])
+      setStats(statsResponse || null)
     } catch (error) {
       console.error('Error fetching escalations:', error)
       showNotification('Error al cargar escalaciones', 'error')
+      // Establecer valores por defecto en caso de error
+      setEscalations([])
+      setStats({
+        totalEscalations: 0,
+        pendingEscalations: 0,
+        assignedEscalations: 0,
+        resolvedEscalations: 0,
+        escalationsByReason: {},
+        escalationsByPriority: {}
+      })
     } finally {
       setLoading(false)
     }

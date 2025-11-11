@@ -10,12 +10,14 @@ import {
   Container,
   InputAdornment,
   IconButton,
+  Avatar,
 } from '@mui/material'
 import {
   Visibility,
   VisibilityOff,
   Person as PersonIcon,
   Lock as LockIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -23,6 +25,7 @@ import * as yup from 'yup'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoginCredentials } from '@/types'
 import { useNavigate } from 'react-router-dom'
+import { useCompanySettings } from '@/hooks/useCompanySettings'
 
 const schema = yup.object({
   username: yup.string().required('El nombre de usuario es requerido'),
@@ -33,9 +36,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [logoError, setLogoError] = useState(false)
   
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { logoUrl: companyLogo, companyName } = useCompanySettings()
 
   const {
     register,
@@ -65,21 +70,54 @@ export default function LoginPage() {
 
   return (
     <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
         <Card sx={{ width: '100%', maxWidth: 400, boxShadow: 3 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography variant="h4" component="h1" gutterBottom color="primary">
-                Clínica Belleza
-              </Typography>
+              {companyLogo && !logoError ? (
+                <Box
+                  component="img"
+                  src={companyLogo}
+                  alt={companyName}
+                  onError={() => {
+                    console.error('❌ Error loading logo, showing fallback')
+                    setLogoError(true)
+                  }}
+                  sx={{
+                    height: 120,
+                    width: 'auto',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    mx: 'auto',
+                    mb: 3
+                  }}
+                />
+              ) : (
+                <>
+                  <Avatar
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      mx: 'auto',
+                      mb: 2,
+                      bgcolor: 'primary.main'
+                    }}
+                  >
+                    <BusinessIcon sx={{ fontSize: 50 }} />
+                  </Avatar>
+                  <Typography variant="h4" component="h1" gutterBottom color="primary">
+                    {companyName}
+                  </Typography>
+                </>
+              )}
               <Typography variant="h6" color="text.secondary">
                 Dashboard Administrativo
               </Typography>

@@ -7,6 +7,8 @@ import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
 import { Clock, ArrowLeft, Calendar, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import ServiceImage from '@/components/ServiceImage';
+import { formatPrice } from '@/utils/currency';
 
 const ServiceDetailPage = () => {
   const params = useParams();
@@ -18,6 +20,8 @@ const ServiceDetailPage = () => {
       try {
         if (params.id) {
           const serviceData = await servicesApi.getById(params.id as string);
+          console.log('Service data received:', serviceData);
+          console.log('Service images:', serviceData.images);
           setService(serviceData);
         }
       } catch (error) {
@@ -119,14 +123,24 @@ const ServiceDetailPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Service Image */}
           <div className="space-y-4">
-            <div className="aspect-square bg-gradient-to-br from-rose-200 to-pink-300 rounded-lg flex items-center justify-center">
-              <Sparkles className="h-32 w-32 text-rose-600" />
+            <div className="relative aspect-square rounded-lg overflow-hidden">
+              <ServiceImage
+                src={service.images?.[0] || ''}
+                alt={service.name}
+                className="w-full h-full object-cover"
+                fallbackClassName="w-full h-full"
+              />
             </div>
             {service.images && service.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {service.images.slice(1).map((image, index) => (
-                  <div key={index} className="aspect-square bg-gradient-to-br from-rose-100 to-pink-200 rounded-lg flex items-center justify-center">
-                    <Sparkles className="h-8 w-8 text-rose-500" />
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                    <ServiceImage
+                      src={image}
+                      alt={`${service.name} - imagen ${index + 2}`}
+                      className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      fallbackClassName="w-full h-full"
+                    />
                   </div>
                 ))}
               </div>
@@ -150,7 +164,7 @@ const ServiceDetailPage = () => {
                   {service.duration} minutos
                 </div>
                 <div className="text-3xl font-bold text-rose-600">
-                  €{service.price}
+                  {formatPrice(service.price)}
                 </div>
               </div>
             </div>
@@ -252,8 +266,10 @@ const ServiceDetailPage = () => {
             {/* Mock related services */}
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div className="h-48 bg-gradient-to-br from-rose-200 to-pink-300 flex items-center justify-center">
-                  <Sparkles className="h-16 w-16 text-rose-600" />
+                <div className="relative h-48 bg-gradient-to-br from-rose-200 to-pink-300 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="h-16 w-16 text-rose-600" />
+                  </div>
                 </div>
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -263,7 +279,7 @@ const ServiceDetailPage = () => {
                     Descripción breve del servicio relacionado.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-rose-600">€{50 + i * 10}</span>
+                    <span className="text-xl font-bold text-rose-600">{formatPrice(50 + i * 10)}</span>
                     <Link
                       href={`/servicios/${i}`}
                       className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"

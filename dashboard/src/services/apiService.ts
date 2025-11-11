@@ -184,6 +184,23 @@ class ApiService {
     return response.data.data
   }
 
+  // Specific method for conversations API
+  async getConversations(params?: Record<string, any>): Promise<{ data: any[]; total: number; page: number; totalPages: number }> {
+    const response = await this.client.get<any>('/conversations', {
+      params,
+    })
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Request failed')
+    }
+    // El backend devuelve data, total, page, totalPages en el nivel superior de data
+    return {
+      data: response.data.data,
+      total: response.data.total,
+      page: response.data.page,
+      totalPages: response.data.totalPages
+    }
+  }
+
   // Update booking
   async updateBooking(id: string, data: any): Promise<any> {
     return this.put(`/bookings/${id}`, data)

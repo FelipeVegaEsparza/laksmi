@@ -13,9 +13,12 @@ import ProductsPage from '@/pages/ProductsPage'
 import ConversationsPage from '@/pages/ConversationsPage'
 import EscalationsPage from '@/pages/EscalationsPage'
 import SettingsPage from '@/pages/SettingsPage'
+import CompanySettingsPage from '@/pages/CompanySettingsPage'
 import DiagnosticsPage from '@/pages/DiagnosticsPage'
 import CategoriesPage from '@/pages/CategoriesPage'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
+import BannersPage from '@/pages/BannersPage'
+import FeaturedImagesPage from '@/pages/FeaturedImagesPage'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -136,10 +139,34 @@ function App() {
         }
       />
       <Route
+        path="/banners"
+        element={
+          <ProtectedRoute>
+            <BannersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/featured-images"
+        element={
+          <ProtectedRoute>
+            <FeaturedImagesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
             <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/company-settings"
+        element={
+          <ProtectedRoute>
+            <CompanySettingsPage />
           </ProtectedRoute>
         }
       />

@@ -90,9 +90,9 @@ export default function ConversationsPage() {
         channel: channelFilter,
       }
       
-      const response = await apiService.get<Conversation[]>('/conversations', { params })
-      setConversations(response || [])
-      setTotal(response?.length || 0)
+      const response = await apiService.getConversations(params)
+      setConversations(response?.data || [])
+      setTotal(response?.total || 0)
     } catch (error) {
       console.error('Error fetching conversations:', error)
       showNotification('Error al cargar conversaciones', 'error')
@@ -103,11 +103,12 @@ export default function ConversationsPage() {
 
   const fetchConversationMessages = async (conversationId: string) => {
     try {
-      const messages = await apiService.get<Message[]>(`/v1/conversations/${conversationId}/messages`)
-      setConversationMessages(messages)
+      const messages = await apiService.get<Message[]>(`/conversations/${conversationId}/messages`)
+      setConversationMessages(Array.isArray(messages) ? messages : [])
     } catch (error) {
       console.error('Error fetching conversation messages:', error)
       showNotification('Error al cargar mensajes', 'error')
+      setConversationMessages([])
     }
   }
 
@@ -130,7 +131,7 @@ export default function ConversationsPage() {
     if (!selectedConversation) return
     
     try {
-      await apiService.post(`/v1/takeover/${selectedConversation.id}/start`)
+      await apiService.post(`/takeover/${selectedConversation.id}/start`)
       showNotification('Control de conversación tomado exitosamente', 'success')
       setTakeoverModalOpen(false)
       fetchConversations()
@@ -142,7 +143,7 @@ export default function ConversationsPage() {
 
   const handleEscalateConversation = async (conversation: Conversation, reason: string, priority: string) => {
     try {
-      await apiService.post(`/v1/escalations/conversation/${conversation.id}`, {
+      await apiService.post(`/escalations/conversation/${conversation.id}`, {
         reason,
         priority,
         summary: `Escalación manual de conversación con ${conversation.client?.name}`
@@ -159,7 +160,7 @@ export default function ConversationsPage() {
     if (!selectedConversation || !newMessage.trim()) return
     
     try {
-      await apiService.post(`/v1/takeover/${selectedConversation.id}/message`, {
+      await apiService.post(`/takeover/${selectedConversation.id}/message`, {
         content: newMessage
       })
       setNewMessage('')
@@ -175,7 +176,7 @@ export default function ConversationsPage() {
     if (!selectedConversation) return
     
     try {
-      await apiService.post(`/v1/takeover/${selectedConversation.id}/end`, {
+      await apiService.post(`/takeover/${selectedConversation.id}/end`, {
         resolution: 'Conversación resuelta por agente humano'
       })
       showNotification('Control devuelto al sistema IA', 'success')

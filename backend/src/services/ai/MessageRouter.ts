@@ -93,6 +93,86 @@ export class MessageRouter {
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);
       
+      // Verificar si el mensaje es un código de verificación
+      const { ChatAuthService } = await import('./ChatAuthService');
+      if (ChatAuthService.isVerificationCodeMessage(request.content)) {
+        const validationResult = await ChatAuthService.validateVerificationCode(
+          conversation.id,
+          request.content
+        );
+
+        const aiMessage = await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: validationResult.message,
+          metadata: {
+            verificationAttempt: true,
+            isValid: validationResult.isValid
+          }
+        });
+
+        await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+        const processingTime = Date.now() - startTime;
+
+        return {
+          response: {
+            message: validationResult.message,
+            intent: 'verification',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              verification: true,
+              verified: validationResult.clientVerified
+            }
+          },
+          conversationId: conversation.id,
+          messageId: aiMessage.id,
+          processingTime
+        };
+      }
+
+      // Verificar si es una gestión de reserva (confirmar, cancelar, reagendar)
+      const bookingManagement = await this.handleBookingManagement(
+        request.content,
+        nluResult.intent.name,
+        client.id,
+        conversation.context,
+        conversation.id
+      );
+      
+      if (bookingManagement) {
+        // Guardar respuesta de gestión de reserva
+        const aiMessage = await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: bookingManagement.message,
+          metadata: {
+            intent: nluResult.intent.name,
+            bookingAction: bookingManagement.action,
+            bookingId: bookingManagement.bookingId
+          }
+        });
+
+        await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+        const processingTime = Date.now() - startTime;
+
+        return {
+          response: {
+            message: bookingManagement.message,
+            intent: nluResult.intent.name,
+            entities: nluResult.entities,
+            needsHumanEscalation: false,
+            metadata: {
+              bookingManagement: true,
+              action: bookingManagement.action
+            }
+          },
+          conversationId: conversation.id,
+          messageId: aiMessage.id,
+          processingTime
+        };
+      }
+      
       // Evaluar necesidad de escalación
       const escalationEvaluation = await EscalationService.evaluateEscalationNeed(
         conversation.id,
@@ -132,33 +212,85 @@ export class MessageRouter {
           };
         }
       } else {
-        // Generar respuesta base
-        let responseMessage = this.generateSimpleResponse(nluResult.intent.name, client.name);
-        
-        // Solo buscar en la base de conocimientos si es una pregunta específica (no saludos ni despedidas)
-        const shouldSearchKnowledge = !['greeting', 'goodbye', 'thanks'].includes(nluResult.intent.name) 
-          && request.content.includes('?');
-        
-        if (shouldSearchKnowledge) {
-          try {
-            const { KnowledgeService } = await import('../KnowledgeService');
-            const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
-            
-            if (knowledgeAnswer) {
-              responseMessage = knowledgeAnswer;
-            }
-          } catch (error) {
-            logger.warn('Error fetching knowledge base:', error);
-            // Continuar con la respuesta simple si falla
+        // Intentar generar respuesta con OpenAI
+        try {
+          const { AIService } = await import('../AIService');
+          
+          // Preparar historial de conversación para OpenAI
+          const conversationHistory = conversation.context.lastMessages.slice(-5).map((msg: any) => ({
+            role: msg.senderType === 'client' ? 'user' as const : 'assistant' as const,
+            content: msg.content
+          }));
+          
+          // Generar respuesta con OpenAI
+          const aiResult = await AIService.generateResponse(
+            request.content,
+            conversationHistory,
+            conversation.id
+          );
+          
+          // Detectar si el usuario quiere agendar y hay un servicio en contexto
+          const bookingLink = await this.generateBookingLinkIfNeeded(
+            request.content,
+            nluResult.intent.name,
+            conversation.context
+          );
+          
+          // Si hay link de reserva, agregarlo al mensaje
+          let finalMessage = aiResult.message;
+          if (bookingLink) {
+            finalMessage += `\n\n🔗 **Reserva aquí:** ${bookingLink}`;
           }
+          
+          aiResponse = {
+            message: finalMessage,
+            intent: nluResult.intent.name,
+            entities: nluResult.entities,
+            needsHumanEscalation: aiResult.suggestedActions?.includes('escalate') || false,
+            metadata: {
+              usedKnowledgeBase: aiResult.usedKnowledgeBase,
+              confidence: aiResult.confidence,
+              bookingLink: bookingLink || undefined
+            }
+          };
+          
+          logger.info('OpenAI response generated', {
+            conversationId: conversation.id,
+            usedKnowledgeBase: aiResult.usedKnowledgeBase,
+            confidence: aiResult.confidence,
+            hasBookingLink: !!bookingLink
+          });
+          
+        } catch (error) {
+          logger.warn('Error generating OpenAI response, using fallback:', error);
+          
+          // Fallback: Generar respuesta simple
+          let responseMessage = this.generateSimpleResponse(nluResult.intent.name, client.name);
+          
+          // Solo buscar en la base de conocimientos si es una pregunta específica
+          const shouldSearchKnowledge = !['greeting', 'goodbye', 'thanks'].includes(nluResult.intent.name) 
+            && request.content.includes('?');
+          
+          if (shouldSearchKnowledge) {
+            try {
+              const { KnowledgeService } = await import('../KnowledgeService');
+              const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
+              
+              if (knowledgeAnswer) {
+                responseMessage = knowledgeAnswer;
+              }
+            } catch (kbError) {
+              logger.warn('Error fetching knowledge base:', kbError);
+            }
+          }
+          
+          aiResponse = {
+            message: responseMessage,
+            intent: nluResult.intent.name,
+            entities: nluResult.entities,
+            needsHumanEscalation: nluResult.needsHumanEscalation || false
+          };
         }
-        
-        aiResponse = {
-          message: responseMessage,
-          intent: nluResult.intent.name,
-          entities: nluResult.entities,
-          needsHumanEscalation: nluResult.needsHumanEscalation || false
-        };
       }
 
       // Guardar respuesta del AI
@@ -445,6 +577,269 @@ export class MessageRouter {
       if (now > limit.resetTime) {
         this.rateLimitMap.delete(clientId);
       }
+    }
+  }
+
+  /**
+   * Manejar gestión de reservas (confirmar, cancelar, reagendar, consultar)
+   */
+  private static async handleBookingManagement(
+    userMessage: string,
+    intent: string,
+    clientId: string,
+    context: any,
+    conversationId: string
+  ): Promise<{ message: string; action: string; bookingId?: string } | null> {
+    try {
+      const { BookingManagementService } = await import('./BookingManagementService');
+      const { ChatAuthService } = await import('./ChatAuthService');
+      const messageLower = userMessage.toLowerCase();
+
+      // Detectar acción de gestión de reserva
+      let action: string | null = null;
+      let result: any = null;
+      let requiresAuth = false;
+
+      // 1. Listar reservas
+      if (
+        messageLower.includes('mis reservas') ||
+        messageLower.includes('mis citas') ||
+        messageLower.includes('ver mis') ||
+        (messageLower.includes('tengo') && (messageLower.includes('reserva') || messageLower.includes('cita')))
+      ) {
+        action = 'list';
+        result = await BookingManagementService.listClientBookings(clientId);
+      }
+
+      // 2. Confirmar reserva (NO requiere autenticación - es una acción positiva)
+      else if (
+        intent === 'affirmative' &&
+        context.variables?.pendingBookingConfirmation
+      ) {
+        action = 'confirm';
+        const bookingId = context.variables.pendingBookingConfirmation;
+        result = await BookingManagementService.confirmBooking(bookingId, clientId);
+      } else if (
+        messageLower.includes('confirmar') &&
+        (messageLower.includes('reserva') || messageLower.includes('cita'))
+      ) {
+        action = 'confirm';
+        const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
+        if (booking) {
+          result = await BookingManagementService.confirmBooking(booking.id, clientId);
+        } else {
+          const bookings = await BookingManagementService.getClientActiveBookings(clientId);
+          if (bookings.length === 1) {
+            result = await BookingManagementService.confirmBooking(bookings[0].id, clientId);
+          } else if (bookings.length > 1) {
+            result = await BookingManagementService.listClientBookings(clientId);
+            result.message = 'Tienes varias reservas. ¿Cuál quieres confirmar?\n\n' + result.message;
+          } else {
+            return null;
+          }
+        }
+      }
+
+      // 3. Cancelar reserva (REQUIERE AUTENTICACIÓN)
+      else if (
+        intent === 'cancel_booking' ||
+        (messageLower.includes('cancelar') && (messageLower.includes('reserva') || messageLower.includes('cita')))
+      ) {
+        action = 'cancel';
+        requiresAuth = true;
+
+        // Verificar autenticación
+        const authResult = await ChatAuthService.verifyClientForSensitiveAction(
+          clientId,
+          conversationId,
+          'cancel'
+        );
+
+        if (!authResult.isVerified) {
+          return {
+            message: authResult.message,
+            action: 'auth_required',
+            bookingId: undefined
+          };
+        }
+
+        // Cliente verificado, proceder con cancelación
+        const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
+        if (booking) {
+          result = await BookingManagementService.cancelBooking(booking.id, clientId, 'Cancelado por el cliente');
+        } else {
+          const bookings = await BookingManagementService.getClientActiveBookings(clientId);
+          if (bookings.length === 1) {
+            result = await BookingManagementService.cancelBooking(bookings[0].id, clientId, 'Cancelado por el cliente');
+          } else if (bookings.length > 1) {
+            result = await BookingManagementService.listClientBookings(clientId);
+            result.message = 'Tienes varias reservas. ¿Cuál quieres cancelar?\n\n' + result.message;
+          } else {
+            return null;
+          }
+        }
+      }
+
+      // 4. Reagendar reserva (REQUIERE AUTENTICACIÓN)
+      else if (
+        intent === 'reschedule_booking' ||
+        (messageLower.includes('reagendar') || messageLower.includes('cambiar')) &&
+        (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora'))
+      ) {
+        action = 'reschedule';
+        requiresAuth = true;
+
+        // Verificar autenticación
+        const authResult = await ChatAuthService.verifyClientForSensitiveAction(
+          clientId,
+          conversationId,
+          'reschedule'
+        );
+
+        if (!authResult.isVerified) {
+          return {
+            message: authResult.message,
+            action: 'auth_required',
+            bookingId: undefined
+          };
+        }
+
+        // Cliente verificado, proceder con reagendamiento
+        const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
+        if (booking) {
+          result = await BookingManagementService.initiateReschedule(booking.id, clientId);
+        } else {
+          const bookings = await BookingManagementService.getClientActiveBookings(clientId);
+          if (bookings.length === 1) {
+            result = await BookingManagementService.initiateReschedule(bookings[0].id, clientId);
+          } else if (bookings.length > 1) {
+            result = await BookingManagementService.listClientBookings(clientId);
+            result.message = 'Tienes varias reservas. ¿Cuál quieres reagendar?\n\n' + result.message;
+          } else {
+            return null;
+          }
+        }
+      }
+
+      // 5. Consultar información de reserva
+      else if (
+        (messageLower.includes('información') || messageLower.includes('detalles') || messageLower.includes('ver')) &&
+        (messageLower.includes('reserva') || messageLower.includes('cita'))
+      ) {
+        action = 'info';
+        const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
+        if (booking) {
+          result = await BookingManagementService.getBookingInfo(booking.id, clientId);
+        } else {
+          result = await BookingManagementService.listClientBookings(clientId);
+        }
+      }
+
+      if (result && action) {
+        return {
+          message: result.message,
+          action,
+          bookingId: result.booking?.id
+        };
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Error handling booking management:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generar link de reserva si el usuario confirma que quiere agendar
+   */
+  private static async generateBookingLinkIfNeeded(
+    userMessage: string,
+    intent: string,
+    context: any
+  ): Promise<string | null> {
+    try {
+      // Detectar confirmación de reserva
+      const confirmationKeywords = [
+        'sí', 'si', 'claro', 'por supuesto', 'perfecto', 'ok', 'vale',
+        'de acuerdo', 'quiero', 'me gustaría', 'agendar', 'reservar'
+      ];
+      
+      const messageLower = userMessage.toLowerCase();
+      const isConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
+      
+      // Solo generar link si hay confirmación o intención de reserva
+      if (!isConfirmation && intent !== 'booking_request') {
+        return null;
+      }
+      
+      // Buscar servicio mencionado en el mensaje actual o en el contexto
+      let serviceId: string | null = null;
+      let serviceName: string | null = null;
+      
+      // 1. Buscar en el mensaje actual
+      const { ServiceService } = await import('../ServiceService');
+      const result = await ServiceService.getServices({ isActive: true, limit: 100 });
+      const services = result.services;
+      
+      // Buscar coincidencia en el mensaje
+      for (const service of services) {
+        const serviceNameLower = service.name.toLowerCase();
+        if (messageLower.includes(serviceNameLower)) {
+          serviceId = service.id;
+          serviceName = service.name;
+          break;
+        }
+        
+        // Buscar por palabras clave del servicio
+        const keywords = serviceNameLower.split(' ');
+        if (keywords.length > 1 && keywords.every(keyword => messageLower.includes(keyword))) {
+          serviceId = service.id;
+          serviceName = service.name;
+          break;
+        }
+      }
+      
+      // 2. Si no se encontró en el mensaje, buscar en el contexto de los últimos mensajes
+      if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
+        // Revisar los últimos 3 mensajes del AI para encontrar servicios mencionados
+        const recentAIMessages = context.lastMessages
+          .filter((msg: any) => msg.senderType === 'ai')
+          .slice(-3);
+        
+        for (const aiMsg of recentAIMessages) {
+          const aiContent = aiMsg.content.toLowerCase();
+          for (const service of services) {
+            const serviceNameLower = service.name.toLowerCase();
+            if (aiContent.includes(serviceNameLower)) {
+              serviceId = service.id;
+              serviceName = service.name;
+              break;
+            }
+          }
+          if (serviceId) break;
+        }
+      }
+      
+      // 3. Guardar servicio en contexto para futuras referencias
+      if (serviceId && serviceName) {
+        const { ContextManager } = await import('./ContextManager');
+        await ContextManager.setVariable(context.id || 'unknown', 'lastMentionedService', {
+          id: serviceId,
+          name: serviceName
+        });
+      }
+      
+      // Generar link si encontramos un servicio
+      if (serviceId) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+        return `${frontendUrl}/reservar?service=${serviceId}`;
+      }
+      
+      return null;
+    } catch (error) {
+      logger.error('Error generating booking link:', error);
+      return null;
     }
   }
 

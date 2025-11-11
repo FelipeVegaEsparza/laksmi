@@ -129,46 +129,65 @@ export class BookingModel {
       limit = 10 
     } = filters;
     
-    let query = db('bookings').select('*');
+    let query = db('bookings')
+      .select(
+        'bookings.*',
+        'clients.name as client_name',
+        'clients.email as client_email',
+        'clients.phone as client_phone',
+        'services.name as service_name',
+        'services.price as service_price',
+        'professionals.name as professional_name'
+      )
+      .leftJoin('clients', 'bookings.client_id', 'clients.id')
+      .leftJoin('services', 'bookings.service_id', 'services.id')
+      .leftJoin('professionals', 'bookings.professional_id', 'professionals.id');
 
     // Aplicar filtros
     if (clientId) {
-      query = query.where('client_id', clientId);
+      query = query.where('bookings.client_id', clientId);
     }
 
     if (professionalId) {
-      query = query.where('professional_id', professionalId);
+      query = query.where('bookings.professional_id', professionalId);
     }
 
     if (serviceId) {
-      query = query.where('service_id', serviceId);
+      query = query.where('bookings.service_id', serviceId);
     }
 
     if (status) {
-      query = query.where('status', status);
+      query = query.where('bookings.status', status);
     }
 
     if (dateFrom) {
-      query = query.where('date_time', '>=', dateFrom);
+      query = query.where('bookings.date_time', '>=', dateFrom);
     }
 
     if (dateTo) {
-      query = query.where('date_time', '<=', dateTo);
+      query = query.where('bookings.date_time', '<=', dateTo);
     }
 
     // Contar total de registros
-    const countQuery = query.clone();
-    const [{ count }] = await countQuery.count('* as count');
+    const countQuery = db('bookings').count('* as count');
+    if (clientId) countQuery.where('client_id', clientId);
+    if (professionalId) countQuery.where('professional_id', professionalId);
+    if (serviceId) countQuery.where('service_id', serviceId);
+    if (status) countQuery.where('status', status);
+    if (dateFrom) countQuery.where('date_time', '>=', dateFrom);
+    if (dateTo) countQuery.where('date_time', '<=', dateTo);
+    
+    const [{ count }] = await countQuery;
     const total = parseInt(count as string);
 
     // Aplicar paginación
     const offset = (page - 1) * limit;
-    query = query.limit(limit).offset(offset).orderBy('date_time', 'desc');
+    query = query.limit(limit).offset(offset).orderBy('bookings.date_time', 'desc');
 
     const bookings = await query;
     
     return {
-      bookings: bookings.map(booking => this.formatBooking(booking)),
+      bookings: bookings.map(booking => this.formatBookingWithRelations(booking)),
       total
     };
   }
@@ -467,6 +486,37 @@ export class BookingModel {
       notes: dbBooking.notes,
       createdAt: dbBooking.created_at,
       updatedAt: dbBooking.updated_at
+    };
+  }
+
+  private static formatBookingWithRelations(dbBooking: any): any {
+    return {
+      id: dbBooking.id,
+      clientId: dbBooking.client_id,
+      serviceId: dbBooking.service_id,
+      professionalId: dbBooking.professional_id,
+      dateTime: new Date(dbBooking.date_time),
+      duration: dbBooking.duration,
+      status: dbBooking.status,
+      notes: dbBooking.notes,
+      createdAt: dbBooking.created_at,
+      updatedAt: dbBooking.updated_at,
+      // Objetos anidados para el frontend
+      client: dbBooking.client_name ? {
+        id: dbBooking.client_id,
+        name: dbBooking.client_name,
+        email: dbBooking.client_email,
+        phone: dbBooking.client_phone
+      } : null,
+      service: dbBooking.service_name ? {
+        id: dbBooking.service_id,
+        name: dbBooking.service_name,
+        price: dbBooking.service_price
+      } : null,
+      professional: dbBooking.professional_name ? {
+        id: dbBooking.professional_id,
+        name: dbBooking.professional_name
+      } : null
     };
   }
 }

@@ -218,6 +218,51 @@ export class NotificationService {
       }
     }
 
+    // Programar envío de email de recordatorio
+    try {
+      const client = await ClientModel.findById(booking.clientId);
+      const service = await ServiceModel.findById(booking.serviceId);
+      
+      if (client && client.email && service) {
+        // Programar tarea para enviar email en el momento correcto
+        // Por ahora, lo guardamos como una notificación más
+        const { EmailService } = await import('./EmailService');
+        
+        // Crear un timeout para enviar el email en el momento correcto
+        const timeUntilReminder = reminderTime.getTime() - Date.now();
+        
+        if (timeUntilReminder > 0) {
+          setTimeout(async () => {
+            try {
+              let professionalName: string | undefined;
+              if (booking.professionalId) {
+                const professional = await ProfessionalModel.findById(booking.professionalId);
+                professionalName = professional?.name;
+              }
+
+              if (client.email) {
+                await EmailService.sendBookingReminder(client.email, {
+                clientName: client.name,
+                serviceName: service.name,
+                date: booking.dateTime,
+                duration: service.duration,
+                  professionalName
+                });
+
+                logger.info(`Reminder email sent for booking ${bookingId}`);
+              }
+            } catch (error) {
+              logger.error(`Error sending reminder email for booking ${bookingId}:`, error);
+            }
+          }, timeUntilReminder);
+
+          logger.info(`Email reminder scheduled for booking ${bookingId} at ${reminderTime}`);
+        }
+      }
+    } catch (error) {
+      logger.error(`Error scheduling email reminder for booking ${bookingId}:`, error);
+    }
+
     logger.info(`Scheduled ${notifications.length} reminders for booking ${bookingId}`);
     return notifications;
   }

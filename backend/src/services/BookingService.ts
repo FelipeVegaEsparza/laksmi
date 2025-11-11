@@ -60,6 +60,35 @@ export class BookingService {
       logger.error(`Error scheduling notifications for booking ${booking.id}:`, error);
       // No fallar la creación de la cita por errores de notificación
     }
+
+    // Enviar email de confirmación
+    try {
+      const { EmailService } = await import('./EmailService');
+      const { ProfessionalModel } = await import('../models/Professional');
+      
+      let professionalName: string | undefined;
+      if (booking.professionalId) {
+        const professional = await ProfessionalModel.findById(booking.professionalId);
+        professionalName = professional?.name;
+      }
+
+      if (client.email) {
+        await EmailService.sendBookingConfirmation(client.email, {
+        clientName: client.name,
+        serviceName: service.name,
+        date: booking.dateTime,
+        duration: service.duration,
+        price: service.price,
+          professionalName,
+          notes: booking.notes
+        });
+
+        logger.info(`Confirmation email sent for booking ${booking.id}`);
+      }
+    } catch (error) {
+      logger.error(`Error sending confirmation email for booking ${booking.id}:`, error);
+      // No fallar la creación por error de email
+    }
     
     return booking;
   }
@@ -129,12 +158,33 @@ export class BookingService {
       throw new Error('Error al cancelar la cita');
     }
 
-    // Cancelar notificaciones pendientes y enviar notificación de cancelación
+    // Cancelar notificaciones pendientes
     try {
       await NotificationService.cancelBookingNotifications(id);
       logger.info(`Cancelled notifications for booking ${id}`);
     } catch (error) {
       logger.error(`Error cancelling notifications for booking ${id}:`, error);
+    }
+
+    // Enviar email de cancelación
+    try {
+      const { EmailService } = await import('./EmailService');
+      const client = await ClientModel.findById(booking.clientId);
+      const service = await ServiceModel.findById(booking.serviceId);
+
+      if (client && client.email && service) {
+        await EmailService.sendBookingCancellation(client.email, {
+          clientName: client.name,
+          serviceName: service.name,
+          date: booking.dateTime,
+          reason
+        });
+
+        logger.info(`Cancellation email sent for booking ${id}`);
+      }
+    } catch (error) {
+      logger.error(`Error sending cancellation email for booking ${id}:`, error);
+      // No fallar la cancelación por error de email
     }
 
     logger.info(`Booking cancelled: ${cancelledBooking.id} - Reason: ${reason || 'No reason provided'}`);

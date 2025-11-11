@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ChatProvider } from '@/contexts/ChatContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 interface ClientProviderProps {
   children: React.ReactNode;
@@ -14,16 +15,18 @@ const ClientProvider = ({ children }: ClientProviderProps) => {
     setIsClient(true);
   }, []);
 
-  // Durante SSR, renderizar sin el ChatProvider
+  // Durante SSR, renderizar sin los providers
   if (!isClient) {
     return <>{children}</>;
   }
 
-  // En el cliente, renderizar con el ChatProvider
+  // En el cliente, renderizar con todos los providers
   return (
-    <ChatProvider>
-      {children}
-    </ChatProvider>
+    <ThemeProvider>
+      <ChatProvider>
+        {children}
+      </ChatProvider>
+    </ThemeProvider>
   );
 };
 
