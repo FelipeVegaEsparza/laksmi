@@ -132,15 +132,21 @@ export class MessageRouter {
           };
         }
       } else {
-        // Generar respuesta usando base de conocimientos
-        const { KnowledgeService } = await import('../KnowledgeService');
-        const knowledgeContext = await KnowledgeService.getContextForAI(request.content, conversation.id);
+        // Generar respuesta usando base de conocimientos solo para consultas específicas
+        let responseMessage = this.generateSimpleResponse(nluResult.intent.name, client.name);
         
-        // Generar respuesta normal del IA con contexto de conocimiento
+        // Solo buscar en la base de conocimientos si es una consulta de información
+        if (['service_inquiry', 'product_inquiry', 'price_inquiry', 'information_request'].includes(nluResult.intent.name)) {
+          const { KnowledgeService } = await import('../KnowledgeService');
+          const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
+          
+          if (knowledgeAnswer) {
+            responseMessage = knowledgeAnswer;
+          }
+        }
+        
         aiResponse = {
-          message: knowledgeContext 
-            ? `${this.generateSimpleResponse(nluResult.intent.name, client.name)}\n\n${knowledgeContext}`
-            : this.generateSimpleResponse(nluResult.intent.name, client.name),
+          message: responseMessage,
           intent: nluResult.intent.name,
           entities: nluResult.entities,
           needsHumanEscalation: nluResult.needsHumanEscalation || false
@@ -442,15 +448,19 @@ export class MessageRouter {
     
     switch (intent) {
       case 'greeting':
-        return `¡Hola ${firstName}! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte?\n\n• Ver servicios\n• Reservar cita\n• Consultar historial`;
+        return `¡Hola ${firstName}! 👋 Soy tu asistente virtual de la Clínica de Belleza.\n\n¿En qué puedo ayudarte hoy?\n• Ver servicios disponibles\n• Reservar una cita\n• Consultar precios\n• Información sobre tratamientos`;
       case 'booking_request':
-        return 'Te ayudo a reservar tu cita. ¿Qué servicio te interesa?';
+        return `Perfecto ${firstName}, te ayudo a reservar tu cita. 📅\n\n¿Qué servicio te interesa? Puedo ayudarte con:\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n• Masajes y spa`;
       case 'service_inquiry':
-        return 'Tenemos servicios de facial, corporal, spa y más. ¿Te interesa alguno en particular?';
+        return `Claro ${firstName}, déjame ayudarte con información sobre nuestros servicios. ¿Qué tipo de tratamiento te interesa?`;
+      case 'product_inquiry':
+        return `Con gusto te informo sobre nuestros productos. ¿Buscas algo específico?`;
+      case 'price_inquiry':
+        return `Te puedo ayudar con información de precios. ¿Qué servicio o producto te interesa?`;
       case 'goodbye':
-        return '¡Hasta pronto! Ha sido un placer ayudarte. 😊';
+        return `¡Hasta pronto ${firstName}! Ha sido un placer ayudarte. 😊\n\nSi necesitas algo más, aquí estaré.`;
       default:
-        return 'No estoy seguro de haber entendido. ¿Podrías ser más específico?';
+        return `Entiendo ${firstName}. ¿Podrías darme más detalles sobre lo que necesitas? Puedo ayudarte con servicios, reservas, precios o cualquier consulta sobre nuestros tratamientos.`;
     }
   }
 
