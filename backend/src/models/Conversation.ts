@@ -86,12 +86,18 @@ export class ConversationModel {
   }
 
   static async addMessage(conversationId: string, message: Omit<Message, 'id' | 'conversationId' | 'timestamp'>): Promise<Message> {
+    // Asegurarse de que metadata es un objeto antes de stringify
+    let metadataToSave = null;
+    if (message.metadata) {
+      metadataToSave = typeof message.metadata === 'string' ? message.metadata : JSON.stringify(message.metadata);
+    }
+    
     const messageData = {
       conversation_id: conversationId,
       sender_type: message.senderType,
       content: message.content,
       media_url: message.mediaUrl || null,
-      metadata: message.metadata ? JSON.stringify(message.metadata) : null
+      metadata: metadataToSave
     };
 
     await db('messages').insert(messageData);
