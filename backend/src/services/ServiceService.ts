@@ -48,9 +48,10 @@ export class ServiceService {
       throw new Error('Servicio no encontrado');
     }
 
+    // Soft delete: marcar como inactivo
     const deleted = await ServiceModel.delete(id);
     if (deleted) {
-      logger.info(`Service deleted: ${service.name} (${service.category})`);
+      logger.info(`Service soft-deleted (marked as inactive): ${service.name} (${service.category})`);
     }
     
     return deleted;

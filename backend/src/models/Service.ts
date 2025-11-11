@@ -131,7 +131,13 @@ export class ServiceModel {
   }
 
   static async delete(id: string): Promise<boolean> {
-    const result = await db('services').where({ id }).del();
+    // Soft delete: marcar como inactivo en lugar de borrar
+    const result = await db('services')
+      .where({ id })
+      .update({ 
+        is_active: false,
+        updated_at: new Date()
+      });
     return result > 0;
   }
 

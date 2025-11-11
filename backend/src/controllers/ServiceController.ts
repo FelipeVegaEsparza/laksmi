@@ -178,7 +178,7 @@ export class ServiceController {
 
       res.json({
         success: true,
-        message: 'Servicio eliminado exitosamente'
+        message: 'Servicio desactivado exitosamente. El servicio ya no estará disponible para nuevas reservas.'
       });
     } catch (error: any) {
       logger.error('Delete service error:', error);
