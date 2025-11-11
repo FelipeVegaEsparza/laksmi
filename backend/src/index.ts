@@ -10,8 +10,6 @@ import { TwilioService } from './services/TwilioService';
 import { RealTimeNotificationService } from './services/RealTimeNotificationService';
 import { SecurityAuditService } from './services/SecurityAuditService';
 import { ConsentService } from './services/ConsentService';
-import { migrator } from './database/migrator';
-import { seeder } from './database/seeder';
 import app from './app'; // Importar la aplicación configurada
 
 const server = createServer(app);
@@ -38,25 +36,9 @@ async function startServer() {
       throw dbError;
     }
 
-    // Ejecutar migraciones automáticamente
-    logger.info('🔄 Running database migrations...');
-    try {
-      await migrator.runPendingMigrations();
-      logger.info('✅ Database migrations completed');
-    } catch (migrationError) {
-      logger.error('❌ Database migrations failed:', migrationError);
-      throw migrationError; // Detener inicio si las migraciones fallan
-    }
-
-    // Ejecutar seeds si la BD está vacía (solo en desarrollo o primera vez)
-    logger.info('🌱 Checking if seeds are needed...');
-    try {
-      await seeder.runSeeds();
-      logger.info('✅ Database seeding completed');
-    } catch (seedError) {
-      logger.warn('⚠️  Database seeding failed (non-critical):', seedError);
-      // No detener el inicio si los seeds fallan
-    }
+    // Las migraciones y seeds se ejecutan en start-production.sh antes de iniciar el servidor
+    // Esto evita problemas de concurrencia en producción
+    logger.info('ℹ️  Migrations and seeds should be run via npm scripts before starting server');
 
     // Inicializar servicio de notificaciones en tiempo real
     logger.info('Initializing real-time notification service...');
