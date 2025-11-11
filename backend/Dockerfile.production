@@ -25,7 +25,15 @@ RUN npm run build
 FROM node:20-alpine
 
 # Instalar dependencias del sistema necesarias en runtime
-RUN apk add --no-cache cairo jpeg pango giflib
+# Incluir python3 y build tools para sharp
+RUN apk add --no-cache \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    python3 \
+    make \
+    g++
 
 WORKDIR /app
 
