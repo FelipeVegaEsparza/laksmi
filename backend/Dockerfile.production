@@ -44,12 +44,16 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/seeds ./seeds
 
+# Copiar script de inicio
+COPY start-production.sh ./
+
 # Crear directorios necesarios
 RUN mkdir -p uploads logs
 
 # Usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
+    chmod +x start-production.sh && \
     chown -R nodejs:nodejs /app
 
 USER nodejs
@@ -61,5 +65,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Comando de inicio
-CMD ["node", "dist/index.js"]
+# Comando de inicio - usar script que ejecuta migraciones
+CMD ["sh", "start-production.sh"]
