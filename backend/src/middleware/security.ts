@@ -46,7 +46,7 @@ export const loginBruteForce = new ExpressBrute(bruteStore, {
 // General API rate limiting (AJUSTADO PARA DESARROLLO)
 export const apiRateLimit = rateLimit({
   windowMs: process.env.NODE_ENV === 'development' ? 1 * 60 * 1000 : 15 * 60 * 1000, // 1 min dev, 15 min prod
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // 1000 req/min dev, 100 req/15min prod
+  max: process.env.NODE_ENV === 'development' ? 1000 : 500, // 1000 req/min dev, 500 req/15min prod
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
