@@ -53,6 +53,11 @@ export const apiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // FIX: Validar trust proxy correctamente para producción
+  validate: {
+    trustProxy: false, // Deshabilitar validación estricta de trust proxy
+    xForwardedForHeader: false
+  },
   skip: (req: Request) => {
     // Skip rate limiting for localhost in development
     return process.env.NODE_ENV === 'development' && 
@@ -77,6 +82,11 @@ export const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // FIX: Validar trust proxy correctamente para producción
+  validate: {
+    trustProxy: false,
+    xForwardedForHeader: false
+  },
   skip: (req: Request) => {
     // Skip rate limiting for localhost in development
     return process.env.NODE_ENV === 'development' && 
@@ -91,6 +101,11 @@ export const webhookRateLimit = rateLimit({
   message: {
     error: 'Webhook rate limit exceeded',
     retryAfter: '1 minute'
+  },
+  // FIX: Validar trust proxy correctamente para producción
+  validate: {
+    trustProxy: false,
+    xForwardedForHeader: false
   },
   skip: (req: Request) => {
     // Skip rate limiting for verified Twilio requests
