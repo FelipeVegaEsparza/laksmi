@@ -77,14 +77,23 @@ export class CategoryModel {
   }
 
   static async checkUsage(id: string): Promise<{ services: number; products: number }> {
+    // Primero obtener el nombre de la categoría
+    const category = await db('categories').where('id', id).first();
+    
+    if (!category) {
+      return { services: 0, products: 0 };
+    }
+
+    // Contar servicios activos con esta categoría
     const [servicesCount] = await db('services')
-      .where('category', db('categories').select('name').where('id', id).first())
-      .where('is_active', true) // Solo contar servicios activos
+      .where('category', category.name)
+      .where('is_active', true)
       .count('* as count');
 
+    // Contar productos activos con esta categoría
     const [productsCount] = await db('products')
-      .where('category', db('categories').select('name').where('id', id).first())
-      .where('is_active', true) // Solo contar productos activos
+      .where('category', category.name)
+      .where('is_active', true)
       .count('* as count');
 
     return {
