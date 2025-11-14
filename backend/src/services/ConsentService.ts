@@ -180,8 +180,8 @@ export class ConsentService {
         consentToken,
         consentType: 'WHATSAPP_COMMUNICATION',
         phoneNumber: EncryptionService.encryptPhone(phoneNumber),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        createdAt: new Date()
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        created_at: new Date()
       });
 
       return consentToken;
@@ -202,7 +202,7 @@ export class ConsentService {
     try {
       const pendingConsent = await db('pending_consents')
         .where({ consentToken })
-        .where('expiresAt', '>', new Date())
+        .where('expires_at', '>', new Date())
         .first();
 
       if (!pendingConsent) {
@@ -245,7 +245,7 @@ export class ConsentService {
   static async cleanupExpiredConsents(): Promise<void> {
     try {
       const deleted = await db('pending_consents')
-        .where('expiresAt', '<', new Date())
+        .where('expires_at', '<', new Date())
         .del();
 
       if (deleted > 0) {
