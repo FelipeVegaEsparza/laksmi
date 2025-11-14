@@ -253,32 +253,35 @@ const Footer = () => {
             <p className="text-gray-400 text-sm">
               © {new Date().getFullYear()} {companyName}. Todos los derechos reservados.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link 
-                href="/privacidad" 
-                className="text-gray-400 text-sm transition-colors duration-300"
-                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+            <a 
+              href="https://www.hover.cl" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-400 text-sm transition-all duration-300 mt-4 md:mt-0 hover-lift group"
+            >
+              <svg 
+                className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" 
+                viewBox="0 0 24 24"
+                fill="none"
               >
-                Política de Privacidad
-              </Link>
-              <Link 
-                href="/terminos" 
-                className="text-gray-400 text-sm transition-colors duration-300"
-                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
-              >
-                Términos de Uso
-              </Link>
-              <Link 
-                href="/cookies" 
-                className="text-gray-400 text-sm transition-colors duration-300"
-                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
-              >
-                Cookies
-              </Link>
-            </div>
+                <defs>
+                  <linearGradient id="codeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+                  </linearGradient>
+                </defs>
+                <path 
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" 
+                  stroke="url(#codeGradient)" 
+                  strokeWidth={2.5}
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="group-hover:text-white transition-colors duration-300">
+                Sitio desarrollado por www.hover.cl
+              </span>
+            </a>
           </div>
         </div>
       </div>
