@@ -3,10 +3,14 @@ import Joi from 'joi';
 // Validación para crear cliente
 export const createClientSchema = Joi.object({
   phone: Joi.string()
-    .pattern(/^\+?[1-9]\d{1,14}$/)
+    .pattern(/^[\d\s\-\+\(\)]+$/)
+    .min(7)
+    .max(20)
     .required()
     .messages({
-      'string.pattern.base': 'El teléfono debe tener un formato válido (ej: +1234567890)',
+      'string.pattern.base': 'El teléfono solo puede contener números, espacios, guiones, paréntesis y el símbolo +',
+      'string.min': 'El teléfono debe tener al menos 7 caracteres',
+      'string.max': 'El teléfono no puede tener más de 20 caracteres',
       'any.required': 'El teléfono es requerido'
     }),
   name: Joi.string()

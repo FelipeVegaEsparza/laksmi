@@ -73,17 +73,28 @@ export class BookingService {
       }
 
       if (client.email) {
-        await EmailService.sendBookingConfirmation(client.email, {
-        clientName: client.name,
-        serviceName: service.name,
-        date: booking.dateTime,
-        duration: service.duration,
-        price: service.price,
+        logger.info(`Attempting to send confirmation email to ${client.email} for booking ${booking.id}, status: ${booking.status}`);
+        
+        const emailSent = await EmailService.sendBookingConfirmation(client.email, {
+          clientName: client.name,
+          serviceName: service.name,
+          date: booking.dateTime,
+          duration: service.duration,
+          price: service.price,
           professionalName,
-          notes: booking.notes
+          notes: booking.notes,
+          status: booking.status,
+          paymentAmount: booking.paymentAmount,
+          bookingId: booking.id
         });
 
-        logger.info(`Confirmation email sent for booking ${booking.id}`);
+        if (emailSent) {
+          logger.info(`Confirmation email sent successfully for booking ${booking.id}`);
+        } else {
+          logger.warn(`Confirmation email failed to send for booking ${booking.id}`);
+        }
+      } else {
+        logger.warn(`No email address for client ${client.id}, skipping confirmation email`);
       }
     } catch (error) {
       logger.error(`Error sending confirmation email for booking ${booking.id}:`, error);
@@ -121,6 +132,38 @@ export class BookingService {
     const updatedBooking = await BookingModel.update(id, updates);
     if (!updatedBooking) {
       throw new Error('Error al actualizar la cita');
+    }
+
+    // Si el estado cambió de pending_payment a confirmed, enviar correo de confirmación
+    if (existingBooking.status === 'pending_payment' && updates.status === 'confirmed') {
+      try {
+        const { EmailService } = await import('./EmailService');
+        const client = await ClientModel.findById(existingBooking.clientId);
+        const service = await ServiceModel.findById(existingBooking.serviceId);
+        const professional = existingBooking.professionalId 
+          ? await ProfessionalModel.findById(existingBooking.professionalId)
+          : null;
+
+        if (client && client.email && service) {
+          await EmailService.sendBookingConfirmation(client.email, {
+            clientName: client.name,
+            serviceName: service.name,
+            date: updatedBooking.dateTime,
+            duration: updatedBooking.duration,
+            price: updatedBooking.paymentAmount,
+            professionalName: professional?.name,
+            notes: updatedBooking.notes,
+            status: 'confirmed',
+            paymentAmount: updatedBooking.paymentAmount,
+            bookingId: updatedBooking.id
+          });
+
+          logger.info(`Payment confirmation email sent for booking ${id}`);
+        }
+      } catch (error) {
+        logger.error(`Error sending payment confirmation email for booking ${id}:`, error);
+        // No fallar la actualización por error de email
+      }
     }
 
     logger.info(`Booking updated: ${updatedBooking.id} - Status: ${updatedBooking.status}`);
@@ -451,5 +494,29 @@ export class BookingService {
 
     logger.info(`Booking marked as no show: ${noShowBooking.id}`);
     return noShowBooking;
+  }
+
+  static async deleteBooking(id: string): Promise<boolean> {
+    const booking = await BookingModel.findById(id);
+    if (!booking) {
+      throw new Error('Cita no encontrada');
+    }
+
+    // Cancelar notificaciones pendientes antes de eliminar
+    try {
+      await NotificationService.cancelBookingNotifications(id);
+      logger.info(`Cancelled notifications for booking ${id} before deletion`);
+    } catch (error) {
+      logger.error(`Error cancelling notifications for booking ${id}:`, error);
+      // Continuar con la eliminación aunque falle la cancelación de notificaciones
+    }
+
+    const deleted = await BookingModel.delete(id);
+    
+    if (deleted) {
+      logger.info(`Booking deleted: ${id}`);
+    }
+    
+    return deleted;
   }
 }

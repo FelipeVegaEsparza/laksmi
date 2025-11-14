@@ -46,6 +46,7 @@ import { TwilioConfig } from '@/types'
 import { apiService } from '@/services/apiService'
 import { useNotifications } from '@/contexts/NotificationContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -86,6 +87,8 @@ export default function SettingsPage() {
   const [testResult, setTestResult] = useState<string>('')
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [deleteTemplateDialogOpen, setDeleteTemplateDialogOpen] = useState(false)
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     category: 'UTILITY',
@@ -187,17 +190,29 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta plantilla?')) {
-      try {
-        await apiService.delete(`/settings/whatsapp-templates/${templateId}`)
-        showNotification('Plantilla eliminada correctamente', 'success')
-        fetchWhatsAppTemplates()
-      } catch (error) {
-        console.error('Error deleting template:', error)
-        showNotification('Error al eliminar plantilla', 'error')
-      }
+  const handleDeleteTemplate = (templateId: string) => {
+    setTemplateToDelete(templateId)
+    setDeleteTemplateDialogOpen(true)
+  }
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return
+
+    try {
+      await apiService.delete(`/settings/whatsapp-templates/${templateToDelete}`)
+      showNotification('Plantilla eliminada correctamente', 'success')
+      setDeleteTemplateDialogOpen(false)
+      setTemplateToDelete(null)
+      fetchWhatsAppTemplates()
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      showNotification('Error al eliminar plantilla', 'error')
     }
+  }
+
+  const cancelDeleteTemplate = () => {
+    setDeleteTemplateDialogOpen(false)
+    setTemplateToDelete(null)
   }
 
   const getStatusIcon = (status: string) => {
@@ -703,6 +718,18 @@ export default function SettingsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Confirm Delete Template Dialog */}
+      <ConfirmDialog
+        open={deleteTemplateDialogOpen}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que quieres eliminar esta plantilla? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteTemplate}
+        onCancel={cancelDeleteTemplate}
+        severity="error"
+      />
     </Box>
   )
 }

@@ -8,6 +8,8 @@ export interface Service {
   images: string[];
   requirements: string[];
   isActive: boolean;
+  sessions?: number; // Cantidad de sesiones recomendadas
+  tag?: string; // Etiqueta (Popular, Nuevo, Oferta, etc.)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +23,8 @@ export interface CreateServiceRequest {
   images?: string[];
   requirements?: string[];
   isActive?: boolean;
+  sessions?: number;
+  tag?: string;
 }
 
 export interface UpdateServiceRequest {
@@ -32,6 +36,8 @@ export interface UpdateServiceRequest {
   images?: string[];
   requirements?: string[];
   isActive?: boolean;
+  sessions?: number;
+  tag?: string;
 }
 
 export interface ServiceFilters {

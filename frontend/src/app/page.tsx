@@ -5,9 +5,15 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import BannerCarousel from '@/components/BannerCarousel';
 import FeaturedImages from '@/components/FeaturedImages';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Loading from '@/components/Loading';
 import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
-import { Clock, ArrowRight, Sparkles, Heart, Shield } from 'lucide-react';
+import { Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { themeColors, hoverEffects } from '@/utils/colors';
+import { formatPrice } from '@/utils/currency';
+import ServiceImage from '@/components/ServiceImage';
 
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
@@ -21,42 +27,7 @@ export default function Home() {
         setFeaturedServices(services.slice(0, 3));
       } catch (error) {
         console.error('Error loading services:', error);
-        // Mock data for development
-        setFeaturedServices([
-          {
-            id: '1',
-            name: 'Limpieza Facial Profunda',
-            category: 'facial',
-            price: 65,
-            duration: 60,
-            description: 'Tratamiento completo de limpieza facial con extracción de impurezas y hidratación profunda.',
-            images: ['/images/facial-cleaning.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '2',
-            name: 'Masaje Relajante',
-            category: 'corporal',
-            price: 80,
-            duration: 90,
-            description: 'Masaje corporal completo para liberar tensiones y mejorar la circulación.',
-            images: ['/images/massage.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '3',
-            name: 'Tratamiento Anti-edad',
-            category: 'facial',
-            price: 120,
-            duration: 75,
-            description: 'Tratamiento avanzado con tecnología de radiofrecuencia para combatir los signos del envejecimiento.',
-            images: ['/images/anti-aging.jpg'],
-            requirements: [],
-            isActive: true
-          }
-        ]);
+        setFeaturedServices([]);
       } finally {
         setLoading(false);
       }
@@ -88,84 +59,129 @@ export default function Home() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-                  <div className="h-48 bg-gray-300"></div>
-                  <div className="p-6">
-                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-300 rounded w-2/3 mb-4"></div>
-                    <div className="h-3 bg-gray-300 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-300 rounded mb-4"></div>
-                    <div className="h-8 bg-gray-300 rounded"></div>
-                  </div>
-                </div>
+                <Card key={i} className="overflow-hidden">
+                  <Loading type="skeleton" className="h-48 mb-4" />
+                  <Loading type="skeleton" className="h-4 mb-2" />
+                  <Loading type="skeleton" className="h-4 w-2/3 mb-4" />
+                  <Loading type="skeleton" className="h-3 mb-2" />
+                  <Loading type="skeleton" className="h-3 mb-4" />
+                  <Loading type="skeleton" className="h-8" />
+                </Card>
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featuredServices.map((service) => (
-                <div key={service.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                  <div className="h-48 bg-gradient-to-br from-rose-200 to-pink-300 flex items-center justify-center">
-                    <Sparkles className="h-16 w-16 text-rose-600" />
+                <Card key={service.id} hover className="overflow-hidden" padding="none">
+                  <div 
+                    className="relative w-full aspect-square overflow-hidden"
+                    style={{ backgroundColor: themeColors.primaryLight }}
+                  >
+                    <div className="absolute inset-3 flex items-center justify-center">
+                      {service.images?.[0] ? (
+                        <img
+                          src={service.images[0]}
+                          alt={service.name}
+                          className="max-w-full max-h-full object-contain rounded-lg shadow-sm mx-auto"
+                          style={{ display: 'block' }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full">
+                          <Sparkles 
+                            className="h-16 w-16" 
+                            style={{ color: themeColors.primary }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {/* Service Tag Badge */}
+                    {service.tag && (
+                      <div className="absolute top-3 right-3">
+                        <div 
+                          className="text-white px-3 py-1 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-xs tracking-wide uppercase"
+                          style={{ background: themeColors.gradientPrimary }}
+                        >
+                          {service.tag}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
                       {service.name}
                     </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {service.description}
-                    </p>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {service.duration} min
-                      </div>
-                      <div className="text-2xl font-bold text-rose-600">
-                        €{service.price}
-                      </div>
+                    <div className="flex flex-col items-center mb-6 space-y-2">
+                    <div 
+                      className="text-3xl font-bold"
+                      style={{ color: themeColors.primary }}
+                    >
+                      {formatPrice(service.price)}
                     </div>
-                    <Link
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {service.duration} min
+                    </div>
+                  </div>
+                    <Button
                       href={`/servicios/${service.id}`}
-                      className="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium flex items-center justify-center"
+                      variant="primary"
+                      fullWidth
+                      className="flex items-center justify-center"
                     >
                       Ver Detalles
                       <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
+                    </Button>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
 
           <div className="text-center mt-12">
-            <Link
+            <Button
               href="/servicios"
-              className="inline-flex items-center bg-rose-600 text-white px-8 py-3 rounded-full hover:bg-rose-700 transition-colors duration-200 font-semibold"
+              variant="primary"
+              size="lg"
+              className="rounded-full px-8 py-4 inline-flex items-center"
             >
               Ver Todos los Servicios
               <ArrowRight className="h-5 w-5 ml-2" />
-            </Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-rose-600">
+      <section 
+        className="py-16"
+        style={{ background: themeColors.gradientHero }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             ¿Lista para tu transformación?
           </h2>
-          <p className="text-xl text-rose-100 mb-8 max-w-2xl mx-auto">
+          <p 
+            className="text-xl mb-8 max-w-2xl mx-auto"
+            style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+          >
             Reserva tu cita online las 24 horas o chatea con nosotros para 
             recibir asesoramiento personalizado.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
+            <Button
               href="/reservar"
-              className="bg-white text-rose-600 px-8 py-4 rounded-full hover:bg-gray-100 transition-colors duration-200 font-semibold"
+              variant="outline"
+              size="lg"
+              className="rounded-full px-8 py-4 bg-white border-white text-current hover:bg-opacity-90"
+              style={{ color: themeColors.primary }}
             >
               Reservar Cita Online
-            </Link>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-rose-600 transition-colors duration-200 font-semibold">
+            </Button>
+            <button 
+              className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold transition-all duration-300"
+              {...hoverEffects.whiteButton}
+              style={{ borderColor: 'white', color: 'white' }}
+            >
               Chatear con Nosotros
             </button>
           </div>

@@ -59,7 +59,7 @@ const config = {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     user: process.env.SMTP_USER || '',
-    password: process.env.SMTP_PASSWORD || ''
+    password: process.env.SMTP_PASS || ''
   },
 
   // Archivos

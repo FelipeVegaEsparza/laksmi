@@ -28,6 +28,7 @@ import { categoryService } from '@/services/categoryService'
 import { useNotifications } from '@/contexts/NotificationContext'
 import DataTable, { Column } from '@/components/DataTable'
 import FormModal from '@/components/FormModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { formatPrice } from '@/utils/currency'
 import ServiceForm from '@/components/ServiceForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -44,6 +45,8 @@ export default function ServicesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null)
   
   useNotifications() // For future use
   
@@ -111,17 +114,31 @@ export default function ServicesPage() {
     setModalOpen(true)
   }
 
-  const handleDeleteService = async (service: Service) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el servicio "${service.name}"?`)) {
-      try {
-        await apiService.delete(`/services/${service.id}`)
-        showNotification('Servicio eliminado correctamente', 'success')
-        fetchServices()
-      } catch (error) {
-        console.error('Error deleting service:', error)
-        showNotification('Error al eliminar servicio', 'error')
-      }
+  const handleDeleteService = (service: Service) => {
+    setServiceToDelete(service)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteService = async () => {
+    if (!serviceToDelete) return
+    
+    try {
+      await apiService.delete(`/services/${serviceToDelete.id}`)
+      showNotification('Servicio eliminado correctamente', 'success')
+      fetchServices()
+      setDeleteDialogOpen(false)
+      setServiceToDelete(null)
+    } catch (error) {
+      console.error('Error deleting service:', error)
+      showNotification('Error al eliminar servicio', 'error')
+      setDeleteDialogOpen(false)
+      setServiceToDelete(null)
     }
+  }
+
+  const cancelDeleteService = () => {
+    setDeleteDialogOpen(false)
+    setServiceToDelete(null)
   }
 
   const handleSaveService = async (formData: ServiceFormData) => {
@@ -361,6 +378,18 @@ export default function ServicesPage() {
           onCancel={() => setModalOpen(false)}
         />
       </FormModal>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Servicio"
+        message={`¿Estás seguro de que deseas eliminar el servicio "${serviceToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteService}
+        onCancel={cancelDeleteService}
+        severity="error"
+        icon={<DeleteIcon sx={{ fontSize: 28 }} />}
+      />
     </Box>
   )
 }

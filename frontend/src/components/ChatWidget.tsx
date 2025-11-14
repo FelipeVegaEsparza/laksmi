@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Minimize2, ExternalLink } from 'lucide-react';
 import { chatApi } from '@/services/api';
 import { useChatContext } from '@/contexts/ChatContext';
+import { themeColors } from '@/utils/colors';
 
 interface Message {
   id: string;
@@ -180,7 +181,10 @@ const ChatWidget = () => {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={toggleChat}
-          className="bg-rose-600 hover:bg-rose-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110"
+          className="text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110"
+          style={{ backgroundColor: themeColors.primary }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.primaryHover}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = themeColors.primary}
           aria-label="Abrir chat"
         >
           <MessageCircle className="h-6 w-6" />
@@ -195,7 +199,7 @@ const ChatWidget = () => {
         isMinimized ? 'w-80 sm:w-96 h-16' : 'w-80 sm:w-96 h-[32rem] max-h-[calc(100vh-2rem)]'
       }`}>
         {/* Header */}
-        <div className="bg-rose-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+        <div className="text-white p-4 rounded-t-lg flex items-center justify-between" style={{ backgroundColor: themeColors.primary }}>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
             <span className="font-medium">Asistente Virtual</span>
@@ -230,9 +234,10 @@ const ChatWidget = () => {
                   <div
                     className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
                       message.sender === 'user'
-                        ? 'bg-rose-600 text-white'
+                        ? 'text-white'
                         : 'bg-gray-100 text-gray-800'
                     }`}
+                    style={message.sender === 'user' ? { backgroundColor: themeColors.primary } : {}}
                   >
                     {message.content}
                   </div>
@@ -281,13 +286,34 @@ const ChatWidget = () => {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Escribe tu mensaje..."
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:border-transparent"
+                  style={{
+                    '--tw-ring-color': themeColors.primary,
+                  } as React.CSSProperties}
+                  onFocus={(e) => {
+                    e.currentTarget.style.outline = `2px solid ${themeColors.primary}`;
+                    e.currentTarget.style.outlineOffset = '2px';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                  }}
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 text-white p-2 rounded-lg transition-colors flex-shrink-0"
+                  className="text-white p-2 rounded-lg transition-colors flex-shrink-0"
+                  style={{ backgroundColor: (!inputMessage.trim() || isLoading) ? '#d1d5db' : themeColors.primary }}
+                  onMouseEnter={(e) => {
+                    if (!(!inputMessage.trim() || isLoading)) {
+                      e.currentTarget.style.backgroundColor = themeColors.primaryHover;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!(!inputMessage.trim() || isLoading)) {
+                      e.currentTarget.style.backgroundColor = themeColors.primary;
+                    }
+                  }}
                   aria-label="Enviar mensaje"
                 >
                   <Send className="h-4 w-4" />

@@ -54,8 +54,11 @@ export class BookingModel {
       professional_id: professionalId,
       date_time: bookingData.dateTime,
       duration: service.duration,
-      status: 'confirmed',
-      notes: bookingData.notes || null
+      status: bookingData.status || 'pending_payment',
+      notes: bookingData.notes || null,
+      payment_amount: bookingData.paymentAmount || 20000,
+      payment_method: bookingData.paymentMethod || null,
+      payment_notes: bookingData.paymentNotes || null
     };
 
     await db('bookings').insert(insertData);
@@ -103,8 +106,18 @@ export class BookingModel {
     }
     
     if (updates.professionalId !== undefined) updateData.professional_id = updates.professionalId;
-    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.status !== undefined) {
+      updateData.status = updates.status;
+      // Si el estado cambia a confirmed y no tiene paid_at, establecerlo
+      if (updates.status === 'confirmed' && !existingBooking.paidAt) {
+        updateData.paid_at = new Date();
+      }
+    }
     if (updates.notes !== undefined) updateData.notes = updates.notes;
+    if (updates.paymentAmount !== undefined) updateData.payment_amount = updates.paymentAmount;
+    if (updates.paymentMethod !== undefined) updateData.payment_method = updates.paymentMethod;
+    if (updates.paymentNotes !== undefined) updateData.payment_notes = updates.paymentNotes;
+    if (updates.paidAt !== undefined) updateData.paid_at = updates.paidAt;
     
     updateData.updated_at = new Date();
 
@@ -416,6 +429,7 @@ export class BookingModel {
 
     return {
       totalBookings,
+      pendingPaymentBookings: parseInt(String(statusMap.pending_payment || 0)),
       confirmedBookings: parseInt(String(statusMap.confirmed || 0)),
       cancelledBookings: parseInt(String(statusMap.cancelled || 0)),
       completedBookings: parseInt(String(statusMap.completed || 0)),
@@ -484,6 +498,10 @@ export class BookingModel {
       duration: dbBooking.duration,
       status: dbBooking.status,
       notes: dbBooking.notes,
+      paymentAmount: parseFloat(dbBooking.payment_amount) || 20000,
+      paymentMethod: dbBooking.payment_method,
+      paymentNotes: dbBooking.payment_notes,
+      paidAt: dbBooking.paid_at ? new Date(dbBooking.paid_at) : undefined,
       createdAt: dbBooking.created_at,
       updatedAt: dbBooking.updated_at
     };
@@ -499,6 +517,10 @@ export class BookingModel {
       duration: dbBooking.duration,
       status: dbBooking.status,
       notes: dbBooking.notes,
+      paymentAmount: parseFloat(dbBooking.payment_amount) || 20000,
+      paymentMethod: dbBooking.payment_method,
+      paymentNotes: dbBooking.payment_notes,
+      paidAt: dbBooking.paid_at ? new Date(dbBooking.paid_at) : undefined,
       createdAt: dbBooking.created_at,
       updatedAt: dbBooking.updated_at,
       // Objetos anidados para el frontend

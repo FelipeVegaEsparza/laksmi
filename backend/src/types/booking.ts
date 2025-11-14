@@ -5,8 +5,12 @@ export interface Booking {
   professionalId?: string;
   dateTime: Date;
   duration: number; // en minutos
-  status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+  status: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   notes?: string;
+  paymentAmount: number;
+  paymentMethod?: string;
+  paymentNotes?: string;
+  paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,20 +21,28 @@ export interface CreateBookingRequest {
   dateTime: Date;
   notes?: string;
   preferredProfessionalId?: string;
+  status?: 'pending_payment' | 'confirmed';
+  paymentAmount?: number;
+  paymentMethod?: string;
+  paymentNotes?: string;
 }
 
 export interface UpdateBookingRequest {
   dateTime?: Date;
   professionalId?: string;
-  status?: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+  status?: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   notes?: string;
+  paymentAmount?: number;
+  paymentMethod?: string;
+  paymentNotes?: string;
+  paidAt?: Date;
 }
 
 export interface BookingFilters {
   clientId?: string;
   professionalId?: string;
   serviceId?: string;
-  status?: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+  status?: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   dateFrom?: Date;
   dateTo?: Date;
   page?: number;
@@ -119,6 +131,7 @@ export interface BookingValidationResult {
 
 export interface BookingStats {
   totalBookings: number;
+  pendingPaymentBookings: number;
   confirmedBookings: number;
   cancelledBookings: number;
   completedBookings: number;

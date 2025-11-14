@@ -59,10 +59,10 @@ export const updateBookingSchema = Joi.object({
       'string.uuid': 'El ID del profesional debe ser un UUID válido'
     }),
   status: Joi.string()
-    .valid('confirmed', 'cancelled', 'completed', 'no_show')
+    .valid('confirmed', 'cancelled', 'completed', 'no_show', 'pending_payment')
     .optional()
     .messages({
-      'any.only': 'El estado debe ser: confirmed, cancelled, completed o no_show'
+      'any.only': 'El estado debe ser: pending_payment, confirmed, cancelled, completed o no_show'
     }),
   notes: Joi.string()
     .max(500)
@@ -70,6 +70,34 @@ export const updateBookingSchema = Joi.object({
     .allow('')
     .messages({
       'string.max': 'Las notas no pueden tener más de 500 caracteres'
+    }),
+  paymentAmount: Joi.number()
+    .positive()
+    .optional()
+    .messages({
+      'number.positive': 'El monto del pago debe ser positivo'
+    }),
+  paymentMethod: Joi.string()
+    .max(50)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'El método de pago no puede tener más de 50 caracteres'
+    }),
+  paymentNotes: Joi.string()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Las notas de pago no pueden tener más de 500 caracteres'
+    }),
+  paidAt: Joi.date()
+    .iso()
+    .optional()
+    .allow(null)
+    .messages({
+      'date.base': 'La fecha de pago debe ser válida',
+      'date.iso': 'La fecha de pago debe estar en formato ISO'
     })
 });
 

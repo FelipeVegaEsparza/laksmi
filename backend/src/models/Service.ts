@@ -25,7 +25,9 @@ export class ServiceModel {
       description: serviceData.description || null,
       images: JSON.stringify(serviceData.images || []),
       requirements: JSON.stringify(serviceData.requirements || []),
-      is_active: serviceData.isActive !== undefined ? serviceData.isActive : true
+      is_active: serviceData.isActive !== undefined ? serviceData.isActive : true,
+      sessions: serviceData.sessions || 1,
+      tag: serviceData.tag || null
     };
 
     await db('services').insert(insertData);
@@ -53,6 +55,8 @@ export class ServiceModel {
     if (updates.images !== undefined) updateData.images = JSON.stringify(updates.images);
     if (updates.requirements !== undefined) updateData.requirements = JSON.stringify(updates.requirements);
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+    if (updates.sessions !== undefined) updateData.sessions = updates.sessions;
+    if (updates.tag !== undefined) updateData.tag = updates.tag;
     
     updateData.updated_at = new Date();
 
@@ -240,6 +244,8 @@ export class ServiceModel {
       images: Array.isArray(dbService.images) ? dbService.images : (dbService.images ? JSON.parse(dbService.images) : []),
       requirements: Array.isArray(dbService.requirements) ? dbService.requirements : (dbService.requirements ? JSON.parse(dbService.requirements) : []),
       isActive: Boolean(dbService.is_active),
+      sessions: dbService.sessions || 1,
+      tag: dbService.tag || null,
       createdAt: dbService.created_at,
       updatedAt: dbService.updated_at
     };

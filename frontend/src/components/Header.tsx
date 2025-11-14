@@ -40,7 +40,6 @@ const Header = () => {
     { name: 'Inicio', href: '/', icon: Home },
     { name: 'Servicios', href: '/servicios', icon: Scissors },
     { name: 'Productos', href: '/productos', icon: ShoppingBag },
-    { name: 'Reservar Cita', href: '/reservar', icon: Calendar },
     { name: 'Contacto', href: '/contacto', icon: MessageCircle },
   ];
 
@@ -223,7 +222,7 @@ const Header = () => {
 
           {/* CTA Button - Más destacado */}
           <div className="hidden lg:flex">
-            <Button href="/reservar" variant="primary" size="md" className="shadow-md hover:shadow-lg transition-shadow duration-300">
+            <Button href="/servicios" variant="primary" size="md" className="shadow-md hover:shadow-lg transition-shadow duration-300">
               <Calendar className="h-5 w-5 mr-2" />
               Reservar Ahora
             </Button>
@@ -284,7 +283,7 @@ const Header = () => {
               })}
               <div className="pt-3 px-2">
                 <Button 
-                  href="/reservar" 
+                  href="/servicios" 
                   variant="primary" 
                   fullWidth
                   onClick={() => setIsMenuOpen(false)}

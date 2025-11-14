@@ -6,10 +6,15 @@ export interface CompanySettings {
   companyDescription?: string;
   logoUrl?: string;
   
+  // Datos de pago
+  paymentLink?: string;
+  paymentInstructions?: string;
+  
   // Datos de contacto
   contactAddress?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactWhatsapp?: string;
   
   // Redes sociales
   facebookUrl?: string;
@@ -37,9 +42,12 @@ export interface UpdateCompanySettingsRequest {
   companyName?: string;
   companyDescription?: string;
   logoUrl?: string;
+  paymentLink?: string;
+  paymentInstructions?: string;
   contactAddress?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactWhatsapp?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
@@ -68,9 +76,12 @@ export class CompanySettingsModel {
     if (updates.companyName !== undefined) updateData.company_name = updates.companyName;
     if (updates.companyDescription !== undefined) updateData.company_description = updates.companyDescription;
     if (updates.logoUrl !== undefined) updateData.logo_url = updates.logoUrl;
+    if (updates.paymentLink !== undefined) updateData.payment_link = updates.paymentLink;
+    if (updates.paymentInstructions !== undefined) updateData.payment_instructions = updates.paymentInstructions;
     if (updates.contactAddress !== undefined) updateData.contact_address = updates.contactAddress;
     if (updates.contactEmail !== undefined) updateData.contact_email = updates.contactEmail;
     if (updates.contactPhone !== undefined) updateData.contact_phone = updates.contactPhone;
+    if (updates.contactWhatsapp !== undefined) updateData.contact_whatsapp = updates.contactWhatsapp;
     if (updates.facebookUrl !== undefined) updateData.facebook_url = updates.facebookUrl;
     if (updates.instagramUrl !== undefined) updateData.instagram_url = updates.instagramUrl;
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
@@ -105,9 +116,12 @@ export class CompanySettingsModel {
       companyName: dbSettings.company_name,
       companyDescription: dbSettings.company_description,
       logoUrl: dbSettings.logo_url,
+      paymentLink: dbSettings.payment_link,
+      paymentInstructions: dbSettings.payment_instructions,
       contactAddress: dbSettings.contact_address,
       contactEmail: dbSettings.contact_email,
       contactPhone: dbSettings.contact_phone,
+      contactWhatsapp: dbSettings.contact_whatsapp,
       facebookUrl: dbSettings.facebook_url,
       instagramUrl: dbSettings.instagram_url,
       tiktokUrl: dbSettings.tiktok_url,

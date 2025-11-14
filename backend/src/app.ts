@@ -36,6 +36,7 @@ import dashboardRoutes from './routes/dashboard';
 import companySettingsRoutes from './routes/companySettings';
 import bannerRoutes from './routes/banners';
 import featuredImagesRoutes from './routes/featuredImages';
+import contactRoutes from './routes/contact';
 
 const app: express.Application = express();
 
@@ -145,6 +146,7 @@ app.use(`/api/${config.apiVersion}/dashboard`, dashboardRoutes);
 app.use(`/api/${config.apiVersion}/company-settings`, companySettingsRoutes);
 app.use(`/api/${config.apiVersion}/banners`, bannerRoutes);
 app.use(`/api/${config.apiVersion}/featured-images`, featuredImagesRoutes);
+app.use(`/api/${config.apiVersion}/contact`, contactRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {

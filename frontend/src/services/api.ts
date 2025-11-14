@@ -68,15 +68,51 @@ export const productsApi = {
   },
 };
 
+// Clients API
+export const clientsApi = {
+  findOrCreate: async (clientData: {
+    name: string;
+    phone: string;
+    email?: string;
+    allergies?: string[];
+    preferences?: string[];
+  }) => {
+    const response = await api.post('/clients/public/find-or-create', clientData);
+    return response.data.data || response.data;
+  },
+};
+
 // Bookings API
 export const bookingsApi = {
   getAvailability: async (serviceId: string, date: string): Promise<AvailabilitySlot[]> => {
-    const response = await api.get(`/bookings/availability?serviceId=${serviceId}&date=${date}`);
-    return response.data;
+    try {
+      // Crear dateFrom y dateTo para el día seleccionado
+      const dateFrom = `${date}T00:00:00`;
+      const dateTo = `${date}T23:59:59`;
+      
+      console.log('Making availability request:', { serviceId, dateFrom, dateTo });
+      
+      const response = await api.get(`/bookings/availability?serviceId=${serviceId}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
+      
+      console.log('Availability response:', response.data);
+      
+      const availability = response.data.data || response.data;
+      
+      // Si la respuesta tiene slots, devolverlos directamente
+      if (availability && availability.slots) {
+        return availability.slots;
+      }
+      
+      // Si no hay slots, devolver array vacío
+      return [];
+    } catch (error) {
+      console.error('Error in getAvailability:', error);
+      throw error;
+    }
   },
 
   create: async (bookingData: BookingFormData): Promise<Booking> => {
-    const response = await api.post('/bookings', bookingData);
+    const response = await api.post('/bookings/public', bookingData);
     return response.data;
   },
 

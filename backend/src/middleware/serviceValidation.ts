@@ -78,6 +78,21 @@ export const createServiceSchema = Joi.object({
     .optional()
     .messages({
       'boolean.base': 'isActive debe ser verdadero o falso'
+    }),
+  sessions: Joi.number()
+    .min(1)
+    .max(100)
+    .optional()
+    .messages({
+      'number.min': 'Las sesiones deben ser al menos 1',
+      'number.max': 'Las sesiones no pueden ser más de 100'
+    }),
+  tag: Joi.string()
+    .max(50)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.max': 'La etiqueta no puede tener más de 50 caracteres'
     })
 });
 
@@ -141,6 +156,21 @@ export const updateServiceSchema = Joi.object({
     .optional()
     .messages({
       'boolean.base': 'isActive debe ser verdadero o falso'
+    }),
+  sessions: Joi.number()
+    .min(1)
+    .max(100)
+    .optional()
+    .messages({
+      'number.min': 'Las sesiones deben ser al menos 1',
+      'number.max': 'Las sesiones no pueden ser más de 100'
+    }),
+  tag: Joi.string()
+    .max(50)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.max': 'La etiqueta no puede tener más de 50 caracteres'
     })
 });
 

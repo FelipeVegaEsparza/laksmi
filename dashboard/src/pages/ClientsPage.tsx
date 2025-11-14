@@ -27,6 +27,7 @@ import {
   Star as StarIcon,
   Warning as WarningIcon,
   History as HistoryIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -37,6 +38,7 @@ import DataTable, { Column } from '@/components/DataTable'
 import FormModal from '@/components/FormModal'
 import ClientForm from '@/components/ClientForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -65,6 +67,8 @@ export default function ClientsPage() {
   const [clientHistory, setClientHistory] = useState<Booking[]>([])
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [historyTab, setHistoryTab] = useState(0)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
   
   useNotifications() // For future use
   
@@ -124,17 +128,31 @@ export default function ClientsPage() {
     setHistoryModalOpen(true)
   }
 
-  const handleDeleteClient = async (client: Client) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el cliente "${client.name}"?`)) {
-      try {
-        await apiService.delete(`/clients/${client.id}`)
-        showNotification('Cliente eliminado correctamente', 'success')
-        fetchClients()
-      } catch (error) {
-        console.error('Error deleting client:', error)
-        showNotification('Error al eliminar cliente', 'error')
-      }
+  const handleDeleteClient = (client: Client) => {
+    setClientToDelete(client)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return
+    
+    try {
+      await apiService.delete(`/clients/${clientToDelete.id}`)
+      showNotification('Cliente eliminado correctamente', 'success')
+      fetchClients()
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
+    } catch (error) {
+      console.error('Error deleting client:', error)
+      showNotification('Error al eliminar cliente', 'error')
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
     }
+  }
+
+  const cancelDeleteClient = () => {
+    setDeleteDialogOpen(false)
+    setClientToDelete(null)
   }
 
   const handleSaveClient = async (formData: ClientFormData) => {
@@ -477,6 +495,19 @@ export default function ClientsPage() {
           </Box>
         )}
       </FormModal>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Cliente"
+        message={`¿Estás seguro de que deseas eliminar el cliente "${clientToDelete?.name}"? Esta acción no se puede deshacer y eliminará todo su historial.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteClient}
+        onCancel={cancelDeleteClient}
+        severity="error"
+        icon={<DeleteIcon sx={{ fontSize: 28 }} />}
+      />
     </Box>
   )
 }

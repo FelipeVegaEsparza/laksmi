@@ -10,6 +10,8 @@ export interface Service {
   images: string[];
   requirements: string[];
   isActive: boolean;
+  sessions?: number;
+  tag?: string;
 }
 
 export interface Product {
@@ -53,21 +55,16 @@ export interface CartItem {
 }
 
 export interface AvailabilitySlot {
-  dateTime: Date;
+  dateTime: Date | string;
   available: boolean;
   professionalId?: string;
+  timeSlot?: string; // HH:MM format for safe display
 }
 
 export interface BookingFormData {
+  clientId: string;
   serviceId: string;
   dateTime: Date;
-  client: {
-    name: string;
-    phone: string;
-    email?: string;
-    allergies?: string[];
-    preferences?: string[];
-  };
   notes?: string;
 }
 

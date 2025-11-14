@@ -26,6 +26,7 @@ import {
 import { categoryService } from '../services/categoryService'
 import { Category, CreateCategoryData, UpdateCategoryData } from '../types/category'
 import { useSnackbar } from 'notistack'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function CategoriesPage() {
   const [tab, setTab] = useState<'service' | 'product'>('service')
@@ -39,6 +40,8 @@ export default function CategoriesPage() {
     description: '',
   })
   const [usageInfo, setUsageInfo] = useState<{ services: number; products: number } | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const { enqueueSnackbar } = useSnackbar()
 
   useEffect(() => {
@@ -102,12 +105,8 @@ export default function CategoriesPage() {
   }
 
   const handleDelete = async (category: Category) => {
-    if (!window.confirm(`¿Estás seguro de eliminar la categoría "${category.name}"?`)) {
-      return
-    }
-
+    // Verificar uso antes de mostrar el diálogo
     try {
-      // Verificar uso antes de eliminar
       const usage = await categoryService.getCategoryUsage(category.id)
       if (usage.services > 0 || usage.products > 0) {
         enqueueSnackbar(
@@ -116,13 +115,33 @@ export default function CategoriesPage() {
         )
         return
       }
+      
+      setCategoryToDelete(category)
+      setDeleteDialogOpen(true)
+    } catch (error: any) {
+      enqueueSnackbar(error.message || 'Error al verificar categoría', { variant: 'error' })
+    }
+  }
 
-      await categoryService.deleteCategory(category.id)
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return
+    
+    try {
+      await categoryService.deleteCategory(categoryToDelete.id)
       enqueueSnackbar('Categoría eliminada exitosamente', { variant: 'success' })
       loadCategories()
+      setDeleteDialogOpen(false)
+      setCategoryToDelete(null)
     } catch (error: any) {
       enqueueSnackbar(error.message || 'Error al eliminar categoría', { variant: 'error' })
+      setDeleteDialogOpen(false)
+      setCategoryToDelete(null)
     }
+  }
+
+  const cancelDeleteCategory = () => {
+    setDeleteDialogOpen(false)
+    setCategoryToDelete(null)
   }
 
   const handleToggleActive = async (category: Category) => {
@@ -271,6 +290,18 @@ export default function CategoriesPage() {
           <Button onClick={() => setUsageInfo(null)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Categoría"
+        message={`¿Estás seguro de que deseas eliminar la categoría "${categoryToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteCategory}
+        onCancel={cancelDeleteCategory}
+        severity="error"
+        icon={<DeleteIcon sx={{ fontSize: 28 }} />}
+      />
     </Box>
   )
 }

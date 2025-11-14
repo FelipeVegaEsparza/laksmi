@@ -51,11 +51,31 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       document.documentElement.style.setProperty('--color-background', colors.background)
       document.documentElement.style.setProperty('--color-text', colors.text)
       
+      // Generate hover and light variants
+      const primaryHover = adjustColor(colors.primary, -20) // Darker
+      const primaryLight = adjustColor(colors.primary, 80) // Lighter
+      const secondaryHover = adjustColor(colors.secondary, -20)
+      const secondaryLight = adjustColor(colors.secondary, 80)
+      
+      document.documentElement.style.setProperty('--color-primary-hover', primaryHover)
+      document.documentElement.style.setProperty('--color-primary-light', primaryLight)
+      document.documentElement.style.setProperty('--color-secondary-hover', secondaryHover)
+      document.documentElement.style.setProperty('--color-secondary-light', secondaryLight)
+      
       // Verify they were set
       const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary')
       console.log('✅ Frontend - CSS variable --color-primary set to:', computedPrimary)
     }
   }, [colors])
+
+  // Helper function to adjust color brightness
+  const adjustColor = (color: string, amount: number): string => {
+    const hex = color.replace('#', '')
+    const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount))
+    const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount))
+    const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount))
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+  }
 
   const loadTheme = async () => {
     try {

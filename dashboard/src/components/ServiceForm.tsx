@@ -40,6 +40,8 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
     images: [],
     requirements: [],
     isActive: true,
+    sessions: 1,
+    tag: '',
   })
   const [newRequirement, setNewRequirement] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -55,6 +57,8 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         images: service.images || [],
         requirements: service.requirements,
         isActive: service.isActive,
+        sessions: service.sessions || 1,
+        tag: service.tag || '',
       })
     }
   }, [service])
@@ -95,7 +99,12 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       formData: formData
     })
     if (validateForm()) {
-      onSave(formData)
+      // Limpiar datos antes de enviar
+      const cleanedData = {
+        ...formData,
+        tag: formData.tag && formData.tag.trim() !== '' ? formData.tag : undefined
+      }
+      onSave(cleanedData)
     }
   }
 
@@ -211,6 +220,35 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             inputProps={{ min: 1, step: 1 }}
             required
           />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            type="number"
+            label="Cantidad de Sesiones"
+            value={formData.sessions}
+            onChange={handleInputChange('sessions')}
+            helperText="Número de sesiones recomendadas para el tratamiento"
+            inputProps={{ min: 1, step: 1 }}
+          />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            select
+            label="Etiqueta"
+            value={formData.tag || ''}
+            onChange={handleInputChange('tag')}
+            helperText="Etiqueta opcional para destacar el servicio"
+          >
+            <MenuItem value="">Sin etiqueta</MenuItem>
+            <MenuItem value="Popular">Popular</MenuItem>
+            <MenuItem value="Nuevo">Nuevo</MenuItem>
+            <MenuItem value="Oferta">Oferta</MenuItem>
+            <MenuItem value="Recomendado">Recomendado</MenuItem>
+          </TextField>
         </Grid>
 
         <Grid item xs={12}>

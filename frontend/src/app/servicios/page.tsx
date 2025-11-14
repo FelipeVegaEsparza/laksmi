@@ -3,12 +3,16 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Loading from '@/components/Loading';
 import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
 import { Search, Filter, Clock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
+import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 
 const ServicesContent = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -19,7 +23,7 @@ const ServicesContent = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
+
 
   const searchParams = useSearchParams();
 
@@ -38,82 +42,16 @@ const ServicesContent = () => {
 
     const loadServices = async () => {
       try {
+        console.log('🔄 Cargando servicios desde API...');
         const servicesData = await servicesApi.getAll();
+        console.log('✅ Servicios cargados:', servicesData);
+        console.log('📊 Total de servicios:', servicesData.length);
         setServices(servicesData);
         setFilteredServices(servicesData);
       } catch (error) {
-        console.error('Error loading services:', error);
-        // Mock data for development
-        const mockServices: Service[] = [
-          {
-            id: '1',
-            name: 'Limpieza Facial Profunda',
-            category: 'facial',
-            price: 65,
-            duration: 60,
-            description: 'Tratamiento completo de limpieza facial con extracción de impurezas y hidratación profunda. Incluye análisis de piel, limpieza, exfoliación, extracción, mascarilla y hidratación.',
-            images: ['/images/facial-cleaning.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '2',
-            name: 'Masaje Relajante',
-            category: 'corporal',
-            price: 80,
-            duration: 90,
-            description: 'Masaje corporal completo para liberar tensiones y mejorar la circulación. Técnicas de relajación profunda con aceites esenciales.',
-            images: ['/images/massage.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '3',
-            name: 'Tratamiento Anti-edad',
-            category: 'facial',
-            price: 120,
-            duration: 75,
-            description: 'Tratamiento avanzado con tecnología de radiofrecuencia para combatir los signos del envejecimiento. Estimula la producción de colágeno.',
-            images: ['/images/anti-aging.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '4',
-            name: 'Peeling Químico',
-            category: 'facial',
-            price: 95,
-            duration: 45,
-            description: 'Exfoliación química profunda para renovar la piel y mejorar su textura. Ideal para manchas y cicatrices.',
-            images: ['/images/peeling.jpg'],
-            requirements: ['No exposición solar reciente'],
-            isActive: true
-          },
-          {
-            id: '5',
-            name: 'Masaje con Piedras Calientes',
-            category: 'spa',
-            price: 110,
-            duration: 90,
-            description: 'Relajación profunda con piedras volcánicas calientes. Libera tensiones y mejora la circulación sanguínea.',
-            images: ['/images/hot-stones.jpg'],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '6',
-            name: 'Tratamiento Corporal Reafirmante',
-            category: 'corporal',
-            price: 85,
-            duration: 60,
-            description: 'Tratamiento para mejorar la firmeza y elasticidad de la piel corporal. Incluye exfoliación y mascarilla reafirmante.',
-            images: ['/images/body-firming.jpg'],
-            requirements: [],
-            isActive: true
-          }
-        ];
-        setServices(mockServices);
-        setFilteredServices(mockServices);
+        console.error('❌ Error loading services:', error);
+        setServices([]);
+        setFilteredServices([]);
       } finally {
         setLoading(false);
       }
@@ -153,13 +91,8 @@ const ServicesContent = () => {
       filtered = filtered.filter(service => service.category === selectedCategory);
     }
 
-    // Filter by price range
-    filtered = filtered.filter(service => 
-      service.price >= priceRange[0] && service.price <= priceRange[1]
-    );
-
     setFilteredServices(filtered);
-  }, [services, searchTerm, selectedCategory, priceRange]);
+  }, [services, searchTerm, selectedCategory]);
 
   return (
     <Layout>
@@ -180,9 +113,9 @@ const ServicesContent = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters Sidebar */}
             <div className="lg:w-1/4">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
+              <Card className="sticky top-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Filter className="h-5 w-5 mr-2" />
+                  <Filter className="h-5 w-5 mr-2" style={{ color: themeColors.primary }} />
                   Filtros
                 </h3>
 
@@ -198,7 +131,16 @@ const ServicesContent = () => {
                       placeholder="Buscar servicios..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                      style={{
+                        '--tw-ring-color': themeColors.primary,
+                      } as React.CSSProperties}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = themeColors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '';
+                      }}
                     />
                   </div>
                 </div>
@@ -217,7 +159,11 @@ const ServicesContent = () => {
                           value={category.id}
                           checked={selectedCategory === category.id}
                           onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300"
+                          className="h-4 w-4 border-gray-300 focus:ring-2"
+                          style={{
+                            color: themeColors.primary,
+                            '--tw-ring-color': themeColors.primary,
+                          } as React.CSSProperties}
                         />
                         <span className="ml-2 text-sm text-gray-700">
                           {category.name}
@@ -227,21 +173,8 @@ const ServicesContent = () => {
                   </div>
                 </div>
 
-                {/* Price Range */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rango de Precio: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                </div>
-              </div>
+
+              </Card>
             </div>
 
             {/* Services Grid */}
@@ -253,22 +186,20 @@ const ServicesContent = () => {
               </div>
 
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
-                      <div className="h-48 bg-gray-300"></div>
-                      <div className="p-6">
-                        <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                        <div className="h-4 bg-gray-300 rounded w-2/3 mb-4"></div>
-                        <div className="h-3 bg-gray-300 rounded mb-2"></div>
-                        <div className="h-3 bg-gray-300 rounded mb-4"></div>
-                        <div className="h-8 bg-gray-300 rounded"></div>
-                      </div>
-                    </div>
+                    <Card key={i} className="overflow-hidden">
+                      <Loading type="skeleton" className="aspect-square mb-4" />
+                      <Loading type="skeleton" className="h-4 mb-3" />
+                      <Loading type="skeleton" className="h-4 w-2/3 mb-3" />
+                      <Loading type="skeleton" className="h-3 mb-2" />
+                      <Loading type="skeleton" className="h-3 mb-3" />
+                      <Loading type="skeleton" className="h-8" />
+                    </Card>
                   ))}
                 </div>
               ) : filteredServices.length === 0 ? (
-                <div className="text-center py-12">
+                <Card className="text-center py-12">
                   <Sparkles className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     No se encontraron servicios
@@ -276,56 +207,85 @@ const ServicesContent = () => {
                   <p className="text-gray-600">
                     Intenta ajustar los filtros para ver más resultados.
                   </p>
-                </div>
+                </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredServices.map((service) => (
-                    <div key={service.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                      <div className="relative h-48 overflow-hidden">
+                    <Card key={service.id} hover className="overflow-hidden flex flex-col" padding="none">
+                      <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
                         <ServiceImage
                           src={service.images?.[0] || ''}
                           alt={service.name}
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
                           fallbackClassName="w-full h-full"
                         />
+                        {/* Service Tag Badge */}
+                        {service.tag && (
+                          <div className="absolute top-3 right-3">
+                            <div 
+                              className="text-white px-3 py-1 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-xs tracking-wide uppercase"
+                              style={{ background: themeColors.gradientPrimary }}
+                            >
+                              {service.tag}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-rose-600 bg-rose-100 px-2 py-1 rounded-full">
+                      <div className="p-4 flex flex-col flex-grow">
+                        <div className="flex items-start justify-between mb-2">
+                          <span 
+                            className="text-xs font-medium px-2 py-1 rounded-full"
+                            style={{ 
+                              color: themeColors.primary,
+                              backgroundColor: themeColors.primaryLight 
+                            }}
+                          >
                             {categories.find(c => c.id === service.category)?.name || service.category}
                           </span>
-                          <div className="text-2xl font-bold text-rose-600">
+                          <div 
+                            className="text-xl font-bold"
+                            style={{ color: themeColors.primary }}
+                          >
                             {formatPrice(service.price)}
                           </div>
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                           {service.name}
                         </h3>
-                        <p className="text-gray-600 mb-4 line-clamp-2">
+                        {/* Sessions Info */}
+                        {service.sessions && service.sessions > 1 && (
+                          <p className="text-gray-600 text-xs mb-2 flex items-center">
+                            <Sparkles className="h-3 w-3 mr-1" style={{ color: themeColors.primary }} />
+                            Incluye: <span className="font-semibold ml-1">{service.sessions} sesiones</span>
+                          </p>
+                        )}
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-grow">
                           {service.description}
                         </p>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {service.duration} min
-                          </div>
+                        <div className="flex items-center text-sm text-gray-500 mb-3">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {service.duration} min
                         </div>
-                        <div className="flex gap-2">
-                          <Link
+                        <div className="flex flex-col gap-2">
+                          <Button
                             href={`/servicios/${service.id}`}
-                            className="flex-1 bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium text-center"
+                            variant="primary"
+                            size="sm"
+                            fullWidth
                           >
                             Ver Detalles
-                          </Link>
-                          <Link
+                          </Button>
+                          <Button
                             href={`/reservar?service=${service.id}`}
-                            className="flex-1 border border-rose-600 text-rose-600 py-2 px-4 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-medium text-center"
+                            variant="outline"
+                            size="sm"
+                            fullWidth
                           >
                             Reservar
-                          </Link>
+                          </Button>
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}

@@ -22,11 +22,13 @@ import {
   Palette as PaletteIcon,
   Share as ShareIcon,
   ContactMail as ContactIcon,
+  Payment as PaymentIcon,
 } from '@mui/icons-material'
 import { apiService } from '@/services/apiService'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useSnackbar } from 'notistack'
 import { useAppTheme } from '@/contexts/ThemeContext'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface CompanySettings {
   id: string
@@ -36,6 +38,9 @@ interface CompanySettings {
   contactAddress?: string
   contactEmail?: string
   contactPhone?: string
+  contactWhatsapp?: string
+  paymentLink?: string
+  paymentInstructions?: string
   facebookUrl?: string
   instagramUrl?: string
   tiktokUrl?: string
@@ -55,6 +60,7 @@ export default function CompanySettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [deleteLogoDialogOpen, setDeleteLogoDialogOpen] = useState(false)
   const { enqueueSnackbar } = useSnackbar()
   const { refreshTheme } = useAppTheme()
 
@@ -136,17 +142,24 @@ export default function CompanySettingsPage() {
     }
   }
 
-  const handleDeleteLogo = async () => {
-    if (!window.confirm('¿Estás seguro de eliminar el logo?')) return
+  const handleDeleteLogo = () => {
+    setDeleteLogoDialogOpen(true)
+  }
 
+  const confirmDeleteLogo = async () => {
     try {
       await apiService.delete('/company-settings/logo')
       setSettings(prev => prev ? { ...prev, logoUrl: undefined } : null)
       enqueueSnackbar('Logo eliminado exitosamente', { variant: 'success' })
+      setDeleteLogoDialogOpen(false)
     } catch (error) {
       console.error('Error deleting logo:', error)
       enqueueSnackbar('Error al eliminar logo', { variant: 'error' })
     }
+  }
+
+  const cancelDeleteLogo = () => {
+    setDeleteLogoDialogOpen(false)
   }
 
   if (loading) {
@@ -299,6 +312,54 @@ export default function CompanySettingsPage() {
                 placeholder="+34 123 456 789"
                 value={settings.contactPhone || ''}
                 onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                label="WhatsApp"
+                placeholder="+56912345678"
+                value={settings.contactWhatsapp || ''}
+                onChange={(e) => setSettings({ ...settings, contactWhatsapp: e.target.value })}
+                helperText="Número de WhatsApp para contacto (incluye código de país)"
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Información de Pagos */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <PaymentIcon sx={{ mr: 1 }} />
+                <Typography variant="h6">Información de Pagos</Typography>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
+
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Esta información se enviará en el correo de confirmación cuando una reserva esté pendiente de pago.
+              </Alert>
+
+              <TextField
+                fullWidth
+                label="Link de Pago"
+                placeholder="https://mpago.la/tu-link o https://flow.cl/tu-link"
+                value={settings.paymentLink || ''}
+                onChange={(e) => setSettings({ ...settings, paymentLink: e.target.value })}
+                sx={{ mb: 2 }}
+                helperText="URL de MercadoPago, Flow, Webpay u otro sistema de pago"
+              />
+
+              <TextField
+                fullWidth
+                label="Instrucciones de Pago"
+                multiline
+                rows={6}
+                placeholder="Ejemplo:&#10;&#10;Puedes pagar mediante:&#10;1. Transferencia bancaria a:&#10;   - Banco: Banco Estado&#10;   - Cuenta: 12345678&#10;   - RUT: 12.345.678-9&#10;   - Nombre: Tu Empresa SpA&#10;&#10;2. MercadoPago usando el botón de arriba&#10;&#10;Envía el comprobante por WhatsApp al +56912345678"
+                value={settings.paymentInstructions || ''}
+                onChange={(e) => setSettings({ ...settings, paymentInstructions: e.target.value })}
+                helperText="Instrucciones detalladas sobre cómo realizar el pago (datos bancarios, métodos aceptados, etc.)"
               />
             </CardContent>
           </Card>
@@ -558,6 +619,18 @@ export default function CompanySettingsPage() {
           {saving ? 'Guardando...' : 'Guardar Todos los Cambios'}
         </Button>
       </Box>
+
+      {/* Confirm Delete Logo Dialog */}
+      <ConfirmDialog
+        open={deleteLogoDialogOpen}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que quieres eliminar el logo? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteLogo}
+        onCancel={cancelDeleteLogo}
+        severity="error"
+      />
     </Box>
   )
 }

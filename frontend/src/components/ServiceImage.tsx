@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { themeColors } from '@/utils/colors';
 
 interface ServiceImageProps {
   src: string;
@@ -28,8 +29,14 @@ const ServiceImage = ({ src, alt, className = '', fallbackClassName = '' }: Serv
 
   if (imageError || !src) {
     return (
-      <div className={`flex items-center justify-center bg-gradient-to-br from-rose-200 to-pink-300 ${fallbackClassName}`}>
-        <Sparkles className="h-16 w-16 text-rose-600" />
+      <div 
+        className={`flex items-center justify-center ${fallbackClassName}`}
+        style={{ background: themeColors.gradientLight }}
+      >
+        <Sparkles 
+          className="h-16 w-16" 
+          style={{ color: themeColors.primary }}
+        />
       </div>
     );
   }
@@ -37,9 +44,15 @@ const ServiceImage = ({ src, alt, className = '', fallbackClassName = '' }: Serv
   return (
     <>
       {!imageLoaded && (
-        <div className={`flex items-center justify-center bg-gradient-to-br from-rose-200 to-pink-300 ${fallbackClassName}`}>
+        <div 
+          className={`flex items-center justify-center ${fallbackClassName}`}
+          style={{ background: themeColors.gradientLight }}
+        >
           <div className="animate-pulse">
-            <Sparkles className="h-16 w-16 text-rose-400" />
+            <Sparkles 
+              className="h-16 w-16" 
+              style={{ color: themeColors.primary }}
+            />
           </div>
         </div>
       )}

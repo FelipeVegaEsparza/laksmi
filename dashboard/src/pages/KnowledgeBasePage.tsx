@@ -46,6 +46,7 @@ import {
 import { apiService } from '@/services/apiService'
 import { useSnackbar } from 'notistack'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Category {
   id: string
@@ -105,6 +106,10 @@ export default function KnowledgeBasePage() {
   
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
+  
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'faq' | 'tech' | 'ingredient'; name: string } | null>(null)
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('')
@@ -191,17 +196,9 @@ export default function KnowledgeBasePage() {
     }
   }
 
-  const handleDeleteFAQ = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta FAQ?')) return
-    
-    try {
-      await apiService.delete(`/knowledge/faqs/${id}`)
-      enqueueSnackbar('FAQ eliminada correctamente', { variant: 'success' })
-      fetchData()
-    } catch (error) {
-      console.error('Error deleting FAQ:', error)
-      enqueueSnackbar('Error al eliminar FAQ', { variant: 'error' })
-    }
+  const handleDeleteFAQ = (id: string, question: string) => {
+    setItemToDelete({ id, type: 'faq', name: question })
+    setDeleteDialogOpen(true)
   }
 
   const handleCreateTechnology = () => {
@@ -239,15 +236,42 @@ export default function KnowledgeBasePage() {
     }
   }
 
-  const handleDeleteTechnology = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta tecnología?')) return
+  const handleDeleteTechnology = (id: string, name: string) => {
+    setItemToDelete({ id, type: 'tech', name })
+    setDeleteDialogOpen(true)
+  }
+  
+  const handleDeleteIngredient = (id: string, name: string) => {
+    setItemToDelete({ id, type: 'ingredient', name })
+    setDeleteDialogOpen(true)
+  }
+  
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
     
     try {
-      await apiService.delete(`/knowledge/technologies/${id}`)
-      enqueueSnackbar('Tecnología eliminada correctamente', { variant: 'success' })
+      const { id, type } = itemToDelete
+      
+      switch (type) {
+        case 'faq':
+          await apiService.delete(`/knowledge/faqs/${id}`)
+          enqueueSnackbar('FAQ eliminada correctamente', { variant: 'success' })
+          break
+        case 'tech':
+          await apiService.delete(`/knowledge/technologies/${id}`)
+          enqueueSnackbar('Tecnología eliminada correctamente', { variant: 'success' })
+          break
+        case 'ingredient':
+          await apiService.delete(`/knowledge/ingredients/${id}`)
+          enqueueSnackbar('Ingrediente eliminado correctamente', { variant: 'success' })
+          break
+      }
+      
+      setDeleteDialogOpen(false)
+      setItemToDelete(null)
       fetchData()
     } catch (error) {
-      console.error('Error deleting technology:', error)
+      console.error('Error deleting item:', error)
       enqueueSnackbar('Error al eliminar tecnología', { variant: 'error' })
     }
   }
@@ -286,17 +310,9 @@ export default function KnowledgeBasePage() {
     }
   }
 
-  const handleDeleteIngredient = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este ingrediente?')) return
-    
-    try {
-      await apiService.delete(`/knowledge/ingredients/${id}`)
-      enqueueSnackbar('Ingrediente eliminado correctamente', { variant: 'success' })
-      fetchData()
-    } catch (error) {
-      console.error('Error deleting ingredient:', error)
-      enqueueSnackbar('Error al eliminar ingrediente', { variant: 'error' })
-    }
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false)
+    setItemToDelete(null)
   }
 
   const getCategoryName = (categoryId: string) => {
@@ -698,7 +714,7 @@ export default function KnowledgeBasePage() {
                         <Tooltip title="Eliminar">
                           <IconButton
                             edge="end"
-                            onClick={() => handleDeleteFAQ(faq.id)}
+                            onClick={() => handleDeleteFAQ(faq.id, faq.question)}
                             color="error"
                           >
                             <DeleteIcon />
@@ -799,7 +815,7 @@ export default function KnowledgeBasePage() {
                                 <IconButton
                                   size="small"
                                   color="error"
-                                  onClick={() => handleDeleteTechnology(tech.id)}
+                                  onClick={() => handleDeleteTechnology(tech.id, tech.name)}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -909,7 +925,7 @@ export default function KnowledgeBasePage() {
                                 <IconButton
                                   size="small"
                                   color="error"
-                                  onClick={() => handleDeleteIngredient(ing.id)}
+                                  onClick={() => handleDeleteIngredient(ing.id, ing.name)}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -1368,6 +1384,18 @@ export default function KnowledgeBasePage() {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Confirmar eliminación"
+        message={`¿Estás seguro de que quieres eliminar "${itemToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        severity="error"
+      />
     </Box>
   )
 }

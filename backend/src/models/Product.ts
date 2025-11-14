@@ -23,6 +23,8 @@ export class ProductModel {
       price: productData.price,
       stock: productData.stock,
       min_stock: productData.minStock || 5,
+      description: productData.description || null,
+      images: JSON.stringify(productData.images || []),
       ingredients: JSON.stringify(productData.ingredients || []),
       compatible_services: JSON.stringify(productData.compatibleServices || [])
     };
@@ -52,6 +54,8 @@ export class ProductModel {
     if (updates.price !== undefined) updateData.price = updates.price;
     if (updates.stock !== undefined) updateData.stock = updates.stock;
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.images !== undefined) updateData.images = JSON.stringify(updates.images);
     if (updates.ingredients !== undefined) updateData.ingredients = JSON.stringify(updates.ingredients);
     if (updates.compatibleServices !== undefined) updateData.compatible_services = JSON.stringify(updates.compatibleServices);
     

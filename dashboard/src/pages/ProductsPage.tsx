@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-
+  Delete as DeleteIcon,
   Search as SearchIcon,
   Warning as WarningIcon,
   Inventory as InventoryIcon,
@@ -25,6 +25,7 @@ import { useNotifications } from '@/contexts/NotificationContext'
 import DataTable, { Column } from '@/components/DataTable'
 import FormModal from '@/components/FormModal'
 import ProductForm from '@/components/ProductForm'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { formatPrice } from '@/utils/currency'
 
@@ -41,6 +42,8 @@ export default function ProductsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   
   useNotifications() // For future use
   
@@ -103,17 +106,31 @@ export default function ProductsPage() {
     setModalOpen(true)
   }
 
-  const handleDeleteProduct = async (product: Product) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el producto "${product.name}"?`)) {
-      try {
-        await apiService.delete(`/products/${product.id}`)
-        showNotification('Producto eliminado correctamente', 'success')
-        fetchProducts()
-      } catch (error) {
-        console.error('Error deleting product:', error)
-        showNotification('Error al eliminar producto', 'error')
-      }
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return
+    
+    try {
+      await apiService.delete(`/products/${productToDelete.id}`)
+      showNotification('Producto eliminado correctamente', 'success')
+      fetchProducts()
+      setDeleteDialogOpen(false)
+      setProductToDelete(null)
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      showNotification('Error al eliminar producto', 'error')
+      setDeleteDialogOpen(false)
+      setProductToDelete(null)
     }
+  }
+
+  const cancelDeleteProduct = () => {
+    setDeleteDialogOpen(false)
+    setProductToDelete(null)
   }
 
   const handleSaveProduct = async (formData: ProductFormData) => {
@@ -310,6 +327,18 @@ export default function ProductsPage() {
           onCancel={() => setModalOpen(false)}
         />
       </FormModal>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Producto"
+        message={`¿Estás seguro de que deseas eliminar el producto "${productToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteProduct}
+        onCancel={cancelDeleteProduct}
+        severity="error"
+        icon={<DeleteIcon sx={{ fontSize: 28 }} />}
+      />
     </Box>
   )
 }

@@ -36,9 +36,17 @@ async function startServer() {
       throw dbError;
     }
 
-    // Las migraciones y seeds se ejecutan en start-production.sh antes de iniciar el servidor
-    // Esto evita problemas de concurrencia en producción
-    logger.info('ℹ️  Migrations and seeds should be run via npm scripts before starting server');
+    // Ejecutar migraciones automáticamente
+    logger.info('🔄 Ejecutando migraciones automáticas...');
+    try {
+      const { MigrationService } = await import('./services/MigrationService');
+      await MigrationService.runMigrations();
+      logger.info('✅ Migraciones completadas');
+    } catch (migrationError) {
+      logger.error('❌ Error ejecutando migraciones:', migrationError);
+      // No detener el servidor si las migraciones fallan, solo advertir
+      logger.warn('⚠️  El servidor continuará sin ejecutar las migraciones');
+    }
 
     // Inicializar servicio de notificaciones en tiempo real
     logger.info('Initializing real-time notification service...');

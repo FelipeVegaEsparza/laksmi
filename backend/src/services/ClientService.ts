@@ -32,6 +32,10 @@ export class ClientService {
     return ClientModel.findByPhone(phone);
   }
 
+  static async getClientByEmail(email: string): Promise<Client | null> {
+    return ClientModel.findByEmail(email);
+  }
+
   static async updateClient(id: string, updates: UpdateClientRequest): Promise<Client | null> {
     const existingClient = await ClientModel.findById(id);
     if (!existingClient) {

@@ -89,6 +89,11 @@ export class BookingController {
       if (updates.dateTime && typeof updates.dateTime === 'string') {
         updates.dateTime = new Date(updates.dateTime);
       }
+      
+      // Convertir paidAt string a Date object si está presente
+      if (updates.paidAt && typeof updates.paidAt === 'string') {
+        updates.paidAt = new Date(updates.paidAt);
+      }
 
       const booking = await BookingService.updateBooking(id, updates);
       
@@ -280,6 +285,33 @@ export class BookingController {
       res.status(statusCode).json({
         success: false,
         error: error.message || 'Error al marcar cita como no show'
+      });
+    }
+  }
+
+  static async deleteBooking(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await BookingService.deleteBooking(id);
+      
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          error: 'Cita no encontrada'
+        });
+        return;
+      }
+      
+      res.json({
+        success: true,
+        message: 'Cita eliminada exitosamente'
+      });
+    } catch (error: any) {
+      logger.error('Delete booking error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Error al eliminar cita'
       });
     }
   }

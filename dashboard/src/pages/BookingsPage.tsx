@@ -49,19 +49,30 @@ import { Booking } from '../types'
 import { apiService } from '../services/apiService'
 import { useSnackbar } from 'notistack'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const statusColors: Record<string, 'default' | 'warning' | 'success' | 'error' | 'info'> = {
+  pending_payment: 'warning',
   confirmed: 'info',
   completed: 'success',
   cancelled: 'error',
-  no_show: 'warning',
+  no_show: 'default',
 }
 
 const statusLabels: Record<string, string> = {
+  pending_payment: 'Pendiente de Pago',
   confirmed: 'Confirmada',
   completed: 'Completada',
   cancelled: 'Cancelada',
   no_show: 'No asistió',
+}
+
+const statusIcons: Record<string, string> = {
+  pending_payment: '⚠️',
+  confirmed: '✅',
+  completed: '🔵',
+  cancelled: '❌',
+  no_show: '👻',
 }
 
 export default function BookingsPage() {
@@ -86,8 +97,16 @@ export default function BookingsPage() {
     professionalId: '',
     dateTime: '',
     notes: '',
+    status: 'pending_payment' as 'pending_payment' | 'confirmed',
+    paymentAmount: 20000,
+    paymentMethod: '',
+    paymentNotes: '',
   })
-  const { enqueueSnackbar } = useSnackbar()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
+  const [statusChangeDialog, setStatusChangeDialog] = useState(false)
+  const [bookingToChangeStatus, setBookingToChangeStatus] = useState<{booking: Booking, newStatus: string} | null>(null)
+  const { enqueueSnackbar} = useSnackbar()
 
   useEffect(() => {
     fetchMonthBookings()
@@ -104,8 +123,8 @@ export default function BookingsPage() {
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd')
       
       const response = await apiService.getBookings({
-        startDate: start,
-        endDate: end,
+        dateFrom: start,
+        dateTo: end,
       })
       
       setBookings(response.bookings || [])
@@ -159,18 +178,67 @@ export default function BookingsPage() {
     }
   }
 
-  const handleDeleteBooking = async (bookingId: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta cita?')) return
+  const handleDeleteBooking = (bookingId: string) => {
+    setBookingToDelete(bookingId)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteBooking = async () => {
+    if (!bookingToDelete) return
     
     try {
-      await apiService.deleteBooking(bookingId)
+      await apiService.deleteBooking(bookingToDelete)
       enqueueSnackbar('Cita eliminada correctamente', { variant: 'success' })
       fetchMonthBookings()
       setDetailsOpen(false)
+      setDeleteDialogOpen(false)
+      setBookingToDelete(null)
     } catch (error) {
       console.error('Error deleting booking:', error)
       enqueueSnackbar('Error al eliminar la cita', { variant: 'error' })
+      setDeleteDialogOpen(false)
+      setBookingToDelete(null)
     }
+  }
+
+  const cancelDeleteBooking = () => {
+    setDeleteDialogOpen(false)
+    setBookingToDelete(null)
+  }
+
+  const handleChangeStatus = (booking: Booking, newStatus: string) => {
+    setBookingToChangeStatus({ booking, newStatus })
+    setStatusChangeDialog(true)
+  }
+
+  const confirmStatusChange = async () => {
+    if (!bookingToChangeStatus) return
+
+    try {
+      const updateData: any = {
+        status: bookingToChangeStatus.newStatus
+      }
+
+      // Si cambia a confirmed, registrar la fecha de pago
+      if (bookingToChangeStatus.newStatus === 'confirmed') {
+        updateData.paidAt = new Date().toISOString()
+      }
+
+      await apiService.put(`/bookings/${bookingToChangeStatus.booking.id}`, updateData)
+      enqueueSnackbar('Estado actualizado correctamente', { variant: 'success' })
+      setStatusChangeDialog(false)
+      setBookingToChangeStatus(null)
+      fetchMonthBookings()
+    } catch (error: any) {
+      console.error('Error updating status:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error al actualizar estado'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    }
+  }
+
+  const cancelStatusChange = () => {
+    setStatusChangeDialog(false)
+    setBookingToChangeStatus(null)
   }
 
   const handleCreateBooking = async () => {
@@ -184,6 +252,8 @@ export default function BookingsPage() {
         clientId: newBooking.clientId,
         serviceId: newBooking.serviceId,
         dateTime: new Date(newBooking.dateTime).toISOString(),
+        status: newBooking.status,
+        paymentAmount: newBooking.paymentAmount,
       }
 
       // Solo agregar campos opcionales si tienen valor
@@ -193,6 +263,14 @@ export default function BookingsPage() {
       
       if (newBooking.notes) {
         bookingData.notes = newBooking.notes
+      }
+
+      if (newBooking.paymentMethod) {
+        bookingData.paymentMethod = newBooking.paymentMethod
+      }
+
+      if (newBooking.paymentNotes) {
+        bookingData.paymentNotes = newBooking.paymentNotes
       }
 
       console.log('📤 Enviando datos de cita:', bookingData)
@@ -207,6 +285,10 @@ export default function BookingsPage() {
         professionalId: '',
         dateTime: '',
         notes: '',
+        status: 'pending_payment',
+        paymentAmount: 20000,
+        paymentMethod: '',
+        paymentNotes: '',
       })
       fetchMonthBookings()
     } catch (error: any) {
@@ -500,10 +582,11 @@ export default function BookingsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <MenuItem value="all">Todas</MenuItem>
-              <MenuItem value="confirmed">Confirmadas</MenuItem>
-              <MenuItem value="completed">Completadas</MenuItem>
-              <MenuItem value="cancelled">Canceladas</MenuItem>
-              <MenuItem value="no_show">No asistió</MenuItem>
+              <MenuItem value="pending_payment">⚠️ Pendientes de Pago</MenuItem>
+              <MenuItem value="confirmed">✅ Confirmadas</MenuItem>
+              <MenuItem value="completed">🔵 Completadas</MenuItem>
+              <MenuItem value="cancelled">❌ Canceladas</MenuItem>
+              <MenuItem value="no_show">👻 No asistió</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -561,38 +644,68 @@ export default function BookingsPage() {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={statusLabels[booking.status]}
+                        label={`${statusIcons[booking.status]} ${statusLabels[booking.status]}`}
                         size="small"
                         color={statusColors[booking.status]}
                       />
                     </TableCell>
                     <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        {booking.status === 'confirmed' && (
-                          <IconButton
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        {booking.status === 'pending_payment' && (
+                          <Button
                             size="small"
+                            variant="contained"
                             color="success"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleUpdateStatus(booking.id, 'completed')
+                              handleChangeStatus(booking, 'confirmed')
                             }}
-                            title="Marcar como completada"
+                            sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
                           >
-                            <CheckCircleIcon fontSize="small" />
-                          </IconButton>
+                            Confirmar Pago
+                          </Button>
                         )}
                         {booking.status === 'confirmed' && (
-                          <IconButton
+                          <>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleChangeStatus(booking, 'completed')
+                              }}
+                              sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
+                            >
+                              Completar
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleChangeStatus(booking, 'no_show')
+                              }}
+                              sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
+                            >
+                              No Asistió
+                            </Button>
+                          </>
+                        )}
+                        {(booking.status === 'pending_payment' || booking.status === 'confirmed') && (
+                          <Button
                             size="small"
+                            variant="outlined"
                             color="error"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleUpdateStatus(booking.id, 'cancelled')
+                              handleChangeStatus(booking, 'cancelled')
                             }}
-                            title="Cancelar cita"
+                            sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
                           >
-                            <CancelIcon fontSize="small" />
-                          </IconButton>
+                            Cancelar
+                          </Button>
                         )}
                         <IconButton
                           size="small"
@@ -970,8 +1083,58 @@ export default function BookingsPage() {
               </Select>
             </FormControl>
 
+            <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                💳 Información de Pago
+              </Typography>
+              
+              <Stack spacing={2} sx={{ mt: 1.5 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Estado Inicial</InputLabel>
+                  <Select
+                    value={newBooking.status}
+                    label="Estado Inicial"
+                    onChange={(e) => setNewBooking({ ...newBooking, status: e.target.value as 'pending_payment' | 'confirmed' })}
+                  >
+                    <MenuItem value="pending_payment">⚠️ Pendiente de Pago</MenuItem>
+                    <MenuItem value="confirmed">✅ Confirmada (Ya pagó)</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  label="Monto a Pagar"
+                  type="number"
+                  fullWidth
+                  required
+                  value={newBooking.paymentAmount}
+                  onChange={(e) => setNewBooking({ ...newBooking, paymentAmount: Number(e.target.value) })}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                  }}
+                />
+
+                <TextField
+                  label="Método de Pago (Opcional)"
+                  fullWidth
+                  value={newBooking.paymentMethod}
+                  onChange={(e) => setNewBooking({ ...newBooking, paymentMethod: e.target.value })}
+                  placeholder="Ej: Transferencia, Mercado Pago, Efectivo"
+                />
+
+                <TextField
+                  label="Notas de Pago (Opcional)"
+                  multiline
+                  rows={2}
+                  fullWidth
+                  value={newBooking.paymentNotes}
+                  onChange={(e) => setNewBooking({ ...newBooking, paymentNotes: e.target.value })}
+                  placeholder="Ej: Comprobante recibido, Referencia #123"
+                />
+              </Stack>
+            </Box>
+
             <TextField
-              label="Notas (Opcional)"
+              label="Notas de la Cita (Opcional)"
               multiline
               rows={3}
               fullWidth
@@ -990,6 +1153,10 @@ export default function BookingsPage() {
               professionalId: '',
               dateTime: '',
               notes: '',
+              status: 'pending_payment',
+              paymentAmount: 20000,
+              paymentMethod: '',
+              paymentNotes: '',
             })
           }}>
             Cancelar
@@ -1003,6 +1170,31 @@ export default function BookingsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Cita"
+        message="¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteBooking}
+        onCancel={cancelDeleteBooking}
+        severity="error"
+        icon={<DeleteIcon sx={{ fontSize: 28 }} />}
+      />
+
+      {/* Confirm Status Change Dialog */}
+      <ConfirmDialog
+        open={statusChangeDialog}
+        title="Cambiar Estado de Reserva"
+        message={bookingToChangeStatus ? `¿Confirmas cambiar el estado a "${statusLabels[bookingToChangeStatus.newStatus]}"?` : ''}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+        onConfirm={confirmStatusChange}
+        onCancel={cancelStatusChange}
+        severity={bookingToChangeStatus?.newStatus === 'cancelled' ? 'error' : 'warning'}
+      />
     </Box>
   )
 }

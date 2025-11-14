@@ -3,11 +3,16 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Loading from '@/components/Loading';
 import { Product } from '@/types';
 import { productsApi } from '@/services/api';
 import { Search, Filter, ShoppingCart, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
+import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 
 const ProductsContent = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,38 +42,17 @@ const ProductsContent = () => {
 
     const loadProducts = async () => {
       try {
+        console.log('🔄 Cargando productos desde API...');
         const productsData = await productsApi.getAll();
+        console.log('✅ Productos cargados:', productsData);
+        console.log('📸 Primer producto completo:', productsData[0]);
+        console.log('📸 Imágenes del primer producto:', productsData[0]?.images);
         setProducts(productsData);
         setFilteredProducts(productsData);
       } catch (error) {
-        console.error('Error loading products:', error);
-        // Mock data for development
-        const mockProducts: Product[] = [
-          {
-            id: '1',
-            name: 'Crema Hidratante Premium',
-            category: 'skincare',
-            price: 45,
-            stock: 15,
-            ingredients: ['Ácido Hialurónico', 'Vitamina E', 'Colágeno'],
-            compatibleServices: ['1', '3'],
-            images: ['/images/products/crema-hidratante.jpg'],
-            description: 'Crema hidratante de alta calidad con ingredientes naturales.'
-          },
-          {
-            id: '2',
-            name: 'Sérum Anti-edad',
-            category: 'skincare',
-            price: 65,
-            stock: 8,
-            ingredients: ['Retinol', 'Vitamina C', 'Péptidos'],
-            compatibleServices: ['3'],
-            images: ['/images/products/serum-antiedad.jpg'],
-            description: 'Sérum concentrado para combatir los signos del envejecimiento.'
-          }
-        ];
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
+        console.error('❌ Error loading products:', error);
+        setProducts([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
@@ -134,9 +118,9 @@ const ProductsContent = () => {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Filters */}
             <div className="lg:w-1/4">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
+              <Card className="sticky top-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Filter className="h-5 w-5 mr-2" />
+                  <Filter className="h-5 w-5 mr-2" style={{ color: themeColors.primary }} />
                   Filtros
                 </h3>
 
@@ -151,7 +135,16 @@ const ProductsContent = () => {
                       placeholder="Buscar productos..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                      style={{
+                        '--tw-ring-color': themeColors.primary,
+                      } as React.CSSProperties}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = themeColors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '';
+                      }}
                     />
                   </div>
                 </div>
@@ -169,7 +162,11 @@ const ProductsContent = () => {
                           value={category.id}
                           checked={selectedCategory === category.id}
                           onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300"
+                          className="h-4 w-4 border-gray-300 focus:ring-2"
+                          style={{
+                            color: themeColors.primary,
+                            '--tw-ring-color': themeColors.primary,
+                          } as React.CSSProperties}
                         />
                         <span className="ml-2 text-sm text-gray-700">
                           {category.name}
@@ -178,64 +175,93 @@ const ProductsContent = () => {
                     ))}
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
 
             {/* Products Grid */}
             <div className="lg:w-3/4">
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
-                      <div className="h-48 bg-gray-300"></div>
-                      <div className="p-6">
-                        <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                        <div className="h-8 bg-gray-300 rounded"></div>
-                      </div>
-                    </div>
+                    <Card key={i} className="overflow-hidden">
+                      <Loading type="skeleton" className="aspect-square mb-4" />
+                      <Loading type="skeleton" className="h-4 mb-3" />
+                      <Loading type="skeleton" className="h-4 w-2/3 mb-3" />
+                      <Loading type="skeleton" className="h-3 mb-2" />
+                      <Loading type="skeleton" className="h-3 mb-3" />
+                      <Loading type="skeleton" className="h-8" />
+                    </Card>
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProducts.map((product) => (
-                    <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                      <div className="relative h-48 overflow-hidden">
+                    <Card key={product.id} hover className="overflow-hidden flex flex-col" padding="none">
+                      <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
                         <ServiceImage
                           src={product.images?.[0] || ''}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
                           fallbackClassName="w-full h-full"
                         />
                       </div>
-                      <div className="p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          {product.name}
-                        </h3>
-                        <p className="text-gray-600 mb-4 text-sm">
-                          {product.description}
-                        </p>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="text-2xl font-bold text-rose-600">
-                            {formatPrice(product.price)}
-                          </div>
+                      <div className="p-4 flex flex-col flex-grow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span 
+                            className="text-xs font-medium px-2 py-1 rounded-full"
+                            style={{ 
+                              color: themeColors.primary,
+                              backgroundColor: themeColors.primaryLight 
+                            }}
+                          >
+                            {categories.find(c => c.id === product.category)?.name || product.category}
+                          </span>
                           <div className="text-sm text-gray-500">
                             Stock: {product.stock}
                           </div>
                         </div>
-                        <button
-                          onClick={() => addToCart(product.id)}
-                          className="w-full bg-rose-600 text-white py-2 px-4 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium flex items-center justify-center"
+                        <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
+                          {product.name}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-grow">
+                          {product.description}
+                        </p>
+                        <div 
+                          className="text-xl font-bold mb-3"
+                          style={{ color: themeColors.primary }}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Añadir al Carrito
-                          {cart[product.id] && (
-                            <span className="ml-2 bg-rose-800 text-white rounded-full px-2 py-1 text-xs">
-                              {cart[product.id]}
-                            </span>
-                          )}
-                        </button>
+                          {formatPrice(product.price)}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            href={`/productos/${product.id}`}
+                            variant="primary"
+                            size="sm"
+                            fullWidth
+                          >
+                            Ver Detalles
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            fullWidth
+                            onClick={() => addToCart(product.id)}
+                            className="flex items-center justify-center"
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Añadir al Carrito
+                            {cart[product.id] && (
+                              <span 
+                                className="ml-2 text-white rounded-full px-2 py-1 text-xs"
+                                style={{ backgroundColor: themeColors.primaryHover }}
+                              >
+                                {cart[product.id]}
+                              </span>
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}

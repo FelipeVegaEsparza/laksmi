@@ -10,7 +10,15 @@ import {
 
 const router = Router();
 
-// Todas las rutas requieren autenticación
+// Ruta pública para crear/encontrar cliente (para reservas públicas)
+/**
+ * @route POST /api/v1/clients/public/find-or-create
+ * @desc Encontrar cliente por teléfono o crear uno nuevo
+ * @access Public
+ */
+router.post('/public/find-or-create', validateRequest(createClientSchema), ClientController.findOrCreateClient);
+
+// Todas las rutas siguientes requieren autenticación
 router.use(authenticateToken);
 router.use(requireAnyRole);
 

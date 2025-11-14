@@ -29,6 +29,7 @@ import {
 import { apiService } from '@/services/apiService'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useSnackbar } from 'notistack'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Banner {
   id: string
@@ -47,6 +48,8 @@ export default function BannersPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bannerToDelete, setBannerToDelete] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -146,17 +149,29 @@ export default function BannersPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este banner?')) return
+  const handleDelete = (id: string) => {
+    setBannerToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!bannerToDelete) return
 
     try {
-      await apiService.delete(`/banners/${id}`)
+      await apiService.delete(`/banners/${bannerToDelete}`)
       enqueueSnackbar('Banner eliminado exitosamente', { variant: 'success' })
+      setDeleteDialogOpen(false)
+      setBannerToDelete(null)
       fetchBanners()
     } catch (error) {
       console.error('Error deleting banner:', error)
       enqueueSnackbar('Error al eliminar banner', { variant: 'error' })
     }
+  }
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false)
+    setBannerToDelete(null)
   }
 
   const handleToggleActive = async (banner: Banner) => {
@@ -459,6 +474,18 @@ export default function BannersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de que quieres eliminar este banner? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        severity="error"
+      />
     </Box>
   )
 }

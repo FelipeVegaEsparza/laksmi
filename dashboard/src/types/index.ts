@@ -45,6 +45,8 @@ export interface Service {
   images: string[]
   requirements: string[]
   isActive: boolean
+  sessions?: number
+  tag?: string
   createdAt: Date
 }
 
@@ -71,8 +73,12 @@ export interface Booking {
   professionalId?: string
   dateTime: Date
   duration: number
-  status: 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+  status: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
   notes?: string
+  paymentAmount: number
+  paymentMethod?: string
+  paymentNotes?: string
+  paidAt?: Date
   createdAt: Date
   client?: Client
   service?: Service
@@ -166,6 +172,8 @@ export interface ServiceFormData {
   images: string[]
   requirements: string[]
   isActive: boolean
+  sessions?: number
+  tag?: string
 }
 
 export interface ProductFormData {
@@ -194,6 +202,10 @@ export interface BookingFormData {
   professionalId?: string
   dateTime: Date
   notes?: string
+  status?: 'pending_payment' | 'confirmed'
+  paymentAmount?: number
+  paymentMethod?: string
+  paymentNotes?: string
 }
 
 // Twilio configuration

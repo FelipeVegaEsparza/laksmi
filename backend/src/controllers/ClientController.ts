@@ -5,6 +5,57 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import logger from '../utils/logger';
 
 export class ClientController {
+  static async findOrCreateClient(req: Request, res: Response): Promise<void> {
+    try {
+      const clientData: CreateClientRequest = req.body;
+      logger.info('Find or create client request:', clientData);
+      
+      // Buscar cliente existente por teléfono
+      const existingClient = await ClientService.getClientByPhone(clientData.phone);
+      
+      if (existingClient) {
+        // Si existe, actualizar solo los campos que no causen conflicto
+        const updateData: any = {
+          name: clientData.name,
+          allergies: clientData.allergies,
+          preferences: clientData.preferences
+        };
+        
+        // Solo actualizar email si es diferente y no está vacío
+        if (clientData.email && clientData.email !== existingClient.email) {
+          // Verificar si el email ya existe en otro cliente
+          const emailExists = await ClientService.getClientByEmail(clientData.email);
+          if (!emailExists || emailExists.id === existingClient.id) {
+            updateData.email = clientData.email;
+          }
+        }
+        
+        const updatedClient = await ClientService.updateClient(existingClient.id, updateData);
+        
+        res.json({
+          success: true,
+          message: 'Cliente encontrado',
+          data: updatedClient || existingClient
+        });
+      } else {
+        // Si no existe, crear nuevo cliente
+        const newClient = await ClientService.createClient(clientData);
+        
+        res.status(201).json({
+          success: true,
+          message: 'Cliente creado exitosamente',
+          data: newClient
+        });
+      }
+    } catch (error: any) {
+      logger.error('Find or create client error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Error al procesar cliente'
+      });
+    }
+  }
+
   static async createClient(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const clientData: CreateClientRequest = req.body;

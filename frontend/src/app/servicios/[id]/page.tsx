@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Layout from '@/components/Layout';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Loading from '@/components/Loading';
 import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
 import { Clock, ArrowLeft, Calendar, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
+import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 
 const ServiceDetailPage = () => {
   const params = useParams();
@@ -26,19 +30,7 @@ const ServiceDetailPage = () => {
         }
       } catch (error) {
         console.error('Error loading service:', error);
-        // Mock data for development
-        const mockService: Service = {
-          id: params.id as string,
-          name: 'Limpieza Facial Profunda',
-          category: 'facial',
-          price: 65,
-          duration: 60,
-          description: 'Tratamiento completo de limpieza facial con extracción de impurezas y hidratación profunda. Este tratamiento incluye análisis detallado de la piel, limpieza profunda, exfoliación suave, extracción de comedones, aplicación de mascarilla purificante y hidratación final. Ideal para todo tipo de pieles, especialmente pieles grasas y mixtas con tendencia acneica.',
-          images: ['/images/facial-cleaning.jpg'],
-          requirements: ['No usar productos exfoliantes 48h antes', 'Informar sobre alergias conocidas'],
-          isActive: true
-        };
-        setService(mockService);
+        setService(null);
       } finally {
         setLoading(false);
       }
@@ -51,16 +43,14 @@ const ServiceDetailPage = () => {
     return (
       <Layout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-gray-300 rounded-lg"></div>
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-300 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-                <div className="h-20 bg-gray-300 rounded"></div>
-                <div className="h-12 bg-gray-300 rounded"></div>
-              </div>
+          <Loading type="skeleton" className="h-8 w-1/4 mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Loading type="skeleton" className="h-96 rounded-lg" />
+            <div className="space-y-4">
+              <Loading type="skeleton" className="h-8 w-3/4" />
+              <Loading type="skeleton" className="h-4 w-1/2" />
+              <Loading type="skeleton" className="h-20" />
+              <Loading type="skeleton" className="h-12" />
             </div>
           </div>
         </div>
@@ -80,12 +70,13 @@ const ServiceDetailPage = () => {
             <p className="text-gray-600 mb-8">
               El servicio que buscas no existe o ha sido eliminado.
             </p>
-            <Link
+            <Button
               href="/servicios"
-              className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
+              variant="primary"
+              size="lg"
             >
               Ver Todos los Servicios
-            </Link>
+            </Button>
           </div>
         </div>
       </Layout>
@@ -104,9 +95,23 @@ const ServiceDetailPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-rose-600">Inicio</Link>
+          <Link 
+            href="/" 
+            className="transition-colors duration-300"
+            onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
+          >
+            Inicio
+          </Link>
           <span>/</span>
-          <Link href="/servicios" className="hover:text-rose-600">Servicios</Link>
+          <Link 
+            href="/servicios" 
+            className="transition-colors duration-300"
+            onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
+          >
+            Servicios
+          </Link>
           <span>/</span>
           <span className="text-gray-900">{service.name}</span>
         </nav>
@@ -114,7 +119,10 @@ const ServiceDetailPage = () => {
         {/* Back Button */}
         <Link
           href="/servicios"
-          className="inline-flex items-center text-rose-600 hover:text-rose-700 mb-6"
+          className="inline-flex items-center mb-6 transition-colors duration-300"
+          style={{ color: themeColors.primary }}
+          onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primaryHover}
+          onMouseLeave={(e) => e.currentTarget.style.color = themeColors.primary}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Servicios
@@ -130,6 +138,17 @@ const ServiceDetailPage = () => {
                 className="w-full h-full object-cover"
                 fallbackClassName="w-full h-full"
               />
+              {/* Service Tag Badge */}
+              {service.tag && (
+                <div className="absolute top-4 right-4">
+                  <div 
+                    className="text-white px-4 py-2 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-sm tracking-wide uppercase"
+                    style={{ background: themeColors.gradientPrimary }}
+                  >
+                    {service.tag}
+                  </div>
+                </div>
+              )}
             </div>
             {service.images && service.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
@@ -145,25 +164,67 @@ const ServiceDetailPage = () => {
                 ))}
               </div>
             )}
+            
+            {/* Additional Info - Moved here for large screens */}
+            <Card 
+              className="hidden lg:block"
+              style={{ backgroundColor: themeColors.primaryLight }}
+            >
+              <h3 className="font-semibold text-gray-900 mb-2">
+                ¿Tienes dudas sobre este tratamiento?
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Nuestro equipo de profesionales está disponible para resolver 
+                todas tus consultas y ayudarte a elegir el mejor tratamiento.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="primary" size="sm">
+                  Chat en Vivo
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('tel:+34123456789')}
+                >
+                  Llamar Ahora
+                </Button>
+              </div>
+            </Card>
           </div>
 
           {/* Service Details */}
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-sm font-medium text-rose-600 bg-rose-100 px-3 py-1 rounded-full">
+                <span 
+                  className="text-sm font-medium px-3 py-1 rounded-full"
+                  style={{ 
+                    color: themeColors.primary,
+                    backgroundColor: themeColors.primaryLight 
+                  }}
+                >
                   {categoryNames[service.category] || service.category}
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                 {service.name}
               </h1>
+              {/* Sessions Info */}
+              {service.sessions && service.sessions > 1 && (
+                <p className="text-gray-600 mb-4 flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2" style={{ color: themeColors.primary }} />
+                  Este servicio incluye: <span className="font-semibold ml-1">{service.sessions} sesiones</span>
+                </p>
+              )}
               <div className="flex items-center gap-6 text-lg">
                 <div className="flex items-center text-gray-600">
                   <Clock className="h-5 w-5 mr-2" />
                   {service.duration} minutos
                 </div>
-                <div className="text-3xl font-bold text-rose-600">
+                <div 
+                  className="text-3xl font-bold"
+                  style={{ color: themeColors.primary }}
+                >
                   {formatPrice(service.price)}
                 </div>
               </div>
@@ -186,7 +247,7 @@ const ServiceDetailPage = () => {
                 <ul className="space-y-2">
                   {service.requirements.map((requirement, index) => (
                     <li key={index} className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                       <span className="text-gray-600">{requirement}</span>
                     </li>
                   ))}
@@ -201,19 +262,19 @@ const ServiceDetailPage = () => {
               </h2>
               <ul className="space-y-2">
                 <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <span className="text-gray-600">Mejora la textura y luminosidad de la piel</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <span className="text-gray-600">Limpieza profunda de poros</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <span className="text-gray-600">Hidratación y nutrición de la piel</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <span className="text-gray-600">Relajación y bienestar</span>
                 </li>
               </ul>
@@ -221,20 +282,29 @@ const ServiceDetailPage = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <Link
+              <Button
                 href={`/reservar?service=${service.id}`}
-                className="flex-1 bg-rose-600 text-white py-4 px-6 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-semibold text-center flex items-center justify-center"
+                variant="primary"
+                size="lg"
+                className="flex-1 flex items-center justify-center"
               >
                 <Calendar className="h-5 w-5 mr-2" />
                 Reservar Cita
-              </Link>
-              <button className="flex-1 border-2 border-rose-600 text-rose-600 py-4 px-6 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-semibold">
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="flex-1"
+              >
                 Consultar por WhatsApp
-              </button>
+              </Button>
             </div>
 
-            {/* Additional Info */}
-            <div className="bg-rose-50 p-6 rounded-lg">
+            {/* Additional Info - Visible only on mobile/tablet */}
+            <Card 
+              className="lg:hidden"
+              style={{ backgroundColor: themeColors.primaryLight }}
+            >
               <h3 className="font-semibold text-gray-900 mb-2">
                 ¿Tienes dudas sobre este tratamiento?
               </h3>
@@ -243,17 +313,18 @@ const ServiceDetailPage = () => {
                 todas tus consultas y ayudarte a elegir el mejor tratamiento.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium">
+                <Button variant="primary" size="sm">
                   Chat en Vivo
-                </button>
-                <a
-                  href="tel:+34123456789"
-                  className="border border-rose-600 text-rose-600 px-4 py-2 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-medium text-center"
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('tel:+34123456789')}
                 >
                   Llamar Ahora
-                </a>
+                </Button>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
 
@@ -265,30 +336,37 @@ const ServiceDetailPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Mock related services */}
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div className="relative h-48 bg-gradient-to-br from-rose-200 to-pink-300 overflow-hidden">
+              <Card key={i} hover className="overflow-hidden">
+                <div 
+                  className="relative h-48 overflow-hidden -m-6 mb-6"
+                  style={{ background: themeColors.gradientLight }}
+                >
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Sparkles className="h-16 w-16 text-rose-600" />
+                    <Sparkles className="h-16 w-16" style={{ color: themeColors.primary }} />
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Servicio Relacionado {i}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Descripción breve del servicio relacionado.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-rose-600">{formatPrice(50 + i * 10)}</span>
-                    <Link
-                      href={`/servicios/${i}`}
-                      className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
-                    >
-                      Ver Detalles
-                    </Link>
-                  </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Servicio Relacionado {i}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Descripción breve del servicio relacionado.
+                </p>
+                <div className="flex items-center justify-between">
+                  <span 
+                    className="text-xl font-bold"
+                    style={{ color: themeColors.primary }}
+                  >
+                    {formatPrice(50 + i * 10)}
+                  </span>
+                  <Button
+                    href={`/servicios/${i}`}
+                    variant="primary"
+                    size="sm"
+                  >
+                    Ver Detalles
+                  </Button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

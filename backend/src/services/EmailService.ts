@@ -86,11 +86,20 @@ export class EmailService {
     code: string,
     clientName: string
   ): Promise<boolean> {
-    const html = this.getVerificationCodeTemplate(code, clientName);
+    // Obtener configuración de la empresa para el logo
+    const { CompanySettingsModel } = await import('../models/CompanySettings');
+    const companySettings = await CompanySettingsModel.getSettings();
+    
+    // Convertir logo URL relativa a absoluta
+    if (companySettings?.logoUrl) {
+      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+    }
+    
+    const html = this.getVerificationCodeTemplate(code, clientName, companySettings);
     
     return await this.sendEmail({
       to: email,
-      subject: '🔒 Código de Verificación - Clínica de Belleza',
+      subject: `🔒 Código de Verificación - ${companySettings?.companyName || 'Clínica de Belleza'}`,
       html,
     });
   }
@@ -108,13 +117,37 @@ export class EmailService {
       price: number;
       professionalName?: string;
       notes?: string;
+      status?: string;
+      paymentAmount?: number;
+      bookingId?: string;
     }
   ): Promise<boolean> {
-    const html = this.getBookingConfirmationTemplate(bookingDetails);
+    // Obtener configuración de la empresa para el logo
+    const { CompanySettingsModel } = await import('../models/CompanySettings');
+    const companySettings = await CompanySettingsModel.getSettings();
+    
+    // Convertir logo URL relativa a absoluta
+    if (companySettings?.logoUrl) {
+      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+    }
+    
+    logger.info('Company settings for email:', {
+      companyName: companySettings?.companyName,
+      logoUrl: companySettings?.logoUrl,
+      hasLogo: !!companySettings?.logoUrl,
+      paymentLink: companySettings?.paymentLink
+    });
+    
+    const html = this.getBookingConfirmationTemplate(bookingDetails, companySettings);
+    
+    // Cambiar el asunto según el estado
+    const subject = bookingDetails.status === 'pending_payment'
+      ? `⚠️ Reserva Pendiente - Confirma tu Pago - ${companySettings?.companyName || 'Clínica de Belleza'}`
+      : `✅ Reserva Confirmada - ${companySettings?.companyName || 'Clínica de Belleza'}`;
     
     return await this.sendEmail({
       to: email,
-      subject: '✅ Confirmación de Reserva - Clínica de Belleza',
+      subject,
       html,
     });
   }
@@ -132,11 +165,20 @@ export class EmailService {
       professionalName?: string;
     }
   ): Promise<boolean> {
-    const html = this.getBookingReminderTemplate(bookingDetails);
+    // Obtener configuración de la empresa para el logo
+    const { CompanySettingsModel } = await import('../models/CompanySettings');
+    const companySettings = await CompanySettingsModel.getSettings();
+    
+    // Convertir logo URL relativa a absoluta
+    if (companySettings?.logoUrl) {
+      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+    }
+    
+    const html = this.getBookingReminderTemplate(bookingDetails, companySettings);
     
     return await this.sendEmail({
       to: email,
-      subject: '⏰ Recordatorio de Cita - Mañana - Clínica de Belleza',
+      subject: `⏰ Recordatorio de Cita - Mañana - ${companySettings?.companyName || 'Clínica de Belleza'}`,
       html,
     });
   }
@@ -153,11 +195,51 @@ export class EmailService {
       reason?: string;
     }
   ): Promise<boolean> {
-    const html = this.getBookingCancellationTemplate(bookingDetails);
+    // Obtener configuración de la empresa para el logo
+    const { CompanySettingsModel } = await import('../models/CompanySettings');
+    const companySettings = await CompanySettingsModel.getSettings();
+    
+    // Convertir logo URL relativa a absoluta
+    if (companySettings?.logoUrl) {
+      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+    }
+    
+    const html = this.getBookingCancellationTemplate(bookingDetails, companySettings);
     
     return await this.sendEmail({
       to: email,
-      subject: '❌ Cancelación de Reserva - Clínica de Belleza',
+      subject: `❌ Cancelación de Reserva - ${companySettings?.companyName || 'Clínica de Belleza'}`,
+      html,
+    });
+  }
+
+  /**
+   * Enviar mensaje de contacto desde el formulario web
+   */
+  static async sendContactEmail(
+    toEmail: string,
+    contactDetails: {
+      name: string;
+      phone: string;
+      email: string;
+      subject: string;
+      message: string;
+    }
+  ): Promise<boolean> {
+    // Obtener configuración de la empresa
+    const { CompanySettingsModel } = await import('../models/CompanySettings');
+    const companySettings = await CompanySettingsModel.getSettings();
+    
+    // Convertir logo URL relativa a absoluta
+    if (companySettings?.logoUrl) {
+      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+    }
+    
+    const html = this.getContactEmailTemplate(contactDetails, companySettings);
+    
+    return await this.sendEmail({
+      to: toEmail,
+      subject: `📧 Nuevo Mensaje de Contacto - ${contactDetails.subject}`,
       html,
     });
   }
@@ -165,7 +247,10 @@ export class EmailService {
   /**
    * Plantilla HTML para código de verificación
    */
-  private static getVerificationCodeTemplate(code: string, clientName: string): string {
+  private static getVerificationCodeTemplate(code: string, clientName: string, companySettings?: any): string {
+    const companyName = companySettings?.companyName || 'Clínica de Belleza';
+    const logoUrl = companySettings?.logoUrl;
+    
     return `
 <!DOCTYPE html>
 <html>
@@ -176,6 +261,7 @@ export class EmailService {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
     .header h1 { margin: 0; font-size: 24px; }
     .content { padding: 30px; }
     .code-box { background: #f8f9fa; border: 2px dashed #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
@@ -188,6 +274,7 @@ export class EmailService {
 <body>
   <div class="container">
     <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
       <h1>🔒 Código de Verificación</h1>
     </div>
     <div class="content">
@@ -211,7 +298,7 @@ export class EmailService {
       <p>Si no solicitaste este código, ignora este mensaje y tu cuenta permanecerá segura.</p>
     </div>
     <div class="footer">
-      <p><strong>Clínica de Belleza</strong></p>
+      <p><strong>${companyName}</strong></p>
       <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
     </div>
   </div>
@@ -223,7 +310,9 @@ export class EmailService {
   /**
    * Plantilla HTML para confirmación de reserva
    */
-  private static getBookingConfirmationTemplate(details: any): string {
+  private static getBookingConfirmationTemplate(details: any, companySettings?: any): string {
+    const companyName = companySettings?.companyName || 'Clínica de Belleza';
+    const logoUrl = companySettings?.logoUrl;
     const dateStr = new Date(details.date).toLocaleString('es-ES', {
       weekday: 'long',
       year: 'numeric',
@@ -243,6 +332,7 @@ export class EmailService {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
     .header h1 { margin: 0; font-size: 24px; }
     .content { padding: 30px; }
     .booking-card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #11998e; }
@@ -256,11 +346,14 @@ export class EmailService {
 <body>
   <div class="container">
     <div class="header">
-      <h1>✅ ¡Reserva Confirmada!</h1>
+      ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
+      <h1>${details.status === 'pending_payment' ? '⚠️ Reserva Pendiente de Confirmación' : '✅ ¡Reserva Confirmada!'}</h1>
     </div>
     <div class="content">
       <p>Hola <strong>${details.clientName}</strong>,</p>
-      <p>Tu reserva ha sido confirmada exitosamente. Aquí están los detalles:</p>
+      <p>${details.status === 'pending_payment' 
+        ? 'Tu reserva ha sido registrada y está <strong>PENDIENTE DE CONFIRMACIÓN</strong>. Para confirmarla, debes realizar el pago.' 
+        : 'Tu reserva ha sido confirmada exitosamente.'} Aquí están los detalles:</p>
       
       <div class="booking-card">
         <div class="booking-detail">
@@ -293,9 +386,33 @@ export class EmailService {
         ` : ''}
       </div>
 
+      ${details.status === 'pending_payment' ? `
+      <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
+        <h2 style="margin: 0 0 15px 0; color: #856404;">⚠️ IMPORTANTE: Confirma tu Reserva</h2>
+        <p style="margin: 10px 0; font-size: 16px;">Tu reserva está <strong>PENDIENTE</strong> hasta que confirmes el pago</p>
+        <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: #11998e;">Monto a pagar: $${details.paymentAmount?.toLocaleString('es-CL') || '20.000'}</p>
+        ${companySettings?.paymentLink ? `
+        <a href="${companySettings.paymentLink}" style="display: inline-block; padding: 15px 40px; background: #11998e; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin: 15px 0;">
+          🔒 PAGAR AHORA
+        </a>
+        ` : ''}
+        ${companySettings?.paymentInstructions ? `
+        <div style="background: white; padding: 15px; border-radius: 5px; margin-top: 15px; text-align: left;">
+          <strong>Instrucciones de pago:</strong>
+          <p style="margin: 10px 0; white-space: pre-line;">${companySettings.paymentInstructions}</p>
+        </div>
+        ` : ''}
+        <p style="margin: 15px 0; font-size: 14px; color: #856404;">
+          Una vez realizado el pago, envíanos el comprobante por WhatsApp o email<br/>
+          <strong>Referencia: Reserva #${details.bookingId || ''}</strong>
+        </p>
+      </div>
+      ` : ''}
+
       <div class="highlight">
         <strong>📌 Recordatorios importantes:</strong>
         <ul style="margin: 10px 0; padding-left: 20px;">
+          ${details.status === 'pending_payment' ? '<li><strong>Tu reserva será confirmada al recibir el pago</strong></li>' : ''}
           <li>Te enviaremos un recordatorio 24 horas antes de tu cita</li>
           <li>Por favor, llega 10 minutos antes de tu hora programada</li>
           <li>Si necesitas cancelar o reagendar, hazlo con al menos 2 horas de anticipación</li>
@@ -303,11 +420,11 @@ export class EmailService {
       </div>
 
       <p style="text-align: center; margin-top: 30px;">
-        <strong>¡Nos vemos pronto! 😊</strong>
+        <strong>${details.status === 'pending_payment' ? '¡Esperamos tu confirmación! 💳' : '¡Nos vemos pronto! 😊'}</strong>
       </p>
     </div>
     <div class="footer">
-      <p><strong>Clínica de Belleza</strong></p>
+      <p><strong>${companyName}</strong></p>
       <p>¿Necesitas ayuda? Contáctanos o responde a este correo.</p>
     </div>
   </div>
@@ -319,7 +436,9 @@ export class EmailService {
   /**
    * Plantilla HTML para recordatorio de cita
    */
-  private static getBookingReminderTemplate(details: any): string {
+  private static getBookingReminderTemplate(details: any, companySettings?: any): string {
+    const companyName = companySettings?.companyName || 'Clínica de Belleza';
+    const logoUrl = companySettings?.logoUrl;
     const dateStr = new Date(details.date).toLocaleString('es-ES', {
       weekday: 'long',
       year: 'numeric',
@@ -339,6 +458,7 @@ export class EmailService {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
     .header h1 { margin: 0; font-size: 24px; }
     .content { padding: 30px; }
     .reminder-box { background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
@@ -352,6 +472,7 @@ export class EmailService {
 <body>
   <div class="container">
     <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
       <h1>⏰ Recordatorio de Cita</h1>
     </div>
     <div class="content">
@@ -398,7 +519,7 @@ export class EmailService {
       </p>
     </div>
     <div class="footer">
-      <p><strong>Clínica de Belleza</strong></p>
+      <p><strong>${companyName}</strong></p>
       <p>¿Necesitas reagendar? Contáctanos lo antes posible.</p>
     </div>
   </div>
@@ -410,7 +531,9 @@ export class EmailService {
   /**
    * Plantilla HTML para cancelación de reserva
    */
-  private static getBookingCancellationTemplate(details: any): string {
+  private static getBookingCancellationTemplate(details: any, companySettings?: any): string {
+    const companyName = companySettings?.companyName || 'Clínica de Belleza';
+    const logoUrl = companySettings?.logoUrl;
     const dateStr = new Date(details.date).toLocaleString('es-ES', {
       weekday: 'long',
       year: 'numeric',
@@ -430,6 +553,7 @@ export class EmailService {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .header { background: linear-gradient(135deg, #868f96 0%, #596164 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
     .header h1 { margin: 0; font-size: 24px; }
     .content { padding: 30px; }
     .cancelled-box { background: #f8d7da; border: 2px solid #dc3545; border-radius: 8px; padding: 20px; margin: 20px 0; }
@@ -443,6 +567,7 @@ export class EmailService {
 <body>
   <div class="container">
     <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
       <h1>❌ Reserva Cancelada</h1>
     </div>
     <div class="content">
@@ -477,8 +602,87 @@ export class EmailService {
       </p>
     </div>
     <div class="footer">
-      <p><strong>Clínica de Belleza</strong></p>
+      <p><strong>${companyName}</strong></p>
       <p>¿Necesitas ayuda? Contáctanos o responde a este correo.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Plantilla HTML para mensaje de contacto
+   */
+  private static getContactEmailTemplate(details: any, companySettings?: any): string {
+    const companyName = companySettings?.companyName || 'Clínica de Belleza';
+    const logoUrl = companySettings?.logoUrl;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .content { padding: 30px; }
+    .contact-box { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
+    .contact-detail { margin: 15px 0; }
+    .contact-detail strong { color: #667eea; display: block; margin-bottom: 5px; }
+    .message-box { background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
+      <h1>📧 Nuevo Mensaje de Contacto</h1>
+    </div>
+    <div class="content">
+      <p>Has recibido un nuevo mensaje desde el formulario de contacto de tu sitio web.</p>
+      
+      <div class="contact-box">
+        <h3 style="margin-top: 0; color: #667eea;">Información del Contacto</h3>
+        
+        <div class="contact-detail">
+          <strong>👤 Nombre:</strong>
+          ${details.name}
+        </div>
+        
+        <div class="contact-detail">
+          <strong>📧 Email:</strong>
+          <a href="mailto:${details.email}" style="color: #667eea;">${details.email}</a>
+        </div>
+        
+        <div class="contact-detail">
+          <strong>📱 Teléfono:</strong>
+          <a href="tel:${details.phone}" style="color: #667eea;">${details.phone}</a>
+        </div>
+        
+        <div class="contact-detail">
+          <strong>📋 Asunto:</strong>
+          ${details.subject}
+        </div>
+      </div>
+
+      <div class="message-box">
+        <strong style="display: block; margin-bottom: 10px; color: #856404;">💬 Mensaje:</strong>
+        <p style="margin: 0; white-space: pre-line;">${details.message}</p>
+      </div>
+
+      <p style="text-align: center; margin-top: 30px; color: #666;">
+        <strong>Responde a este mensaje lo antes posible para brindar un excelente servicio al cliente.</strong>
+      </p>
+    </div>
+    <div class="footer">
+      <p><strong>${companyName}</strong></p>
+      <p>Este es un mensaje automático del formulario de contacto de tu sitio web.</p>
     </div>
   </div>
 </body>
@@ -494,6 +698,24 @@ export class EmailService {
       .replace(/<[^>]*>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  /**
+   * Convertir URL relativa a absoluta
+   */
+  private static getAbsoluteUrl(url: string): string {
+    // Si ya es una URL absoluta, devolverla tal cual
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // Obtener la URL base del backend desde las variables de entorno
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:3000';
+    
+    // Asegurar que la URL relativa empiece con /
+    const relativePath = url.startsWith('/') ? url : `/${url}`;
+    
+    return `${backendUrl}${relativePath}`;
   }
 
   /**

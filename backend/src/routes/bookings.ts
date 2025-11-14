@@ -28,6 +28,13 @@ router.get('/professionals/service/:serviceId', BookingController.getProfessiona
  */
 router.get('/professionals', BookingController.getProfessionals);
 
+/**
+ * @route POST /api/v1/bookings/public
+ * @desc Crear nueva cita desde el frontend público
+ * @access Public
+ */
+router.post('/public', validateRequest(createBookingSchema), BookingController.createBooking);
+
 // Aplicar autenticación a todas las rutas siguientes
 router.use(authenticateToken);
 router.use(requireAnyRole);
@@ -109,6 +116,13 @@ router.patch('/:id/complete', BookingController.markCompleted);
  * @access Private (Any role)
  */
 router.patch('/:id/no-show', BookingController.markNoShow);
+
+/**
+ * @route DELETE /api/v1/bookings/:id
+ * @desc Eliminar cita
+ * @access Private (Any role)
+ */
+router.delete('/:id', BookingController.deleteBooking);
 
 // Rutas de gestión de profesionales (requieren permisos de manager o admin)
 router.use(requireManagerOrAdmin);

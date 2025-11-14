@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { themeColors } from '@/utils/colors';
 
 const Footer = () => {
   const { 
@@ -47,7 +48,9 @@ const Footer = () => {
                   href={facebookUrl} 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-rose-400 transition-colors"
+                  className="text-gray-400 transition-colors duration-300 hover-lift"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                   aria-label="Facebook"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -60,7 +63,9 @@ const Footer = () => {
                   href={instagramUrl} 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-rose-400 transition-colors"
+                  className="text-gray-400 transition-colors duration-300 hover-lift"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                   aria-label="Instagram"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -73,7 +78,9 @@ const Footer = () => {
                   href={tiktokUrl} 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-rose-400 transition-colors"
+                  className="text-gray-400 transition-colors duration-300 hover-lift"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                   aria-label="TikTok"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -86,7 +93,9 @@ const Footer = () => {
                   href={xUrl} 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-rose-400 transition-colors"
+                  className="text-gray-400 transition-colors duration-300 hover-lift"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
                   aria-label="X (Twitter)"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -102,27 +111,52 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/servicios" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/servicios" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Nuestros Servicios
                 </Link>
               </li>
               <li>
-                <Link href="/productos" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/productos" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Productos
                 </Link>
               </li>
               <li>
-                <Link href="/reservar" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/reservar" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Reservar Cita
                 </Link>
               </li>
               <li>
-                <Link href="/sobre-nosotros" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/sobre-nosotros" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Sobre Nosotros
                 </Link>
               </li>
               <li>
-                <Link href="/contacto" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/contacto" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Contacto
                 </Link>
               </li>
@@ -134,22 +168,42 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Servicios Populares</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/servicios/facial" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/servicios/facial" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Tratamientos Faciales
                 </Link>
               </li>
               <li>
-                <Link href="/servicios/corporal" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/servicios/corporal" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Tratamientos Corporales
                 </Link>
               </li>
               <li>
-                <Link href="/servicios/spa" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/servicios/spa" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Spa y Relajación
                 </Link>
               </li>
               <li>
-                <Link href="/servicios/estetica" className="text-gray-300 hover:text-rose-400 transition-colors">
+                <Link 
+                  href="/servicios/estetica" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
                   Estética Avanzada
                 </Link>
               </li>
@@ -162,16 +216,18 @@ const Footer = () => {
             <div className="space-y-3">
               {contactAddress && (
                 <div className="flex items-start">
-                  <MapPin className="h-5 w-5 text-rose-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <MapPin className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <span className="text-gray-300">{contactAddress}</span>
                 </div>
               )}
               {contactPhone && (
                 <div className="flex items-center">
-                  <Phone className="h-5 w-5 text-rose-400 mr-3 flex-shrink-0" />
+                  <Phone className="h-5 w-5 mr-3 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <a 
                     href={`tel:${contactPhone}`}
-                    className="text-gray-300 hover:text-rose-400 transition-colors"
+                    className="text-gray-300 transition-colors duration-300"
+                    onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
                   >
                     {contactPhone}
                   </a>
@@ -179,17 +235,19 @@ const Footer = () => {
               )}
               {contactEmail && (
                 <div className="flex items-center">
-                  <Mail className="h-5 w-5 text-rose-400 mr-3 flex-shrink-0" />
+                  <Mail className="h-5 w-5 mr-3 flex-shrink-0" style={{ color: themeColors.primary }} />
                   <a 
                     href={`mailto:${contactEmail}`}
-                    className="text-gray-300 hover:text-rose-400 transition-colors"
+                    className="text-gray-300 transition-colors duration-300"
+                    onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
                   >
                     {contactEmail}
                   </a>
                 </div>
               )}
               <div className="flex items-start">
-                <Clock className="h-5 w-5 text-rose-400 mr-3 mt-0.5 flex-shrink-0" />
+                <Clock className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                 <div className="text-gray-300">
                   <p>Lun - Vie: 9:00 - 20:00</p>
                   <p>Sáb: 9:00 - 18:00</p>
@@ -206,13 +264,28 @@ const Footer = () => {
               © {new Date().getFullYear()} {companyName}. Todos los derechos reservados.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link href="/privacidad" className="text-gray-400 hover:text-rose-400 text-sm transition-colors">
+              <Link 
+                href="/privacidad" 
+                className="text-gray-400 text-sm transition-colors duration-300"
+                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+              >
                 Política de Privacidad
               </Link>
-              <Link href="/terminos" className="text-gray-400 hover:text-rose-400 text-sm transition-colors">
+              <Link 
+                href="/terminos" 
+                className="text-gray-400 text-sm transition-colors duration-300"
+                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+              >
                 Términos de Uso
               </Link>
-              <Link href="/cookies" className="text-gray-400 hover:text-rose-400 text-sm transition-colors">
+              <Link 
+                href="/cookies" 
+                className="text-gray-400 text-sm transition-colors duration-300"
+                onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+              >
                 Cookies
               </Link>
             </div>

@@ -380,9 +380,15 @@ export class ProductController {
 
       const result = await ProductService.getPublicProducts(filters);
       
+      // Clean image URLs in response
+      const cleanedResult = {
+        ...result,
+        products: processArrayImageUrls(result.products)
+      };
+      
       res.json({
         success: true,
-        data: result
+        data: cleanedResult
       });
     } catch (error) {
       res.status(500).json({
@@ -399,7 +405,7 @@ export class ProductController {
       
       res.json({
         success: true,
-        data: product
+        data: processImageUrls(product)
       });
     } catch (error) {
       const statusCode = error instanceof Error && error.message === 'Producto no encontrado' ? 404 : 500;
@@ -417,7 +423,7 @@ export class ProductController {
       
       res.json({
         success: true,
-        data: products
+        data: processArrayImageUrls(products)
       });
     } catch (error) {
       res.status(500).json({

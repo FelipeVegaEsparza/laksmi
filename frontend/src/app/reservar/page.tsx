@@ -3,11 +3,17 @@
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Loading from '@/components/Loading';
 import { Service, BookingFormData, AvailabilitySlot, BookingForm } from '@/types';
-import { servicesApi, bookingsApi } from '@/services/api';
+import { servicesApi, bookingsApi, clientsApi } from '@/services/api';
 import { Clock, User, Phone, Mail, CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
+import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
+import { formatPrice } from '@/utils/currency';
+import ServiceImage from '@/components/ServiceImage';
 
 const BookingContent = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -16,6 +22,7 @@ const BookingContent = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [step, setStep] = useState(1);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
@@ -27,52 +34,26 @@ const BookingContent = () => {
   useEffect(() => {
     const loadServices = async () => {
       try {
+        // Si no hay servicio preseleccionado, redirigir a servicios
+        if (!preselectedServiceId) {
+          window.location.href = '/servicios';
+          return;
+        }
+
         const servicesData = await servicesApi.getAll();
         setServices(servicesData);
         
-        if (preselectedServiceId) {
-          const service = servicesData.find(s => s.id === preselectedServiceId);
-          if (service) {
-            setSelectedService(service);
-            setStep(2);
-          }
+        const service = servicesData.find(s => s.id === preselectedServiceId);
+        if (service) {
+          setSelectedService(service);
+          setStep(2); // Ir directo al paso 2 (fecha y hora)
+        } else {
+          // Si el servicio no existe, redirigir a servicios
+          window.location.href = '/servicios';
         }
       } catch (error) {
         console.error('Error loading services:', error);
-        // Mock data for development
-        const mockServices: Service[] = [
-          {
-            id: '1',
-            name: 'Limpieza Facial Profunda',
-            category: 'facial',
-            price: 65,
-            duration: 60,
-            description: 'Tratamiento completo de limpieza facial',
-            images: [],
-            requirements: [],
-            isActive: true
-          },
-          {
-            id: '2',
-            name: 'Masaje Relajante',
-            category: 'corporal',
-            price: 80,
-            duration: 90,
-            description: 'Masaje corporal completo',
-            images: [],
-            requirements: [],
-            isActive: true
-          }
-        ];
-        setServices(mockServices);
-        
-        if (preselectedServiceId) {
-          const service = mockServices.find(s => s.id === preselectedServiceId);
-          if (service) {
-            setSelectedService(service);
-            setStep(2);
-          }
-        }
+        window.location.href = '/servicios';
       } finally {
         setLoading(false);
       }
@@ -81,26 +62,59 @@ const BookingContent = () => {
     loadServices();
   }, [preselectedServiceId]);
 
+  // Función helper para formatear hora de manera segura
+  const formatTimeSlot = (hour: number, minute: number = 0): string => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  // Función helper para obtener la hora de un slot de manera segura
+  const getSlotTime = (slot: AvailabilitySlot): string => {
+    // Si ya tiene timeSlot, usarlo
+    if (slot.timeSlot) return slot.timeSlot;
+    
+    // Si dateTime es string, extraer la hora usando UTC para evitar problemas de zona horaria
+    if (typeof slot.dateTime === 'string') {
+      const date = new Date(slot.dateTime);
+      // Usar UTC para mantener la hora exacta del backend
+      const hours = date.getUTCHours().toString().padStart(2, '0');
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    // Si dateTime es Date object
+    if (slot.dateTime instanceof Date) {
+      const hours = slot.dateTime.getUTCHours().toString().padStart(2, '0');
+      const minutes = slot.dateTime.getUTCMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    // Fallback
+    return '00:00';
+  };
+
   const loadAvailability = useCallback(async () => {
     if (!selectedService || !selectedDate) return;
     
+    console.log('Loading availability for:', { serviceId: selectedService.id, date: selectedDate });
+    setLoadingAvailability(true);
+    
     try {
       const slots = await bookingsApi.getAvailability(selectedService.id, selectedDate);
-      setAvailableSlots(slots);
+      console.log('Received slots:', slots);
+      
+      // Asegurar que slots sea un array
+      if (Array.isArray(slots)) {
+        setAvailableSlots(slots);
+        console.log('Set available slots:', slots.length);
+      } else {
+        console.warn('Slots is not an array:', slots);
+        setAvailableSlots([]);
+      }
     } catch (error) {
       console.error('Error loading availability:', error);
-      // Mock availability data
-      const mockSlots: AvailabilitySlot[] = [
-        { dateTime: new Date(`${selectedDate}T09:00:00`), available: true },
-        { dateTime: new Date(`${selectedDate}T10:00:00`), available: true },
-        { dateTime: new Date(`${selectedDate}T11:00:00`), available: false },
-        { dateTime: new Date(`${selectedDate}T12:00:00`), available: true },
-        { dateTime: new Date(`${selectedDate}T14:00:00`), available: true },
-        { dateTime: new Date(`${selectedDate}T15:00:00`), available: true },
-        { dateTime: new Date(`${selectedDate}T16:00:00`), available: false },
-        { dateTime: new Date(`${selectedDate}T17:00:00`), available: true },
-      ];
-      setAvailableSlots(mockSlots);
+      setAvailableSlots([]);
+    } finally {
+      setLoadingAvailability(false);
     }
   }, [selectedService, selectedDate]);
 
@@ -113,20 +127,24 @@ const BookingContent = () => {
   const onSubmit = async (data: BookingForm) => {
     if (!selectedService || !selectedDate || !selectedTime) return;
 
-    const bookingData: BookingFormData = {
-      serviceId: selectedService.id,
-      dateTime: new Date(`${selectedDate}T${selectedTime}:00`),
-      client: {
+    try {
+      // Primero, crear o encontrar el cliente
+      const client = await clientsApi.findOrCreate({
         name: data.name,
         phone: data.phone,
         email: data.email,
         allergies: data.allergies ? data.allergies.split(',').map((a: string) => a.trim()) : [],
         preferences: data.preferences ? data.preferences.split(',').map((p: string) => p.trim()) : [],
-      },
-      notes: data.notes,
-    };
+      });
 
-    try {
+      // Luego, crear la reserva con el clientId
+      const bookingData: BookingFormData = {
+        clientId: client.id,
+        serviceId: selectedService.id,
+        dateTime: new Date(`${selectedDate}T${selectedTime}:00`),
+        notes: data.notes,
+      };
+
       await bookingsApi.create(bookingData);
       setBookingConfirmed(true);
     } catch (error) {
@@ -151,10 +169,8 @@ const BookingContent = () => {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/3 mb-8"></div>
-            <div className="h-64 bg-gray-300 rounded"></div>
-          </div>
+          <Loading type="skeleton" className="h-8 w-1/3 mb-8" />
+          <Loading type="skeleton" className="h-64" />
         </div>
       </Layout>
     );
@@ -172,27 +188,29 @@ const BookingContent = () => {
             <p className="text-xl text-gray-600 mb-8">
               Tu cita ha sido reservada exitosamente. Recibirás un recordatorio por WhatsApp y email.
             </p>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-left max-w-md mx-auto">
+            <Card className="border border-green-200 mb-8 text-left max-w-md mx-auto" style={{ backgroundColor: '#f0fdf4' }}>
               <h3 className="font-semibold text-green-900 mb-2">Detalles de tu cita:</h3>
               <p className="text-green-800"><strong>Servicio:</strong> {selectedService?.name}</p>
               <p className="text-green-800"><strong>Fecha:</strong> {selectedDate}</p>
               <p className="text-green-800"><strong>Hora:</strong> {selectedTime}</p>
               <p className="text-green-800"><strong>Duración:</strong> {selectedService?.duration} min</p>
-              <p className="text-green-800"><strong>Precio:</strong> €{selectedService?.price}</p>
-            </div>
+              <p className="text-green-800"><strong>Precio:</strong> {formatPrice(selectedService?.price || 0)}</p>
+            </Card>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
+              <Button
                 href="/"
-                className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
+                variant="primary"
+                size="lg"
               >
                 Volver al Inicio
-              </Link>
-              <Link
+              </Button>
+              <Button
                 href="/servicios"
-                className="border border-rose-600 text-rose-600 px-6 py-3 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-medium"
+                variant="outline"
+                size="lg"
               >
                 Ver Más Servicios
-              </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -205,7 +223,10 @@ const BookingContent = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link
           href="/servicios"
-          className="inline-flex items-center text-rose-600 hover:text-rose-700 mb-6"
+          className="inline-flex items-center mb-6 transition-colors duration-300"
+          style={{ color: themeColors.primary }}
+          onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primaryHover}
+          onMouseLeave={(e) => e.currentTarget.style.color = themeColors.primary}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Servicios
@@ -218,83 +239,101 @@ const BookingContent = () => {
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-rose-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white"
+              style={{ 
+                backgroundColor: step >= 2 ? themeColors.primary : '#d1d5db',
+                color: step >= 2 ? 'white' : '#6b7280'
+              }}
+            >
               1
             </div>
-            <div className={`w-16 h-1 ${step >= 2 ? 'bg-rose-600' : 'bg-gray-300'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-rose-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div 
+              className="w-16 h-1"
+              style={{ backgroundColor: step >= 3 ? themeColors.primary : '#d1d5db' }}
+            ></div>
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ 
+                backgroundColor: step >= 3 ? themeColors.primary : '#d1d5db',
+                color: step >= 3 ? 'white' : '#6b7280'
+              }}
+            >
               2
-            </div>
-            <div className={`w-16 h-1 ${step >= 3 ? 'bg-rose-600' : 'bg-gray-300'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-rose-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-              3
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          {step === 1 && (
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-                Selecciona un Servicio
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors duration-200 ${
-                      selectedService?.id === service.id
-                        ? 'border-rose-600 bg-rose-50'
-                        : 'border-gray-300 hover:border-rose-300'
-                    }`}
-                    onClick={() => setSelectedService(service)}
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {service.name}
-                    </h3>
-                    <p className="text-gray-600 mb-3 text-sm">
-                      {service.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {service.duration} min
-                      </div>
-                      <div className="text-xl font-bold text-rose-600">
-                        €{service.price}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setStep(2)}
-                  disabled={!selectedService}
-                  className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Continuar
-                </button>
-              </div>
-            </div>
-          )}
-
+        <Card>
           {step === 2 && selectedService && (
             <div>
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                 Selecciona Fecha y Hora
               </h2>
               
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
                   Servicio Seleccionado
                 </h3>
-                <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-rose-900">{selectedService.name}</h4>
-                  <p className="text-rose-800 text-sm">{selectedService.description}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-rose-700">Duración: {selectedService.duration} min</span>
-                    <span className="text-xl font-bold text-rose-600">€{selectedService.price}</span>
+                <div 
+                  className="bg-white rounded-2xl shadow-lg border-2 overflow-hidden"
+                  style={{ 
+                    borderColor: themeColors.primary,
+                    background: `linear-gradient(135deg, ${themeColors.primaryLight}20 0%, white 100%)`
+                  }}
+                >
+                  <div className="flex">
+                    {/* Imagen del servicio */}
+                    <div className="w-24 h-24 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      <ServiceImage
+                        src={selectedService.images?.[0] || ''}
+                        alt={selectedService.name}
+                        className="w-full h-full object-cover"
+                        fallbackClassName="w-full h-full"
+                      />
+                    </div>
+                    
+                    <div className="flex-1 p-5">
+                      <h4 className="font-bold text-lg text-gray-900 mb-3 line-clamp-2">
+                        {selectedService.name}
+                      </h4>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="p-2 rounded-full"
+                            style={{ backgroundColor: themeColors.primaryLight }}
+                          >
+                            <Clock 
+                              className="h-4 w-4" 
+                              style={{ color: themeColors.primary }}
+                            />
+                          </div>
+                          <div>
+                            <span 
+                              className="text-sm font-semibold"
+                              style={{ color: themeColors.primary }}
+                            >
+                              {selectedService.duration} min
+                            </span>
+                            {selectedService.sessions && selectedService.sessions > 1 && (
+                              <div className="text-xs text-gray-500">
+                                {selectedService.sessions} sesiones
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <span 
+                            className="text-2xl font-bold"
+                            style={{ color: themeColors.primary }}
+                          >
+                            {formatPrice(selectedService.price)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -312,33 +351,84 @@ const BookingContent = () => {
                     onChange={(e) => {
                       setSelectedDate(e.target.value);
                       setSelectedTime('');
+                      setAvailableSlots([]);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                    style={{
+                      '--tw-ring-color': themeColors.primary,
+                    } as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.primary;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '';
+                    }}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Horarios disponibles
+                    {availableSlots.length > 0 && !loadingAvailability && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({availableSlots.filter(slot => slot.available).length} disponibles)
+                      </span>
+                    )}
                   </label>
                   {selectedDate ? (
                     <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                      {availableSlots.map((slot, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedTime(slot.dateTime.toTimeString().slice(0, 5))}
-                          disabled={!slot.available}
-                          className={`p-2 text-sm rounded-lg border transition-colors duration-200 ${
-                            selectedTime === slot.dateTime.toTimeString().slice(0, 5)
-                              ? 'bg-rose-600 text-white border-rose-600'
-                              : slot.available
-                              ? 'border-gray-300 hover:border-rose-300 hover:bg-rose-50'
-                              : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                          }`}
-                        >
-                          {slot.dateTime.toTimeString().slice(0, 5)}
-                        </button>
-                      ))}
+                      {Array.isArray(availableSlots) && availableSlots.length > 0 ? (
+                        availableSlots
+                          .filter(slot => slot.available)
+                          .map((slot, index) => {
+                            const timeSlot = getSlotTime(slot);
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => setSelectedTime(timeSlot)}
+                                className="p-2 text-sm rounded-lg border transition-colors duration-200"
+                                style={{
+                                  backgroundColor: selectedTime === timeSlot
+                                    ? themeColors.primary
+                                    : 'white',
+                                  color: selectedTime === timeSlot
+                                    ? 'white'
+                                    : '#374151',
+                                  borderColor: selectedTime === timeSlot
+                                    ? themeColors.primary
+                                    : '#d1d5db',
+                                  cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (selectedTime !== timeSlot) {
+                                    e.currentTarget.style.borderColor = themeColors.primary;
+                                    e.currentTarget.style.backgroundColor = themeColors.primaryLight;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (selectedTime !== timeSlot) {
+                                    e.currentTarget.style.borderColor = '#d1d5db';
+                                    e.currentTarget.style.backgroundColor = 'white';
+                                  }
+                                }}
+                              >
+                                {timeSlot}
+                              </button>
+                            );
+                          })
+                      ) : loadingAvailability ? (
+                        <div className="col-span-2">
+                          <p className="text-gray-500 text-sm text-center py-4">
+                            ⏳ Cargando horarios disponibles...
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="col-span-2">
+                          <p className="text-gray-500 text-sm text-center py-4">
+                            No hay horarios disponibles para esta fecha
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm">Selecciona una fecha para ver horarios disponibles</p>
@@ -347,19 +437,21 @@ const BookingContent = () => {
               </div>
 
               <div className="mt-6 flex justify-between">
-                <button
-                  onClick={() => setStep(1)}
-                  className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                <Button
+                  href="/servicios"
+                  variant="ghost"
+                  size="lg"
                 >
                   Atrás
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setStep(3)}
                   disabled={!selectedDate || !selectedTime}
-                  className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  variant="primary"
+                  size="lg"
                 >
                   Continuar
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -381,7 +473,16 @@ const BookingContent = () => {
                       <input
                         {...register('name', { required: 'El nombre es obligatorio' })}
                         type="text"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                        style={{
+                          '--tw-ring-color': themeColors.primary,
+                        } as React.CSSProperties}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = themeColors.primary;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = '';
+                        }}
                         placeholder="Tu nombre completo"
                       />
                     </div>
@@ -399,7 +500,16 @@ const BookingContent = () => {
                       <input
                         {...register('phone', { required: 'El teléfono es obligatorio' })}
                         type="tel"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                        style={{
+                          '--tw-ring-color': themeColors.primary,
+                        } as React.CSSProperties}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = themeColors.primary;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = '';
+                        }}
                         placeholder="+34 123 456 789"
                       />
                     </div>
@@ -418,7 +528,16 @@ const BookingContent = () => {
                     <input
                       {...register('email')}
                       type="email"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                      style={{
+                        '--tw-ring-color': themeColors.primary,
+                      } as React.CSSProperties}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = themeColors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '';
+                      }}
                       placeholder="tu@email.com"
                     />
                   </div>
@@ -431,7 +550,16 @@ const BookingContent = () => {
                   <input
                     {...register('allergies')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                    style={{
+                      '--tw-ring-color': themeColors.primary,
+                    } as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.primary;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '';
+                    }}
                     placeholder="Ej: níquel, fragancias, látex"
                   />
                 </div>
@@ -443,7 +571,16 @@ const BookingContent = () => {
                   <input
                     {...register('preferences')}
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                    style={{
+                      '--tw-ring-color': themeColors.primary,
+                    } as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.primary;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '';
+                    }}
                     placeholder="Ej: productos naturales, música relajante"
                   />
                 </div>
@@ -455,7 +592,16 @@ const BookingContent = () => {
                   <textarea
                     {...register('notes')}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all duration-300"
+                    style={{
+                      '--tw-ring-color': themeColors.primary,
+                    } as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = themeColors.primary;
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '';
+                    }}
                     placeholder="Cualquier información adicional que consideres importante"
                   />
                 </div>
@@ -467,29 +613,31 @@ const BookingContent = () => {
                     <p><strong>Fecha:</strong> {selectedDate}</p>
                     <p><strong>Hora:</strong> {selectedTime}</p>
                     <p><strong>Duración:</strong> {selectedService?.duration} min</p>
-                    <p><strong>Precio:</strong> €{selectedService?.price}</p>
+                    <p><strong>Precio:</strong> {formatPrice(selectedService?.price || 0)}</p>
                   </div>
                 </div>
 
                 <div className="flex justify-between">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                    variant="ghost"
+                    size="lg"
                   >
                     Atrás
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
+                    variant="primary"
+                    size="lg"
                   >
                     Confirmar Reserva
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </Layout>
   );
@@ -500,10 +648,8 @@ const BookingPage = () => {
     <Suspense fallback={
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/3 mb-8"></div>
-            <div className="h-64 bg-gray-300 rounded"></div>
-          </div>
+          <Loading type="skeleton" className="h-8 w-1/3 mb-8" />
+          <Loading type="skeleton" className="h-64" />
         </div>
       </Layout>
     }>
