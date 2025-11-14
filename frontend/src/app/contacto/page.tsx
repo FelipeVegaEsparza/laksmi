@@ -388,7 +388,9 @@ const ContactPage = () => {
                   <label htmlFor="privacy" className="ml-2 text-sm text-gray-600">
                     Acepto la{' '}
                     <a 
-                      href="/privacidad" 
+                      href="/politica-de-privacidad" 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="transition-colors duration-300"
                       style={{ color: themeColors.primary }}
                       onMouseEnter={(e) => {

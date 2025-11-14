@@ -112,52 +112,42 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <Link 
-                  href="/servicios" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Nuestros Servicios
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/productos" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Productos
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/reservar" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Reservar Cita
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/sobre-nosotros" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Sobre Nosotros
-                </Link>
-              </li>
-              <li>
-                <Link 
                   href="/contacto" 
                   className="text-gray-300 transition-colors duration-300"
                   onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
                 >
                   Contacto
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/terminos" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/consentimiento-informado" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
+                  Consentimientos Informados
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/politica-de-privacidad" 
+                  className="text-gray-300 transition-colors duration-300"
+                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                >
+                  Política de Privacidad
                 </Link>
               </li>
             </ul>
