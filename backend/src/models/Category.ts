@@ -90,10 +90,9 @@ export class CategoryModel {
       .where('is_active', true)
       .count('* as count');
 
-    // Contar productos activos con esta categoría
+    // Contar productos con esta categoría (productos no tiene is_active)
     const [productsCount] = await db('products')
       .where('category', category.name)
-      .where('is_active', true)
       .count('* as count');
 
     return {
