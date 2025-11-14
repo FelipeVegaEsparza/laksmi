@@ -1,8 +1,17 @@
 # Dockerfile de Producción - Multi-stage build
 FROM node:20-alpine AS builder
 
-# Instalar dependencias del sistema
-RUN apk add --no-cache python3 make g++ cairo-dev jpeg-dev pango-dev giflib-dev
+# Instalar dependencias del sistema con reintentos
+RUN apk update && \
+    apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev
 
 WORKDIR /app
 
@@ -25,11 +34,13 @@ RUN npm run build
 FROM node:20-alpine
 
 # Instalar solo dependencias de runtime necesarias (sin build tools)
-RUN apk add --no-cache \
+RUN apk update && \
+    apk add --no-cache \
     cairo \
-    jpeg \
+    libjpeg-turbo \
     pango \
-    giflib
+    giflib \
+    pixman
 
 WORKDIR /app
 
