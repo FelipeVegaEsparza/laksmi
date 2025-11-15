@@ -31,6 +31,13 @@ export class ServiceModel {
       tag: serviceData.tag || null
     };
 
+    // DEBUG: Ver qué se va a guardar en la BD
+    console.log('💾 ServiceModel - Guardando en BD:');
+    console.log('   Description preview:', insertData.description?.substring(0, 200));
+    console.log('   Benefits preview:', insertData.benefits?.substring(0, 200));
+    console.log('   Description tiene HTML?:', insertData.description?.includes('<'));
+    console.log('   Benefits tiene HTML?:', insertData.benefits?.includes('<'));
+
     await db('services').insert(insertData);
 
     // Buscar el servicio recién creado

@@ -10,6 +10,13 @@ export class ServiceController {
     try {
       const serviceData: CreateServiceRequest = req.body;
       
+      // DEBUG: Ver qué HTML está llegando
+      console.log('🔍 ServiceController - Datos recibidos:');
+      console.log('   Description preview:', serviceData.description?.substring(0, 200));
+      console.log('   Benefits preview:', serviceData.benefits?.substring(0, 200));
+      console.log('   Description tiene HTML?:', serviceData.description?.includes('<'));
+      console.log('   Benefits tiene HTML?:', serviceData.benefits?.includes('<'));
+      
       // Clean image URLs before saving
       if (serviceData.images) {
         serviceData.images = decodeImageUrls(serviceData.images);
