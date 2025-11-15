@@ -16,6 +16,13 @@ export interface CompanySettings {
   contactPhone?: string;
   contactWhatsapp?: string;
   
+  // Configuración de Twilio
+  twilioAccountSid?: string;
+  twilioAuthToken?: string;
+  twilioPhoneNumber?: string;
+  twilioWebhookUrl?: string;
+  twilioValidateSignatures?: boolean;
+  
   // Redes sociales
   facebookUrl?: string;
   instagramUrl?: string;
@@ -48,6 +55,11 @@ export interface UpdateCompanySettingsRequest {
   contactEmail?: string;
   contactPhone?: string;
   contactWhatsapp?: string;
+  twilioAccountSid?: string;
+  twilioAuthToken?: string;
+  twilioPhoneNumber?: string;
+  twilioWebhookUrl?: string;
+  twilioValidateSignatures?: boolean;
   facebookUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
@@ -82,6 +94,11 @@ export class CompanySettingsModel {
     if (updates.contactEmail !== undefined) updateData.contact_email = updates.contactEmail;
     if (updates.contactPhone !== undefined) updateData.contact_phone = updates.contactPhone;
     if (updates.contactWhatsapp !== undefined) updateData.contact_whatsapp = updates.contactWhatsapp;
+    if (updates.twilioAccountSid !== undefined) updateData.twilio_account_sid = updates.twilioAccountSid;
+    if (updates.twilioAuthToken !== undefined) updateData.twilio_auth_token = updates.twilioAuthToken;
+    if (updates.twilioPhoneNumber !== undefined) updateData.twilio_phone_number = updates.twilioPhoneNumber;
+    if (updates.twilioWebhookUrl !== undefined) updateData.twilio_webhook_url = updates.twilioWebhookUrl;
+    if (updates.twilioValidateSignatures !== undefined) updateData.twilio_validate_signatures = updates.twilioValidateSignatures;
     if (updates.facebookUrl !== undefined) updateData.facebook_url = updates.facebookUrl;
     if (updates.instagramUrl !== undefined) updateData.instagram_url = updates.instagramUrl;
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
@@ -122,6 +139,11 @@ export class CompanySettingsModel {
       contactEmail: dbSettings.contact_email,
       contactPhone: dbSettings.contact_phone,
       contactWhatsapp: dbSettings.contact_whatsapp,
+      twilioAccountSid: dbSettings.twilio_account_sid,
+      twilioAuthToken: dbSettings.twilio_auth_token,
+      twilioPhoneNumber: dbSettings.twilio_phone_number,
+      twilioWebhookUrl: dbSettings.twilio_webhook_url,
+      twilioValidateSignatures: dbSettings.twilio_validate_signatures,
       facebookUrl: dbSettings.facebook_url,
       instagramUrl: dbSettings.instagram_url,
       tiktokUrl: dbSettings.tiktok_url,
