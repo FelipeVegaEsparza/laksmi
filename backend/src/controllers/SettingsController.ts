@@ -115,27 +115,36 @@ export class SettingsController {
         return;
       }
 
-      // Verificar que TwilioService esté configurado
-      const config = TwilioService.getConfig();
+      // Actualizar configuración de TwilioService con los datos guardados
+      TwilioService.updateConfig({
+        accountSid: settings.twilioAccountSid,
+        authToken: settings.twilioAuthToken,
+        phoneNumber: settings.twilioPhoneNumber || '',
+        webhookUrl: settings.twilioWebhookUrl || '',
+        validateSignatures: settings.twilioValidateSignatures !== false,
+      });
+
+      // Probar conexión real con Twilio
+      const testResult = await TwilioService.testConnection();
       
-      if (!config.accountSid) {
+      if (testResult.success) {
+        res.json({
+          success: true,
+          data: {
+            connected: true,
+            message: `Conectado exitosamente a Twilio (${testResult.accountInfo?.friendlyName || 'Account'})`,
+            accountInfo: testResult.accountInfo
+          }
+        });
+      } else {
         res.json({
           success: false,
           data: {
             connected: false,
-            message: 'Twilio no está configurado correctamente'
+            message: testResult.error || 'Error al conectar con Twilio'
           }
         });
-        return;
       }
-
-      res.json({
-        success: true,
-        data: {
-          connected: true,
-          message: 'Configuración de Twilio válida'
-        }
-      });
     } catch (error: any) {
       logger.error('Test Twilio connection error:', error);
       res.json({
