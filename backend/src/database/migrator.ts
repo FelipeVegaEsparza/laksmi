@@ -86,16 +86,37 @@ export class DatabaseMigrator {
       // Leer contenido del archivo
       const sql = fs.readFileSync(filePath, 'utf-8');
       
+      // Limpiar el SQL: remover comentarios de línea completa
+      const lines = sql.split('\n');
+      const cleanedLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 0 && !trimmed.startsWith('--');
+      });
+      const cleanedSql = cleanedLines.join('\n');
+      
       // Dividir en statements individuales (separados por ;)
-      const statements = sql
+      const statements = cleanedSql
         .split(';')
         .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--')); // Ignorar comentarios
+        .filter(s => s.length > 0);
+      
+      logger.info(`   📝 Ejecutando ${statements.length} statements...`);
       
       // Ejecutar cada statement
-      for (const statement of statements) {
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
         if (statement.trim()) {
-          await db.raw(statement);
+          try {
+            logger.info(`   ⚙️  Statement ${i + 1}/${statements.length}`);
+            await db.raw(statement);
+          } catch (stmtError: any) {
+            // Si el error es "column already exists", continuar
+            if (stmtError.code === 'ER_DUP_FIELDNAME') {
+              logger.warn(`   ⚠️  Columna ya existe, continuando...`);
+              continue;
+            }
+            throw stmtError;
+          }
         }
       }
       
@@ -118,6 +139,7 @@ export class DatabaseMigrator {
   async runPendingMigrations(): Promise<void> {
     try {
       logger.info('🔄 Iniciando sistema de migraciones...');
+      logger.info(`📁 Ruta de migraciones: ${this.migrationsPath}`);
       
       // 1. Asegurar que existe la tabla de control
       await this.ensureMigrationsTable();
@@ -126,8 +148,21 @@ export class DatabaseMigrator {
       const executed = await this.getExecutedMigrations();
       const available = await this.getAvailableMigrations();
       
+      logger.info(`📊 Migraciones ejecutadas: ${executed.length}`);
+      if (executed.length > 0) {
+        logger.info(`   Últimas 3 ejecutadas:`);
+        executed.slice(-3).forEach(f => logger.info(`   ✓ ${f}`));
+      }
+      
+      logger.info(`📊 Migraciones disponibles: ${available.length}`);
+      if (available.length > 0) {
+        logger.info(`   Archivos encontrados:`);
+        available.forEach(f => logger.info(`   📄 ${f}`));
+      }
+      
       if (available.length === 0) {
-        logger.info('ℹ️  No hay archivos de migración disponibles');
+        logger.warn('⚠️  No hay archivos de migración disponibles');
+        logger.warn(`   Verificar que existan archivos .sql en: ${this.migrationsPath}`);
         return;
       }
       
@@ -140,8 +175,8 @@ export class DatabaseMigrator {
         return;
       }
       
-      logger.info(`📋 Migraciones pendientes: ${pending.length}`);
-      pending.forEach(f => logger.info(`   - ${f}`));
+      logger.info(`🔄 Migraciones pendientes: ${pending.length}`);
+      pending.forEach(f => logger.info(`   ⏳ ${f}`));
       
       // 4. Ejecutar migraciones pendientes en orden
       for (const migration of pending) {
