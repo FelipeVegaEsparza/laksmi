@@ -330,7 +330,7 @@ export default function SettingsPage() {
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>
                           {window.location.hostname.includes('localhost') 
                             ? `${window.location.origin.replace(':3002', ':3000')}/api/v1/twilio/webhook/receive`
-                            : `${window.location.protocol}//api.${window.location.hostname.replace('dashboard.', '')}/api/v1/twilio/webhook/receive`
+                            : `${window.location.protocol}//laksmi-backend.0ieu13.easypanel.host/api/v1/twilio/webhook/receive`
                           }
                         </Typography>
                         <IconButton 
@@ -338,7 +338,7 @@ export default function SettingsPage() {
                           onClick={() => {
                             const webhookUrl = window.location.hostname.includes('localhost')
                               ? `${window.location.origin.replace(':3002', ':3000')}/api/v1/twilio/webhook/receive`
-                              : `${window.location.protocol}//api.${window.location.hostname.replace('dashboard.', '')}/api/v1/twilio/webhook/receive`;
+                              : `${window.location.protocol}//laksmi-backend.0ieu13.easypanel.host/api/v1/twilio/webhook/receive`;
                             navigator.clipboard.writeText(webhookUrl);
                             showNotification('URL copiada al portapapeles', 'success');
                           }}
