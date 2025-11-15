@@ -34,38 +34,42 @@ export class TwilioController {
         conversationId: result.conversationId
       });
 
+      // Responder con TwiML XML según la documentación de Twilio
       if (result.success && result.response) {
-        // Extraer número de teléfono del payload
-        const phoneNumber = payload.From.replace('whatsapp:', '');
-        
-        // Enviar respuesta de vuelta por WhatsApp
-        const sendResult = await TwilioService.sendWhatsAppMessage({
-          to: phoneNumber,
-          body: result.response
+        logger.info('✅ Sending TwiML response with message', {
+          messageLength: result.response.length,
+          clientId: result.clientId,
+          conversationId: result.conversationId
         });
 
-        if (!sendResult.success) {
-          logger.error('Failed to send WhatsApp response:', {
-            error: sendResult.error,
-            clientId: result.clientId,
-            conversationId: result.conversationId
-          });
-        } else {
-          logger.info('WhatsApp response sent successfully', {
-            messageSid: sendResult.messageSid,
-            clientId: result.clientId,
-            conversationId: result.conversationId
-          });
-        }
+        // Generar TwiML response usando el SDK de Twilio
+        const MessagingResponse = require('twilio').twiml.MessagingResponse;
+        const twiml = new MessagingResponse();
+        twiml.message(result.response);
+
+        // Responder con TwiML XML
+        res.type('text/xml');
+        res.status(200).send(twiml.toString());
+      } else {
+        logger.warn('⚠️  No response generated, sending empty TwiML');
+        
+        // Si no hay respuesta, enviar TwiML vacío
+        const MessagingResponse = require('twilio').twiml.MessagingResponse;
+        const twiml = new MessagingResponse();
+        
+        res.type('text/xml');
+        res.status(200).send(twiml.toString());
       }
 
-      // Siempre responder 200 OK a Twilio
-      res.status(200).send('OK');
-
     } catch (error: any) {
-      logger.error('Webhook processing error:', error);
-      // Responder 200 para evitar reintentos de Twilio
-      res.status(200).send('Error processed');
+      logger.error('❌ Webhook processing error:', error);
+      
+      // Incluso en caso de error, responder con TwiML vacío
+      const MessagingResponse = require('twilio').twiml.MessagingResponse;
+      const twiml = new MessagingResponse();
+      
+      res.type('text/xml');
+      res.status(200).send(twiml.toString());
     }
   }
 
@@ -86,11 +90,22 @@ export class TwilioController {
       // Aquí se podría actualizar el estado en la base de datos
       // Por ahora solo registramos en logs
 
-      res.status(200).send('OK');
+      // Responder con TwiML vacío según la documentación
+      const MessagingResponse = require('twilio').twiml.MessagingResponse;
+      const twiml = new MessagingResponse();
+      
+      res.type('text/xml');
+      res.status(200).send(twiml.toString());
 
     } catch (error: any) {
       logger.error('Status webhook processing error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      
+      // Responder con TwiML vacío incluso en error
+      const MessagingResponse = require('twilio').twiml.MessagingResponse;
+      const twiml = new MessagingResponse();
+      
+      res.type('text/xml');
+      res.status(200).send(twiml.toString());
     }
   }
 
