@@ -13,8 +13,8 @@ export interface ComplexityAnalysis {
 }
 
 export class ComplexCaseDetector {
-  private static readonly COMPLEXITY_THRESHOLD = 5;
-  private static readonly HIGH_COMPLEXITY_THRESHOLD = 8;
+  private static readonly COMPLEXITY_THRESHOLD = 8;  // Aumentado de 5 a 8 para reducir falsos positivos
+  private static readonly HIGH_COMPLEXITY_THRESHOLD = 12;  // Aumentado de 8 a 12
 
   /**
    * Analizar la complejidad de un caso basado en múltiples factores
@@ -107,11 +107,13 @@ export class ComplexCaseDetector {
     let score = 0;
     const reasons: string[] = [];
 
-    // Palabras clave de complejidad
+    // Palabras clave de complejidad (reducidas para evitar falsos positivos)
     const complexKeywords = [
-      'complicado', 'complejo', 'difícil', 'problema', 'issue',
-      'especial', 'personalizado', 'excepción', 'diferente',
-      'múltiple', 'varios', 'muchos', 'grupo', 'equipo'
+      'complicado', 'complejo', 'muy difícil',
+      'excepción', 'caso especial', 'situación especial',
+      'personalizado', 'customizado'
+      // REMOVIDO: 'problema', 'especial', 'diferente', 'varios', 'muchos', 'grupo'
+      // Estas palabras son muy comunes en preguntas normales
     ];
 
     const keywordMatches = complexKeywords.filter(keyword => lowerMessage.includes(keyword));
@@ -120,17 +122,17 @@ export class ComplexCaseDetector {
       reasons.push(`Palabras de complejidad: ${keywordMatches.join(', ')}`);
     }
 
-    // Longitud del mensaje (mensajes muy largos pueden indicar complejidad)
-    if (message.length > 200) {
+    // Longitud del mensaje (solo mensajes MUY largos indican complejidad)
+    if (message.length > 400) {  // Aumentado de 200 a 400
       score += 1;
-      reasons.push('Mensaje extenso');
+      reasons.push('Mensaje muy extenso');
     }
 
-    // Múltiples preguntas en un mensaje
+    // Múltiples preguntas en un mensaje (solo si son MUCHAS)
     const questionCount = (message.match(/\?/g) || []).length;
-    if (questionCount > 2) {
-      score += questionCount - 1;
-      reasons.push(`Múltiples preguntas (${questionCount})`);
+    if (questionCount > 4) {  // Aumentado de 2 a 4
+      score += Math.floor((questionCount - 3) / 2);  // Reducido el peso
+      reasons.push(`Muchas preguntas (${questionCount})`);
     }
 
     // Números o fechas específicas (pueden indicar requerimientos específicos)
@@ -155,27 +157,27 @@ export class ComplexCaseDetector {
     const reasons: string[] = [];
 
     try {
-      // Longitud de la conversación
+      // Longitud de la conversación (solo conversaciones MUY largas)
       const messageCount = context.lastMessages.length;
-      if (messageCount > 15) {
+      if (messageCount > 25) {  // Aumentado de 15 a 25
         score += 2;
-        reasons.push(`Conversación extensa (${messageCount} mensajes)`);
-      } else if (messageCount > 10) {
+        reasons.push(`Conversación muy extensa (${messageCount} mensajes)`);
+      } else if (messageCount > 18) {  // Aumentado de 10 a 18
         score += 1;
         reasons.push(`Conversación larga (${messageCount} mensajes)`);
       }
 
-      // Cambios de intención frecuentes
+      // Cambios de intención frecuentes (solo si son MUCHOS)
       const intentChanges = context.variables.intentChanges || 0;
-      if (intentChanges > 3) {
+      if (intentChanges > 5) {  // Aumentado de 3 a 5
         score += 2;
         reasons.push(`Múltiples cambios de intención (${intentChanges})`);
       }
 
-      // Intentos fallidos
+      // Intentos fallidos (solo después de varios intentos)
       const failedAttempts = context.variables.failedAttempts || 0;
-      if (failedAttempts > 2) {
-        score += failedAttempts;
+      if (failedAttempts > 4) {  // Aumentado de 2 a 4
+        score += failedAttempts - 2;  // Reducido el peso
         reasons.push(`Múltiples intentos fallidos (${failedAttempts})`);
       }
 
@@ -256,13 +258,13 @@ export class ComplexCaseDetector {
     let score = 0;
     const reasons: string[] = [];
 
-    // Baja confianza en la clasificación
-    if (nluResult.confidence < 0.6) {
+    // Baja confianza en la clasificación (solo si es MUY baja)
+    if (nluResult.confidence < 0.4) {  // Reducido de 0.6 a 0.4
       score += 2;
-      reasons.push(`Baja confianza en intención (${Math.round(nluResult.confidence * 100)}%)`);
-    } else if (nluResult.confidence < 0.8) {
+      reasons.push(`Muy baja confianza en intención (${Math.round(nluResult.confidence * 100)}%)`);
+    } else if (nluResult.confidence < 0.5) {  // Reducido de 0.8 a 0.5
       score += 1;
-      reasons.push(`Confianza media en intención (${Math.round(nluResult.confidence * 100)}%)`);
+      reasons.push(`Baja confianza en intención (${Math.round(nluResult.confidence * 100)}%)`);
     }
 
     // Intenciones inherentemente complejas

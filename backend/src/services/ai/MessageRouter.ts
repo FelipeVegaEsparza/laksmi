@@ -93,8 +93,49 @@ export class MessageRouter {
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);
       
-      // Verificar si el mensaje es un código de verificación
+      // Verificar si está esperando verificación por teléfono
       const { ChatAuthService } = await import('./ChatAuthService');
+      const awaitingPhoneVerification = await ChatAuthService.isAwaitingPhoneVerification(conversation.id);
+      
+      if (awaitingPhoneVerification) {
+        const validationResult = await ChatAuthService.validatePhoneVerification(
+          conversation.id,
+          client.id,
+          request.content
+        );
+
+        const aiMessage = await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: validationResult.message,
+          metadata: {
+            verificationAttempt: true,
+            verificationMethod: 'phone',
+            isValid: validationResult.isVerified
+          }
+        });
+
+        await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+        const processingTime = Date.now() - startTime;
+
+        return {
+          response: {
+            message: validationResult.message,
+            intent: 'phone_verification',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              verification: true,
+              verified: validationResult.isVerified
+            }
+          },
+          conversationId: conversation.id,
+          messageId: aiMessage.id,
+          processingTime
+        };
+      }
+
+      // Verificar si el mensaje es un código de verificación por email
       if (ChatAuthService.isVerificationCodeMessage(request.content)) {
         const validationResult = await ChatAuthService.validateVerificationCode(
           conversation.id,
@@ -106,6 +147,7 @@ export class MessageRouter {
           content: validationResult.message,
           metadata: {
             verificationAttempt: true,
+            verificationMethod: 'email',
             isValid: validationResult.isValid
           }
         });
@@ -117,7 +159,7 @@ export class MessageRouter {
         return {
           response: {
             message: validationResult.message,
-            intent: 'verification',
+            intent: 'email_verification',
             entities: [],
             needsHumanEscalation: false,
             metadata: {

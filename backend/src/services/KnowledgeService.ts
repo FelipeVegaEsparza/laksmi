@@ -64,29 +64,108 @@ export class KnowledgeService {
         });
       }
       
-      // 2. SIEMPRE incluir lista de servicios para que el AI tenga contexto completo
+      // 2. SIEMPRE incluir lista de servicios CON TODA LA INFORMACIÓN
       try {
         const { ServiceService } = await import('./ServiceService');
         const result = await ServiceService.getServices({ isActive: true, limit: 100 });
         const services = result.services;
         
         if (services && services.length > 0) {
-          context += '\n\nSERVICIOS DISPONIBLES CON PRECIOS OFICIALES:\n\n';
-          services.forEach((service: any) => {
-            context += `• ${service.name}\n`;
-            context += `  Precio: $${service.price}\n`;
-            context += `  Duración: ${service.duration} minutos\n`;
-            if (service.description) {
-              context += `  Descripción: ${service.description}\n`;
+          context += '\n\n═══════════════════════════════════════════════════\n';
+          context += 'SERVICIOS DISPONIBLES CON INFORMACIÓN COMPLETA:\n';
+          context += '═══════════════════════════════════════════════════\n\n';
+          
+          services.forEach((service: any, index: number) => {
+            context += `${index + 1}. ${service.name.toUpperCase()}\n`;
+            context += `   Categoría: ${service.category}\n`;
+            context += `   Precio: $${service.price}\n`;
+            context += `   Duración: ${service.duration} minutos\n`;
+            
+            if (service.sessions && service.sessions > 1) {
+              context += `   Sesiones recomendadas: ${service.sessions}\n`;
             }
+            
+            if (service.tag) {
+              context += `   Etiqueta: ${service.tag}\n`;
+            }
+            
+            if (service.description) {
+              const cleanDescription = service.description.replace(/<[^>]*>/g, '').trim();
+              if (cleanDescription) {
+                context += `   Descripción: ${cleanDescription}\n`;
+              }
+            }
+            
+            if (service.benefits) {
+              const cleanBenefits = service.benefits.replace(/<[^>]*>/g, '').trim();
+              if (cleanBenefits) {
+                context += `   Beneficios: ${cleanBenefits}\n`;
+              }
+            }
+            
+            if (service.requirements && service.requirements.length > 0) {
+              context += `   Requisitos: ${service.requirements.join(', ')}\n`;
+            }
+            
             context += '\n';
           });
-          context += '\nIMPORTANTE: Estos son los ÚNICOS servicios y precios oficiales. Si el usuario pregunta por un precio, búscalo en esta lista y responde con el precio exacto. No menciones otros servicios que no estén en esta lista.\n';
           
-          logger.info(`Services loaded for AI context: ${services.length} services`);
+          context += '═══════════════════════════════════════════════════\n';
+          context += 'IMPORTANTE: Estos son los ÚNICOS servicios oficiales.\n';
+          context += '- Si el usuario pregunta por un precio, búscalo en esta lista y responde con el precio EXACTO.\n';
+          context += '- Si el usuario pregunta por un servicio que NO está en esta lista, dile que no lo ofrecemos actualmente.\n';
+          context += '- Usa la descripción y beneficios para explicar cada servicio en detalle.\n';
+          context += '═══════════════════════════════════════════════════\n\n';
+          
+          logger.info(`Services loaded for AI context: ${services.length} services with full details`);
         }
       } catch (error) {
         logger.warn('Error fetching services for AI context:', error);
+      }
+      
+      // 3. SIEMPRE incluir lista de productos CON TODA LA INFORMACIÓN
+      try {
+        const { ProductService } = await import('./ProductService');
+        const result = await ProductService.getProducts({ limit: 100 });
+        const products = result.products;
+        
+        if (products && products.length > 0) {
+          context += '\n\n═══════════════════════════════════════════════════\n';
+          context += 'PRODUCTOS DISPONIBLES CON INFORMACIÓN COMPLETA:\n';
+          context += '═══════════════════════════════════════════════════\n\n';
+          
+          products.forEach((product: any, index: number) => {
+            context += `${index + 1}. ${product.name.toUpperCase()}\n`;
+            context += `   Categoría: ${product.category}\n`;
+            context += `   Precio: $${product.price}\n`;
+            context += `   Stock disponible: ${product.stock} unidades\n`;
+            
+            if (product.description) {
+              context += `   Descripción: ${product.description}\n`;
+            }
+            
+            if (product.ingredients && product.ingredients.length > 0) {
+              context += `   Ingredientes principales: ${product.ingredients.slice(0, 5).join(', ')}\n`;
+            }
+            
+            if (product.compatibleServices && product.compatibleServices.length > 0) {
+              context += `   Compatible con servicios: ${product.compatibleServices.length} servicio(s)\n`;
+            }
+            
+            context += '\n';
+          });
+          
+          context += '═══════════════════════════════════════════════════\n';
+          context += 'IMPORTANTE: Estos son los ÚNICOS productos oficiales.\n';
+          context += '- Si el usuario pregunta por un precio de producto, búscalo en esta lista.\n';
+          context += '- Menciona los ingredientes principales cuando sea relevante.\n';
+          context += '- Sugiere productos compatibles con los servicios que el usuario consulta.\n';
+          context += '═══════════════════════════════════════════════════\n\n';
+          
+          logger.info(`Products loaded for AI context: ${products.length} products with full details`);
+        }
+      } catch (error) {
+        logger.warn('Error fetching products for AI context:', error);
       }
       
       if (!context) {

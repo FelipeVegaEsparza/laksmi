@@ -10,7 +10,32 @@ export interface AuthVerificationResult {
   requiresVerification: boolean;
   verificationMethod?: 'phone' | 'email' | 'code';
   verificationToken?: string;
+  verificationLevel?: number;
 }
+
+// Niveles de seguridad para acciones
+export const ACTION_SECURITY_LEVELS = {
+  // Nivel 0: Sin verificación (información pública)
+  'view_services': 0,
+  'view_prices': 0,
+  'view_products': 0,
+  'general_inquiry': 0,
+  
+  // Nivel 1: Verificación ligera (teléfono)
+  'view_my_bookings': 1,
+  'confirm_booking': 1,
+  'view_history': 1,
+  'view_loyalty_points': 1,
+  
+  // Nivel 2: Verificación fuerte (email + código)
+  'cancel_booking': 2,
+  'reschedule_booking': 2,
+  'update_personal_data': 2,
+  'view_payment_info': 2,
+  'request_refund': 2,
+} as const;
+
+export type SecurityAction = keyof typeof ACTION_SECURITY_LEVELS;
 
 export class ChatAuthService {
   private static verificationCodes = new Map<string, {
@@ -21,26 +46,46 @@ export class ChatAuthService {
   }>();
 
   /**
+   * Obtener nivel de seguridad requerido para una acción
+   */
+  static getRequiredVerificationLevel(action: string): number {
+    // Mapear acciones antiguas a nuevas
+    const actionMap: Record<string, SecurityAction> = {
+      'cancel': 'cancel_booking',
+      'reschedule': 'reschedule_booking',
+      'view_bookings': 'view_my_bookings',
+    };
+    
+    const mappedAction = actionMap[action] || action;
+    return ACTION_SECURITY_LEVELS[mappedAction as SecurityAction] ?? 2; // Default: nivel 2 (más seguro)
+  }
+
+  /**
    * Verificar si el cliente está autenticado para acciones sensibles
+   * Ahora con soporte para múltiples niveles de verificación
    */
   static async verifyClientForSensitiveAction(
     clientId: string,
     conversationId: string,
-    action: 'cancel' | 'reschedule' | 'view_bookings'
+    action: 'cancel' | 'reschedule' | 'view_bookings' | SecurityAction
   ): Promise<AuthVerificationResult> {
     try {
-      // 1. Verificar si ya está verificado en esta sesión
-      const isVerified = await this.isClientVerifiedInSession(conversationId);
+      // 1. Determinar nivel de seguridad requerido
+      const requiredLevel = this.getRequiredVerificationLevel(action);
       
-      if (isVerified) {
+      // 2. Verificar si ya está verificado en esta sesión
+      const currentLevel = await this.getCurrentVerificationLevel(conversationId);
+      
+      if (currentLevel >= requiredLevel) {
         return {
           isVerified: true,
           message: 'Cliente verificado',
-          requiresVerification: false
+          requiresVerification: false,
+          verificationLevel: currentLevel
         };
       }
 
-      // 2. Obtener información del cliente
+      // 3. Obtener información del cliente
       const client = await ClientModel.findById(clientId);
       if (!client) {
         return {
@@ -50,70 +95,21 @@ export class ChatAuthService {
         };
       }
 
-      // 3. Verificar que tenga email
-      const hasEmail = !!client.email;
-
-      if (!hasEmail) {
-        return {
-          isVerified: false,
-          message: '⚠️ Por seguridad, necesito verificar tu identidad. No tengo un email registrado para ti. Por favor, contacta directamente a la clínica para gestionar tu reserva.',
-          requiresVerification: true,
-          verificationMethod: undefined
-        };
+      // 4. Verificación según nivel requerido
+      if (requiredLevel === 1) {
+        // Nivel 1: Verificación ligera por teléfono
+        return await this.requestPhoneVerification(client, conversationId, action);
+      } else if (requiredLevel === 2) {
+        // Nivel 2: Verificación fuerte por email
+        return await this.requestEmailVerification(client, conversationId, action);
       }
 
-      // 4. Generar código de verificación
-      const verificationCode = this.generateVerificationCode();
-      const verificationToken = this.generateVerificationToken();
-
-      // Guardar código con expiración de 10 minutos
-      this.verificationCodes.set(verificationToken, {
-        code: verificationCode,
-        clientId,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        attempts: 0
-      });
-
-      // Guardar token en contexto
-      await ContextManager.setVariable(conversationId, 'verificationToken', verificationToken);
-      await ContextManager.setVariable(conversationId, 'pendingAction', action);
-
-      // 5. Enviar código por email
-      const { EmailService } = await import('../EmailService');
-      const clientEmail = client.email!; // Ya validamos que existe arriba
-      const emailSent = await EmailService.sendVerificationCode(
-        clientEmail,
-        verificationCode,
-        client.name
-      );
-
-      // 6. Preparar mensaje de respuesta
-      let message = '🔒 **Verificación de Seguridad**\n\n';
-      message += 'Por tu seguridad, necesito verificar tu identidad antes de continuar.\n\n';
-
-      if (emailSent) {
-        message += `📧 Te he enviado un código de verificación al email **${this.maskEmail(clientEmail)}**\n\n`;
-        message += `Por favor, revisa tu bandeja de entrada (y carpeta de spam) y responde con el código de 6 dígitos que recibiste.\n\n`;
-        message += `⏰ El código expira en 10 minutos.`;
-      } else {
-        // Fallback si el email no se pudo enviar
-        message += `📧 Intenté enviarte un código al email **${this.maskEmail(clientEmail)}**, pero hubo un problema.\n\n`;
-        message += `⚠️ **CÓDIGO TEMPORAL:** ${verificationCode}\n\n`;
-        message += `Por favor, responde con este código para continuar.`;
-      }
-      
+      // Nivel 0: No requiere verificación
       return {
-        isVerified: false,
-        message,
-        requiresVerification: true,
-        verificationMethod: 'email',
-        verificationToken
-      };
-
-      return {
-        isVerified: false,
-        message: 'Error en el sistema de verificación',
-        requiresVerification: true
+        isVerified: true,
+        message: 'No requiere verificación',
+        requiresVerification: false,
+        verificationLevel: 0
       };
 
     } catch (error) {
@@ -121,6 +117,163 @@ export class ChatAuthService {
       return {
         isVerified: false,
         message: 'Error al verificar identidad. Por favor, contacta a la clínica.',
+        requiresVerification: true
+      };
+    }
+  }
+
+  /**
+   * Solicitar verificación ligera por teléfono (Nivel 1)
+   */
+  private static async requestPhoneVerification(
+    client: any,
+    conversationId: string,
+    action: string
+  ): Promise<AuthVerificationResult> {
+    // Guardar acción pendiente
+    await ContextManager.setVariable(conversationId, 'pendingAction', action);
+    await ContextManager.setVariable(conversationId, 'awaitingPhoneVerification', true);
+
+    const maskedPhone = this.maskPhone(client.phone);
+    
+    let message = '📱 **Verificación Rápida**\n\n';
+    message += 'Para continuar, confirma tu número de teléfono.\n\n';
+    message += `¿Tu número termina en **${maskedPhone.slice(-4)}**?\n\n`;
+    message += 'Responde "sí" para confirmar o escribe tu número completo.';
+
+    return {
+      isVerified: false,
+      message,
+      requiresVerification: true,
+      verificationMethod: 'phone',
+      verificationLevel: 1
+    };
+  }
+
+  /**
+   * Solicitar verificación fuerte por email (Nivel 2)
+   */
+  private static async requestEmailVerification(
+    client: any,
+    conversationId: string,
+    action: string
+  ): Promise<AuthVerificationResult> {
+    // Verificar que tenga email
+    const hasEmail = !!client.email;
+
+    if (!hasEmail) {
+      return {
+        isVerified: false,
+        message: '⚠️ Por seguridad, necesito verificar tu identidad. No tengo un email registrado para ti. Por favor, contacta directamente a la clínica para gestionar tu reserva.',
+        requiresVerification: true,
+        verificationMethod: undefined
+      };
+    }
+
+    // Generar código de verificación
+    const verificationCode = this.generateVerificationCode();
+    const verificationToken = this.generateVerificationToken();
+
+    // Guardar código con expiración de 10 minutos
+    this.verificationCodes.set(verificationToken, {
+      code: verificationCode,
+      clientId: client.id,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      attempts: 0
+    });
+
+    // Guardar token en contexto
+    await ContextManager.setVariable(conversationId, 'verificationToken', verificationToken);
+    await ContextManager.setVariable(conversationId, 'pendingAction', action);
+
+    // Enviar código por email
+    const { EmailService } = await import('../EmailService');
+    const clientEmail = client.email!;
+    const emailSent = await EmailService.sendVerificationCode(
+      clientEmail,
+      verificationCode,
+      client.name
+    );
+
+    // Preparar mensaje de respuesta
+    let message = '🔒 **Verificación de Seguridad**\n\n';
+    message += 'Por tu seguridad, necesito verificar tu identidad antes de continuar.\n\n';
+
+    if (emailSent) {
+      message += `📧 Te he enviado un código de verificación al email **${this.maskEmail(clientEmail)}**\n\n`;
+      message += `Por favor, revisa tu bandeja de entrada (y carpeta de spam) y responde con el código de 6 dígitos que recibiste.\n\n`;
+      message += `⏰ El código expira en 10 minutos.`;
+    } else {
+      // Fallback si el email no se pudo enviar
+      message += `📧 Intenté enviarte un código al email **${this.maskEmail(clientEmail)}**, pero hubo un problema.\n\n`;
+      message += `⚠️ **CÓDIGO TEMPORAL:** ${verificationCode}\n\n`;
+      message += `Por favor, responde con este código para continuar.`;
+    }
+    
+    return {
+      isVerified: false,
+      message,
+      requiresVerification: true,
+      verificationMethod: 'email',
+      verificationToken,
+      verificationLevel: 2
+    };
+  }
+
+  /**
+   * Validar verificación por teléfono (Nivel 1)
+   */
+  static async validatePhoneVerification(
+    conversationId: string,
+    clientId: string,
+    userResponse: string
+  ): Promise<AuthVerificationResult> {
+    try {
+      const client = await ClientModel.findById(clientId);
+      if (!client) {
+        return {
+          isVerified: false,
+          message: 'Cliente no encontrado',
+          requiresVerification: false
+        };
+      }
+
+      const normalizedResponse = userResponse.toLowerCase().trim();
+      const normalizedPhone = client.phone.replace(/[\s\-\+]/g, '');
+      const userPhone = userResponse.replace(/[\s\-\+]/g, '');
+
+      // Verificar si dijo "sí" o proporcionó el teléfono correcto
+      const isConfirmed = normalizedResponse === 'si' || 
+                         normalizedResponse === 'sí' || 
+                         normalizedResponse === 'yes' ||
+                         userPhone.endsWith(normalizedPhone.slice(-4)) ||
+                         userPhone === normalizedPhone;
+
+      if (isConfirmed) {
+        // Marcar como verificado nivel 1
+        await ContextManager.setVariable(conversationId, 'verificationLevel', 1);
+        await ContextManager.setVariable(conversationId, 'verifiedAt', new Date().toISOString());
+        await ContextManager.setVariable(conversationId, 'awaitingPhoneVerification', false);
+
+        return {
+          isVerified: true,
+          message: '✅ Identidad verificada. ¿En qué puedo ayudarte?',
+          requiresVerification: false,
+          verificationLevel: 1
+        };
+      } else {
+        return {
+          isVerified: false,
+          message: '❌ El número no coincide. Por favor, verifica e intenta nuevamente o contacta a la clínica.',
+          requiresVerification: true,
+          verificationMethod: 'phone'
+        };
+      }
+    } catch (error) {
+      logger.error('Error validating phone verification:', error);
+      return {
+        isVerified: false,
+        message: 'Error al verificar teléfono. Por favor, intenta nuevamente.',
         requiresVerification: true
       };
     }
@@ -195,8 +348,9 @@ export class ChatAuthService {
       }
 
       // ✅ Código válido
-      // Marcar cliente como verificado en esta sesión
+      // Marcar cliente como verificado nivel 2 en esta sesión
       await ContextManager.setVariable(conversationId, 'clientVerified', true);
+      await ContextManager.setVariable(conversationId, 'verificationLevel', 2);
       await ContextManager.setVariable(conversationId, 'verifiedAt', new Date().toISOString());
       await ContextManager.setVariable(conversationId, 'verificationToken', null);
       
@@ -230,15 +384,15 @@ export class ChatAuthService {
   }
 
   /**
-   * Verificar si el cliente ya está verificado en esta sesión
+   * Obtener nivel de verificación actual de la sesión
    */
-  static async isClientVerifiedInSession(conversationId: string): Promise<boolean> {
+  static async getCurrentVerificationLevel(conversationId: string): Promise<number> {
     try {
-      const isVerified = await ContextManager.getVariable(conversationId, 'clientVerified');
+      const verificationLevel = await ContextManager.getVariable(conversationId, 'verificationLevel');
       const verifiedAt = await ContextManager.getVariable(conversationId, 'verifiedAt');
 
-      if (!isVerified || !verifiedAt) {
-        return false;
+      if (!verificationLevel || !verifiedAt) {
+        return 0; // Sin verificación
       }
 
       // Verificación válida por 30 minutos
@@ -248,13 +402,34 @@ export class ChatAuthService {
 
       if (minutesSinceVerification > 30) {
         // Expiró la verificación
+        await ContextManager.setVariable(conversationId, 'verificationLevel', 0);
         await ContextManager.setVariable(conversationId, 'clientVerified', false);
-        return false;
+        return 0;
       }
 
-      return true;
+      return verificationLevel as number;
     } catch (error) {
-      logger.error('Error checking verification status:', error);
+      logger.error('Error checking verification level:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Verificar si el cliente ya está verificado en esta sesión (legacy)
+   */
+  static async isClientVerifiedInSession(conversationId: string): Promise<boolean> {
+    const level = await this.getCurrentVerificationLevel(conversationId);
+    return level > 0;
+  }
+
+  /**
+   * Verificar si está esperando verificación por teléfono
+   */
+  static async isAwaitingPhoneVerification(conversationId: string): Promise<boolean> {
+    try {
+      const awaiting = await ContextManager.getVariable(conversationId, 'awaitingPhoneVerification');
+      return awaiting === true;
+    } catch (error) {
       return false;
     }
   }
