@@ -99,11 +99,25 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       formData: formData
     })
     if (validateForm()) {
-      // Limpiar datos antes de enviar
-      const cleanedData = {
-        ...formData,
-        tag: formData.tag && formData.tag.trim() !== '' ? formData.tag : undefined
+      // Limpiar datos antes de enviar - remover campos undefined o vacíos
+      const cleanedData: any = {
+        name: formData.name.trim(),
+        category: formData.category,
+        price: Number(formData.price),
+        duration: Number(formData.duration),
+        description: formData.description?.trim() || '',
+        images: Array.isArray(formData.images) ? formData.images : [],
+        requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
+        isActive: Boolean(formData.isActive),
+        sessions: Number(formData.sessions) || 1,
       }
+      
+      // Solo agregar tag si tiene valor
+      if (formData.tag && formData.tag.trim() !== '') {
+        cleanedData.tag = formData.tag.trim()
+      }
+      
+      console.log('📤 ServiceForm - Datos limpiados:', cleanedData)
       onSave(cleanedData)
     }
   }

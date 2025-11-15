@@ -3,19 +3,33 @@ import Joi from 'joi';
 
 export const validateRequest = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { error } = schema.validate(req.body);
+    const { error, value } = schema.validate(req.body, { 
+      abortEarly: false,
+      stripUnknown: true 
+    });
     
     if (error) {
       const errorMessage = error.details.map(detail => detail.message).join(', ');
+      const fieldErrors = error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      }));
+      
       console.log('❌ Validation error:', errorMessage);
       console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+      console.log('🔍 Field errors:', JSON.stringify(fieldErrors, null, 2));
+      
       res.status(400).json({ 
+        success: false,
         error: 'Datos de entrada inválidos',
-        details: errorMessage
+        message: errorMessage,
+        details: fieldErrors
       });
       return;
     }
     
+    // Replace req.body with validated and cleaned data
+    req.body = value;
     next();
   };
 };

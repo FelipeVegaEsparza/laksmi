@@ -55,7 +55,8 @@ export const createServiceSchema = Joi.object({
   description: Joi.string()
     .max(1000)
     .optional()
-    .allow('')
+    .allow('', null)
+    .default('')
     .messages({
       'string.max': 'La descripción no puede tener más de 1000 caracteres'
     }),
@@ -63,6 +64,7 @@ export const createServiceSchema = Joi.object({
     .items(imageUrlSchema)
     .max(10)
     .optional()
+    .default([])
     .messages({
       'array.max': 'No se pueden agregar más de 10 imágenes'
     }),
@@ -70,20 +72,26 @@ export const createServiceSchema = Joi.object({
     .items(Joi.string().max(200))
     .max(20)
     .optional()
+    .default([])
     .messages({
       'array.max': 'No se pueden agregar más de 20 requisitos',
       'string.max': 'Cada requisito no puede tener más de 200 caracteres'
     }),
   isActive: Joi.boolean()
     .optional()
+    .default(true)
     .messages({
       'boolean.base': 'isActive debe ser verdadero o falso'
     }),
   sessions: Joi.number()
+    .integer()
     .min(1)
     .max(100)
     .optional()
+    .default(1)
     .messages({
+      'number.base': 'Las sesiones deben ser un número',
+      'number.integer': 'Las sesiones deben ser un número entero',
       'number.min': 'Las sesiones deben ser al menos 1',
       'number.max': 'Las sesiones no pueden ser más de 100'
     }),
@@ -91,10 +99,11 @@ export const createServiceSchema = Joi.object({
     .max(50)
     .optional()
     .allow('', null)
+    .default(null)
     .messages({
       'string.max': 'La etiqueta no puede tener más de 50 caracteres'
     })
-});
+}).options({ stripUnknown: true });
 
 // Validación para actualizar servicio
 export const updateServiceSchema = Joi.object({
@@ -133,7 +142,7 @@ export const updateServiceSchema = Joi.object({
   description: Joi.string()
     .max(1000)
     .optional()
-    .allow('')
+    .allow('', null)
     .messages({
       'string.max': 'La descripción no puede tener más de 1000 caracteres'
     }),
@@ -158,10 +167,13 @@ export const updateServiceSchema = Joi.object({
       'boolean.base': 'isActive debe ser verdadero o falso'
     }),
   sessions: Joi.number()
+    .integer()
     .min(1)
     .max(100)
     .optional()
     .messages({
+      'number.base': 'Las sesiones deben ser un número',
+      'number.integer': 'Las sesiones deben ser un número entero',
       'number.min': 'Las sesiones deben ser al menos 1',
       'number.max': 'Las sesiones no pueden ser más de 100'
     }),
@@ -172,7 +184,7 @@ export const updateServiceSchema = Joi.object({
     .messages({
       'string.max': 'La etiqueta no puede tener más de 50 caracteres'
     })
-});
+}).options({ stripUnknown: true });
 
 // Validación para filtros de búsqueda de servicios
 export const serviceFiltersSchema = Joi.object({
