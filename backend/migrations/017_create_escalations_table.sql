@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS escalations (
   -- Foreign keys
   FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
-  FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL,
+  -- FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+  -- FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL,
   
   -- Índices para búsquedas rápidas
   INDEX idx_status (status),
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS escalation_notifications (
   
   -- Foreign keys
   FOREIGN KEY (escalation_id) REFERENCES escalations(id) ON DELETE CASCADE,
-  FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+  -- FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
   
   -- Índices
   INDEX idx_escalation (escalation_id),
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS escalation_history (
   
   -- Foreign keys
   FOREIGN KEY (escalation_id) REFERENCES escalations(id) ON DELETE CASCADE,
-  FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL,
+  -- FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL,
   
   -- Índices
   INDEX idx_escalation (escalation_id),
@@ -169,7 +169,7 @@ SELECT
   e.summary,
   e.confidence_score,
   e.assigned_to,
-  u.name AS assigned_to_name,
+  e.assigned_to AS assigned_to_name,
   e.created_at,
   e.assigned_at,
   e.resolved_at,
@@ -185,8 +185,7 @@ SELECT
   (SELECT COUNT(*) FROM escalation_notifications WHERE escalation_id = e.id AND status = 'sent') AS notifications_sent,
   (SELECT COUNT(*) FROM escalation_history WHERE escalation_id = e.id) AS history_count
 FROM escalations e
-LEFT JOIN clients c ON e.client_id = c.id
-LEFT JOIN users u ON e.assigned_to = u.id;
+LEFT JOIN clients c ON e.client_id = c.id;
 
 -- ============================================
 -- NOTAS
