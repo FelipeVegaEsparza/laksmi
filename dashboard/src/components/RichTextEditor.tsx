@@ -54,12 +54,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Calcular longitud del texto sin HTML
   const getTextLength = (html: string): number => {
+    if (!html) return 0
     const tmp = document.createElement('div')
     tmp.innerHTML = html
     return tmp.textContent?.length || 0
   }
+  
+  // Log del valor actual para debug
+  React.useEffect(() => {
+    if (value) {
+      console.log('🔍 RichTextEditor - Valor actual:', {
+        valuePreview: value.substring(0, 200),
+        hasHTML: value.includes('<'),
+        hasPTags: value.includes('<p>'),
+        length: value.length
+      })
+    }
+  }, [value])
 
   const handleChange = (content: string) => {
+    console.log('📝 RichTextEditor - Contenido cambiado:', {
+      contentPreview: content?.substring(0, 200),
+      contentLength: content?.length,
+      isHTML: content?.includes('<')
+    })
     const textLength = getTextLength(content)
     if (textLength <= maxLength) {
       onChange(content)
