@@ -147,6 +147,12 @@ export default function SettingsPage() {
     try {
       setSaving(true)
       await apiService.put('/settings/twilio', twilioConfig)
+      
+      // Marcar como configurado si todos los campos están llenos
+      if (twilioConfig.accountSid && twilioConfig.authToken && twilioConfig.phoneNumber) {
+        setTwilioConfig(prev => ({ ...prev, isConfigured: true }))
+      }
+      
       showNotification('Configuración de Twilio guardada correctamente', 'success')
       await checkConnection()
     } catch (error) {
@@ -376,7 +382,7 @@ export default function SettingsPage() {
                         variant="outlined"
                         startIcon={<TestIcon />}
                         onClick={handleTestTwilio}
-                        disabled={testing || !twilioConfig.isConfigured}
+                        disabled={testing || !twilioConfig.accountSid || !twilioConfig.authToken || !twilioConfig.phoneNumber}
                       >
                         {testing ? 'Probando...' : 'Probar Conexión'}
                       </Button>
