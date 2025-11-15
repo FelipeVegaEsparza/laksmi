@@ -50,12 +50,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
 
   useEffect(() => {
     if (service) {
-      console.log('📝 Cargando servicio en formulario:', {
-        description: service.description,
-        benefits: service.benefits,
-        descriptionType: typeof service.description,
-        benefitsType: typeof service.benefits
-      })
+      console.log('📝 Cargando servicio en formulario:')
+      console.log('   Description:', service.description?.substring(0, 200))
+      console.log('   Benefits:', service.benefits?.substring(0, 200))
+      console.log('   Description tiene HTML?:', service.description?.includes('<'))
+      console.log('   Benefits tiene HTML?:', service.benefits?.includes('<'))
       
       setFormData({
         name: service.name,
@@ -128,11 +127,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         cleanedData.tag = formData.tag.trim()
       }
       
-      console.log('📤 ServiceForm - Datos limpiados:', {
-        ...cleanedData,
-        descriptionPreview: cleanedData.description?.substring(0, 100),
-        benefitsPreview: cleanedData.benefits?.substring(0, 100)
-      })
+      console.log('📤 ServiceForm - Datos a enviar:')
+      console.log('   Description preview:', cleanedData.description?.substring(0, 200))
+      console.log('   Benefits preview:', cleanedData.benefits?.substring(0, 200))
+      console.log('   Description es HTML?:', cleanedData.description?.includes('<'))
+      console.log('   Benefits es HTML?:', cleanedData.benefits?.includes('<'))
       onSave(cleanedData)
     }
   }

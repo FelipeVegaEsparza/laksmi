@@ -63,21 +63,18 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Log del valor actual para debug
   React.useEffect(() => {
     if (value) {
-      console.log('🔍 RichTextEditor - Valor actual:', {
-        valuePreview: value.substring(0, 200),
-        hasHTML: value.includes('<'),
-        hasPTags: value.includes('<p>'),
-        length: value.length
-      })
+      console.log('🔍 RichTextEditor - Valor recibido:')
+      console.log('   Preview:', value.substring(0, 200))
+      console.log('   Tiene HTML?:', value.includes('<'))
+      console.log('   Tiene <p>?:', value.includes('<p>'))
+      console.log('   Longitud:', value.length)
     }
   }, [value])
 
   const handleChange = (content: string) => {
-    console.log('📝 RichTextEditor - Contenido cambiado:', {
-      contentPreview: content?.substring(0, 200),
-      contentLength: content?.length,
-      isHTML: content?.includes('<')
-    })
+    console.log('📝 RichTextEditor - Contenido cambiado:')
+    console.log('   Preview:', content?.substring(0, 200))
+    console.log('   Es HTML?:', content?.includes('<'))
     const textLength = getTextLength(content)
     if (textLength <= maxLength) {
       onChange(content)
