@@ -12,9 +12,15 @@ async function runMigrations() {
     console.log('========================================');
     console.log('🚀 INICIANDO SCRIPT DE MIGRACIONES SQL');
     console.log('========================================');
+    console.log('📍 Verificando migrator...');
+    console.log('📍 Migrator type:', typeof migrator);
+    console.log('📍 runPendingMigrations type:', typeof migrator.runPendingMigrations);
+    
     logger.info('🚀 Iniciando ejecución de migraciones...');
     
+    console.log('📍 Llamando a runPendingMigrations...');
     await migrator.runPendingMigrations();
+    console.log('📍 runPendingMigrations completado');
     
     console.log('========================================');
     console.log('✅ MIGRACIONES SQL COMPLETADAS');
@@ -25,7 +31,8 @@ async function runMigrations() {
     console.error('========================================');
     console.error('❌ ERROR EN MIGRACIONES SQL');
     console.error('========================================');
-    console.error('Error:', error);
+    console.error('Error completo:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     logger.error('❌ Error ejecutando migraciones:', error);
     process.exit(1);
   }
