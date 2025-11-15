@@ -66,7 +66,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }
 
-  const currentLength = getTextLength(value)
+  const currentLength = getTextLength(value || '')
+  
+  // Asegurar que el valor sea string
+  const editorValue = value || ''
 
   return (
     <div className="rich-text-editor-wrapper">
@@ -83,7 +86,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Suspense fallback={<div className="border rounded-md p-4 bg-gray-50">Cargando editor...</div>}>
           <ReactQuill
             theme="snow"
-            value={value}
+            value={editorValue}
             onChange={handleChange}
             modules={modules}
             formats={formats}

@@ -50,12 +50,19 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
 
   useEffect(() => {
     if (service) {
+      console.log('📝 Cargando servicio en formulario:', {
+        description: service.description,
+        benefits: service.benefits,
+        descriptionType: typeof service.description,
+        benefitsType: typeof service.benefits
+      })
+      
       setFormData({
         name: service.name,
         category: service.category,
         price: service.price,
         duration: service.duration,
-        description: service.description,
+        description: service.description || '',
         benefits: service.benefits || '',
         images: service.images || [],
         requirements: service.requirements,
@@ -102,14 +109,14 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       formData: formData
     })
     if (validateForm()) {
-      // Limpiar datos antes de enviar - remover campos undefined o vacíos
+      // Limpiar datos antes de enviar - NO hacer trim en HTML (description y benefits)
       const cleanedData: any = {
         name: formData.name.trim(),
         category: formData.category,
         price: Number(formData.price),
         duration: Number(formData.duration),
-        description: formData.description?.trim() || '',
-        benefits: formData.benefits?.trim() || '',
+        description: formData.description || '',
+        benefits: formData.benefits || '',
         images: Array.isArray(formData.images) ? formData.images : [],
         requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
         isActive: Boolean(formData.isActive),
@@ -121,7 +128,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         cleanedData.tag = formData.tag.trim()
       }
       
-      console.log('📤 ServiceForm - Datos limpiados:', cleanedData)
+      console.log('📤 ServiceForm - Datos limpiados:', {
+        ...cleanedData,
+        descriptionPreview: cleanedData.description?.substring(0, 100),
+        benefitsPreview: cleanedData.benefits?.substring(0, 100)
+      })
       onSave(cleanedData)
     }
   }
