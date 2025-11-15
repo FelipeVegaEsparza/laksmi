@@ -116,6 +116,12 @@ export class SettingsController {
       }
 
       // Actualizar configuración de TwilioService con los datos guardados
+      logger.info('Updating TwilioService config for test...', {
+        accountSid: settings.twilioAccountSid?.substring(0, 10) + '...',
+        hasAuthToken: !!settings.twilioAuthToken,
+        phoneNumber: settings.twilioPhoneNumber
+      });
+      
       TwilioService.updateConfig({
         accountSid: settings.twilioAccountSid,
         authToken: settings.twilioAuthToken,
@@ -125,7 +131,9 @@ export class SettingsController {
       });
 
       // Probar conexión real con Twilio
+      logger.info('Testing Twilio connection...');
       const testResult = await TwilioService.testConnection();
+      logger.info('Twilio test result:', testResult);
       
       if (testResult.success) {
         res.json({

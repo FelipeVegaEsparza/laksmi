@@ -367,7 +367,14 @@ export class TwilioService {
     accountInfo?: any;
     error?: string;
   }> {
+    logger.info('Testing Twilio connection...', {
+      hasClient: !!this.client,
+      accountSid: this.config.accountSid?.substring(0, 10) + '...',
+      hasAuthToken: !!this.config.authToken
+    });
+
     if (!this.client) {
+      logger.error('Twilio client not initialized');
       return {
         success: false,
         error: 'Twilio client not initialized'
@@ -375,8 +382,15 @@ export class TwilioService {
     }
 
     try {
+      logger.info('Fetching Twilio account info...');
       const account = await this.client.api.accounts(this.config.accountSid).fetch();
       
+      logger.info('Twilio account fetched successfully', {
+        sid: account.sid,
+        friendlyName: account.friendlyName,
+        status: account.status
+      });
+
       return {
         success: true,
         accountInfo: {
@@ -387,10 +401,15 @@ export class TwilioService {
         }
       };
     } catch (error: any) {
-      logger.error('Twilio connection test failed:', error);
+      logger.error('Twilio connection test failed:', {
+        error: error.message,
+        code: error.code,
+        status: error.status,
+        moreInfo: error.moreInfo
+      });
       return {
         success: false,
-        error: error.message
+        error: `${error.message} (Code: ${error.code || 'unknown'})`
       };
     }
   }
