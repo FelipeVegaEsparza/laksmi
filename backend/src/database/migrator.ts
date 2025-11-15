@@ -81,6 +81,7 @@ export class DatabaseMigrator {
     const filePath = path.join(this.migrationsPath, filename);
     
     try {
+      console.log(`📄 Ejecutando migración: ${filename}`);
       logger.info(`📄 Ejecutando migración: ${filename}`);
       
       // Leer contenido del archivo
@@ -100,6 +101,7 @@ export class DatabaseMigrator {
         .map(s => s.trim())
         .filter(s => s.length > 0);
       
+      console.log(`   📝 Ejecutando ${statements.length} statements...`);
       logger.info(`   📝 Ejecutando ${statements.length} statements...`);
       
       // Ejecutar cada statement
@@ -107,11 +109,13 @@ export class DatabaseMigrator {
         const statement = statements[i];
         if (statement.trim()) {
           try {
+            console.log(`   ⚙️  Statement ${i + 1}/${statements.length}`);
             logger.info(`   ⚙️  Statement ${i + 1}/${statements.length}`);
             await db.raw(statement);
           } catch (stmtError: any) {
             // Si el error es "column already exists", continuar
             if (stmtError.code === 'ER_DUP_FIELDNAME') {
+              console.warn(`   ⚠️  Columna ya existe, continuando...`);
               logger.warn(`   ⚠️  Columna ya existe, continuando...`);
               continue;
             }
@@ -126,8 +130,10 @@ export class DatabaseMigrator {
         executed_at: new Date()
       });
       
+      console.log(`✅ Migración ejecutada exitosamente: ${filename}`);
       logger.info(`✅ Migración ejecutada exitosamente: ${filename}`);
     } catch (error: any) {
+      console.error(`❌ Error ejecutando migración ${filename}:`, error);
       logger.error(`❌ Error ejecutando migración ${filename}:`, error);
       throw new Error(`Migración fallida: ${filename} - ${error.message}`);
     }
@@ -138,6 +144,8 @@ export class DatabaseMigrator {
    */
   async runPendingMigrations(): Promise<void> {
     try {
+      console.log('🔄 Iniciando sistema de migraciones...');
+      console.log(`📁 Ruta de migraciones: ${this.migrationsPath}`);
       logger.info('🔄 Iniciando sistema de migraciones...');
       logger.info(`📁 Ruta de migraciones: ${this.migrationsPath}`);
       
@@ -148,19 +156,23 @@ export class DatabaseMigrator {
       const executed = await this.getExecutedMigrations();
       const available = await this.getAvailableMigrations();
       
+      console.log(`📊 Migraciones ejecutadas: ${executed.length}`);
       logger.info(`📊 Migraciones ejecutadas: ${executed.length}`);
       if (executed.length > 0) {
-        logger.info(`   Últimas 3 ejecutadas:`);
-        executed.slice(-3).forEach(f => logger.info(`   ✓ ${f}`));
+        console.log(`   Últimas 3 ejecutadas:`);
+        executed.slice(-3).forEach(f => console.log(`   ✓ ${f}`));
       }
       
+      console.log(`📊 Migraciones disponibles: ${available.length}`);
       logger.info(`📊 Migraciones disponibles: ${available.length}`);
       if (available.length > 0) {
-        logger.info(`   Archivos encontrados:`);
-        available.forEach(f => logger.info(`   📄 ${f}`));
+        console.log(`   Archivos encontrados:`);
+        available.forEach(f => console.log(`   📄 ${f}`));
       }
       
       if (available.length === 0) {
+        console.warn('⚠️  No hay archivos de migración disponibles');
+        console.warn(`   Verificar que existan archivos .sql en: ${this.migrationsPath}`);
         logger.warn('⚠️  No hay archivos de migración disponibles');
         logger.warn(`   Verificar que existan archivos .sql en: ${this.migrationsPath}`);
         return;
@@ -170,23 +182,32 @@ export class DatabaseMigrator {
       const pending = available.filter(f => !executed.includes(f));
       
       if (pending.length === 0) {
+        console.log('✅ Todas las migraciones están actualizadas');
+        console.log(`📊 Total de migraciones: ${available.length}`);
         logger.info('✅ Todas las migraciones están actualizadas');
         logger.info(`📊 Total de migraciones: ${available.length}`);
         return;
       }
       
+      console.log(`🔄 Migraciones pendientes: ${pending.length}`);
       logger.info(`🔄 Migraciones pendientes: ${pending.length}`);
-      pending.forEach(f => logger.info(`   ⏳ ${f}`));
+      pending.forEach(f => {
+        console.log(`   ⏳ ${f}`);
+        logger.info(`   ⏳ ${f}`);
+      });
       
       // 4. Ejecutar migraciones pendientes en orden
       for (const migration of pending) {
         await this.executeMigration(migration);
       }
       
+      console.log(`✅ Todas las migraciones completadas exitosamente`);
+      console.log(`📊 Total ejecutadas: ${executed.length + pending.length}`);
       logger.info(`✅ Todas las migraciones completadas exitosamente`);
       logger.info(`📊 Total ejecutadas: ${executed.length + pending.length}`);
       
     } catch (error: any) {
+      console.error('❌ Error crítico en sistema de migraciones:', error);
       logger.error('❌ Error crítico en sistema de migraciones:', error);
       throw error; // Re-lanzar para que el backend no inicie
     }
