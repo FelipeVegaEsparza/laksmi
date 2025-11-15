@@ -258,7 +258,7 @@ const ServiceDetailPage = () => {
                 Descripción del Tratamiento
               </h2>
               <div 
-                className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: service.description }}
               />
             </div>
@@ -286,7 +286,7 @@ const ServiceDetailPage = () => {
                   Beneficios del Tratamiento
                 </h2>
                 <div 
-                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: service.benefits }}
                 />
               </div>
