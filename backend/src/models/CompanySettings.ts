@@ -94,11 +94,23 @@ export class CompanySettingsModel {
     if (updates.contactEmail !== undefined) updateData.contact_email = updates.contactEmail;
     if (updates.contactPhone !== undefined) updateData.contact_phone = updates.contactPhone;
     if (updates.contactWhatsapp !== undefined) updateData.contact_whatsapp = updates.contactWhatsapp;
-    if (updates.twilioAccountSid !== undefined) updateData.twilio_account_sid = updates.twilioAccountSid;
-    if (updates.twilioAuthToken !== undefined) updateData.twilio_auth_token = updates.twilioAuthToken;
-    if (updates.twilioPhoneNumber !== undefined) updateData.twilio_phone_number = updates.twilioPhoneNumber;
-    if (updates.twilioWebhookUrl !== undefined) updateData.twilio_webhook_url = updates.twilioWebhookUrl;
-    if (updates.twilioValidateSignatures !== undefined) updateData.twilio_validate_signatures = updates.twilioValidateSignatures;
+    
+    // Twilio settings - asegurarse de que se guarden correctamente
+    if (updates.twilioAccountSid !== undefined) {
+      updateData.twilio_account_sid = updates.twilioAccountSid || null;
+    }
+    if (updates.twilioAuthToken !== undefined) {
+      updateData.twilio_auth_token = updates.twilioAuthToken || null;
+    }
+    if (updates.twilioPhoneNumber !== undefined) {
+      updateData.twilio_phone_number = updates.twilioPhoneNumber || null;
+    }
+    if (updates.twilioWebhookUrl !== undefined) {
+      updateData.twilio_webhook_url = updates.twilioWebhookUrl || null;
+    }
+    if (updates.twilioValidateSignatures !== undefined) {
+      updateData.twilio_validate_signatures = updates.twilioValidateSignatures;
+    }
     if (updates.facebookUrl !== undefined) updateData.facebook_url = updates.facebookUrl;
     if (updates.instagramUrl !== undefined) updateData.instagram_url = updates.instagramUrl;
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
