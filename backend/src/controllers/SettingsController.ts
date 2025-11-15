@@ -118,7 +118,7 @@ export class SettingsController {
       // Verificar que TwilioService esté configurado
       const config = TwilioService.getConfig();
       
-      if (!config.accountSid || !config.authToken) {
+      if (!config.accountSid) {
         res.json({
           success: false,
           data: {
