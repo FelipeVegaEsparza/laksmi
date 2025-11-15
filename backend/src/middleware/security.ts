@@ -176,6 +176,8 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 
 // Fields that should not be sanitized (URLs, paths, etc.)
 const SKIP_SANITIZE_FIELDS = [
+  'description',  // Rich text content from services/products
+  'benefits',     // Rich text content from services
   'logoUrl',
   'logo_url',
   'facebookUrl',
