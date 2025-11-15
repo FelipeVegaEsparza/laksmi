@@ -9,9 +9,12 @@ ERROR: Datos de entrada inválidos
 
 ## 🔍 Causa Raíz
 
-1. **Validación estricta de Joi**: El schema de validación no manejaba correctamente campos opcionales como `tag`, `description`, etc.
-2. **Tipos de datos inconsistentes**: El formulario enviaba strings vacíos `''` para campos opcionales, pero la validación no los procesaba correctamente.
-3. **Falta de valores por defecto**: Campos como `sessions`, `images`, `requirements` no tenían valores por defecto definidos.
+1. **Límites de validación muy restrictivos**: 
+   - Precio máximo de 100,000 (muy bajo para tratamientos premium)
+   - Descripción máxima de 1000 caracteres (insuficiente para descripciones detalladas)
+2. **Validación estricta de Joi**: El schema de validación no manejaba correctamente campos opcionales como `tag`, `description`, etc.
+3. **Tipos de datos inconsistentes**: El formulario enviaba strings vacíos `''` para campos opcionales, pero la validación no los procesaba correctamente.
+4. **Falta de valores por defecto**: Campos como `sessions`, `images`, `requirements` no tenían valores por defecto definidos.
 
 ## ✅ Soluciones Implementadas
 
@@ -31,7 +34,8 @@ ERROR: Datos de entrada inválidos
 ### 2. Backend - Schema de Validación de Servicios (`backend/src/middleware/serviceValidation.ts`)
 
 **Cambios en `createServiceSchema`:**
-- `description`: Ahora acepta `null` y tiene valor por defecto `''`
+- `price`: Límite aumentado de 100,000 a 10,000,000 (para tratamientos premium)
+- `description`: Límite aumentado de 1000 a 5000 caracteres y acepta `null`
 - `images`: Valor por defecto `[]`
 - `requirements`: Valor por defecto `[]`
 - `isActive`: Valor por defecto `true`
@@ -40,7 +44,8 @@ ERROR: Datos de entrada inválidos
 - Agregado `.options({ stripUnknown: true })` al schema
 
 **Cambios en `updateServiceSchema`:**
-- Mismas mejoras de validación para consistencia
+- `price`: Límite aumentado a 10,000,000
+- `description`: Límite aumentado a 5000 caracteres
 - Agregado `.integer()` para `sessions`
 
 ### 3. Dashboard - Formulario de Servicios (`dashboard/src/components/ServiceForm.tsx`)
@@ -52,10 +57,16 @@ ERROR: Datos de entrada inválidos
 - Solo incluir `tag` si tiene valor no vacío
 - Mejor logging para debugging
 
+**Cambios en campos del formulario:**
+- Campo `description`: Aumentado a 6 filas y contador de caracteres (0/5000)
+- Campo `price`: Agregado límite máximo de 10,000,000 y step de 1000
+- Mejor feedback visual con helperText
+
 **Beneficios:**
 - Datos más consistentes enviados al backend
 - Menos errores de validación
 - Mejor experiencia de usuario
+- Límites más realistas para negocio de estética
 
 ## 🚀 Despliegue
 

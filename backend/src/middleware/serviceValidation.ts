@@ -36,11 +36,11 @@ export const createServiceSchema = Joi.object({
     }),
   price: Joi.number()
     .min(0)
-    .max(100000)
+    .max(10000000)
     .required()
     .messages({
       'number.min': 'El precio debe ser mayor o igual a 0',
-      'number.max': 'El precio no puede ser mayor a 100,000',
+      'number.max': 'El precio no puede ser mayor a 10,000,000',
       'any.required': 'El precio es requerido'
     }),
   duration: Joi.number()
@@ -53,12 +53,12 @@ export const createServiceSchema = Joi.object({
       'any.required': 'La duración es requerida'
     }),
   description: Joi.string()
-    .max(1000)
+    .max(5000)
     .optional()
     .allow('', null)
     .default('')
     .messages({
-      'string.max': 'La descripción no puede tener más de 1000 caracteres'
+      'string.max': 'La descripción no puede tener más de 5000 caracteres'
     }),
   images: Joi.array()
     .items(imageUrlSchema)
@@ -125,11 +125,11 @@ export const updateServiceSchema = Joi.object({
     }),
   price: Joi.number()
     .min(0)
-    .max(100000)
+    .max(10000000)
     .optional()
     .messages({
       'number.min': 'El precio debe ser mayor o igual a 0',
-      'number.max': 'El precio no puede ser mayor a 100,000'
+      'number.max': 'El precio no puede ser mayor a 10,000,000'
     }),
   duration: Joi.number()
     .min(5)
@@ -140,11 +140,11 @@ export const updateServiceSchema = Joi.object({
       'number.max': 'La duración no puede ser mayor a 8 horas (480 minutos)'
     }),
   description: Joi.string()
-    .max(1000)
+    .max(5000)
     .optional()
     .allow('', null)
     .messages({
-      'string.max': 'La descripción no puede tener más de 1000 caracteres'
+      'string.max': 'La descripción no puede tener más de 5000 caracteres'
     }),
   images: Joi.array()
     .items(imageUrlSchema)

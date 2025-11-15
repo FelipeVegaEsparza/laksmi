@@ -213,11 +213,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             value={formData.price}
             onChange={handleInputChange('price')}
             error={!!errors.price}
-            helperText={errors.price}
+            helperText={errors.price || 'Precio máximo: $10,000,000'}
             InputProps={{
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
-            inputProps={{ min: 0, step: 0.01 }}
+            inputProps={{ min: 0, max: 10000000, step: 1000 }}
             required
           />
         </Grid>
@@ -269,13 +269,14 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
           <TextField
             fullWidth
             multiline
-            rows={4}
+            rows={6}
             label="Descripción"
             value={formData.description}
             onChange={handleInputChange('description')}
             error={!!errors.description}
-            helperText={errors.description}
+            helperText={errors.description || `${formData.description?.length || 0}/5000 caracteres`}
             required
+            inputProps={{ maxLength: 5000 }}
           />
         </Grid>
 
