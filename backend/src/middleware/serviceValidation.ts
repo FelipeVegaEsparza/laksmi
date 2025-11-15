@@ -60,6 +60,14 @@ export const createServiceSchema = Joi.object({
     .messages({
       'string.max': 'La descripción no puede tener más de 5000 caracteres'
     }),
+  benefits: Joi.string()
+    .max(5000)
+    .optional()
+    .allow('', null)
+    .default('')
+    .messages({
+      'string.max': 'Los beneficios no pueden tener más de 5000 caracteres'
+    }),
   images: Joi.array()
     .items(imageUrlSchema)
     .max(10)
@@ -145,6 +153,13 @@ export const updateServiceSchema = Joi.object({
     .allow('', null)
     .messages({
       'string.max': 'La descripción no puede tener más de 5000 caracteres'
+    }),
+  benefits: Joi.string()
+    .max(5000)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.max': 'Los beneficios no pueden tener más de 5000 caracteres'
     }),
   images: Joi.array()
     .items(imageUrlSchema)

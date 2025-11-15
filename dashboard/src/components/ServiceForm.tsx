@@ -37,6 +37,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
     price: 0,
     duration: 60,
     description: '',
+    benefits: '',
     images: [],
     requirements: [],
     isActive: true,
@@ -54,6 +55,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         price: service.price,
         duration: service.duration,
         description: service.description,
+        benefits: service.benefits || '',
         images: service.images || [],
         requirements: service.requirements,
         isActive: service.isActive,
@@ -106,6 +108,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         price: Number(formData.price),
         duration: Number(formData.duration),
         description: formData.description?.trim() || '',
+        benefits: formData.benefits?.trim() || '',
         images: Array.isArray(formData.images) ? formData.images : [],
         requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
         isActive: Boolean(formData.isActive),
@@ -276,6 +279,19 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             error={!!errors.description}
             helperText={errors.description || `${formData.description?.length || 0}/5000 caracteres`}
             required
+            inputProps={{ maxLength: 5000 }}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Beneficios"
+            value={formData.benefits || ''}
+            onChange={handleInputChange('benefits')}
+            helperText={`Beneficios del servicio (opcional) - ${formData.benefits?.length || 0}/5000 caracteres`}
             inputProps={{ maxLength: 5000 }}
           />
         </Grid>

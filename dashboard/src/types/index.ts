@@ -42,6 +42,7 @@ export interface Service {
   price: number
   duration: number
   description: string
+  benefits?: string
   images: string[]
   requirements: string[]
   isActive: boolean
@@ -169,6 +170,7 @@ export interface ServiceFormData {
   price: number
   duration: number
   description: string
+  benefits?: string
   images: string[]
   requirements: string[]
   isActive: boolean

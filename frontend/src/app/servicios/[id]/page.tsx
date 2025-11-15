@@ -17,6 +17,7 @@ import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 const ServiceDetailPage = () => {
   const params = useParams();
   const [service, setService] = useState<Service | null>(null);
+  const [relatedServices, setRelatedServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +28,28 @@ const ServiceDetailPage = () => {
           console.log('Service data received:', serviceData);
           console.log('Service images:', serviceData.images);
           setService(serviceData);
+          
+          // Cargar servicios relacionados (misma categoría o aleatorios)
+          try {
+            const allServices = await servicesApi.getAll();
+            // Filtrar el servicio actual
+            const otherServices = allServices.filter(s => s.id !== params.id);
+            
+            // Intentar obtener servicios de la misma categoría
+            let related = otherServices.filter(s => s.category === serviceData.category);
+            
+            // Si no hay suficientes de la misma categoría, agregar otros aleatorios
+            if (related.length < 3) {
+              const remaining = otherServices.filter(s => s.category !== serviceData.category);
+              related = [...related, ...remaining];
+            }
+            
+            // Mezclar aleatoriamente y tomar solo 3
+            const shuffled = related.sort(() => Math.random() - 0.5);
+            setRelatedServices(shuffled.slice(0, 3));
+          } catch (error) {
+            console.error('Error loading related services:', error);
+          }
         }
       } catch (error) {
         console.error('Error loading service:', error);
@@ -256,29 +279,16 @@ const ServiceDetailPage = () => {
             )}
 
             {/* Benefits */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">
-                Beneficios del Tratamiento
-              </h2>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
-                  <span className="text-gray-600">Mejora la textura y luminosidad de la piel</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
-                  <span className="text-gray-600">Limpieza profunda de poros</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
-                  <span className="text-gray-600">Hidratación y nutrición de la piel</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
-                  <span className="text-gray-600">Relajación y bienestar</span>
-                </li>
-              </ul>
-            </div>
+            {service.benefits && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">
+                  Beneficios del Tratamiento
+                </h2>
+                <div className="text-gray-600 leading-relaxed whitespace-pre-line">
+                  {service.benefits}
+                </div>
+              </div>
+            )}
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
@@ -333,42 +343,63 @@ const ServiceDetailPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-8">
             Servicios Relacionados
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Mock related services */}
-            {[1, 2, 3].map((i) => (
-              <Card key={i} hover className="overflow-hidden">
-                <div 
-                  className="relative h-48 overflow-hidden -m-6 mb-6"
-                  style={{ background: themeColors.gradientLight }}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Sparkles className="h-16 w-16" style={{ color: themeColors.primary }} />
+          {relatedServices.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedServices.map((relatedService) => (
+                <Card key={relatedService.id} hover className="overflow-hidden">
+                  <div className="relative h-48 overflow-hidden -m-6 mb-6">
+                    {relatedService.images && relatedService.images.length > 0 ? (
+                      <ServiceImage
+                        src={relatedService.images[0]}
+                        alt={relatedService.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div 
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ background: themeColors.gradientLight }}
+                      >
+                        <Sparkles className="h-16 w-16" style={{ color: themeColors.primary }} />
+                      </div>
+                    )}
+                    {relatedService.tag && (
+                      <div 
+                        className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: themeColors.primary }}
+                      >
+                        {relatedService.tag}
+                      </div>
+                    )}
                   </div>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Servicio Relacionado {i}
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Descripción breve del servicio relacionado.
-                </p>
-                <div className="flex items-center justify-between">
-                  <span 
-                    className="text-xl font-bold"
-                    style={{ color: themeColors.primary }}
-                  >
-                    {formatPrice(50 + i * 10)}
-                  </span>
-                  <Button
-                    href={`/servicios/${i}`}
-                    variant="primary"
-                    size="sm"
-                  >
-                    Ver Detalles
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {relatedService.name}
+                  </h3>
+                  <p className="text-gray-600 mb-4 line-clamp-2">
+                    {relatedService.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span 
+                      className="text-xl font-bold"
+                      style={{ color: themeColors.primary }}
+                    >
+                      {formatPrice(relatedService.price)}
+                    </span>
+                    <Button
+                      href={`/servicios/${relatedService.id}`}
+                      variant="primary"
+                      size="sm"
+                    >
+                      Ver Detalles
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No hay servicios relacionados disponibles</p>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

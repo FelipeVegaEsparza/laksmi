@@ -5,6 +5,7 @@ export interface Service {
   price: number;
   duration: number; // en minutos
   description?: string;
+  benefits?: string; // Beneficios del servicio
   images: string[];
   requirements: string[];
   isActive: boolean;
@@ -20,6 +21,7 @@ export interface CreateServiceRequest {
   price: number;
   duration: number;
   description?: string;
+  benefits?: string;
   images?: string[];
   requirements?: string[];
   isActive?: boolean;
@@ -33,6 +35,7 @@ export interface UpdateServiceRequest {
   price?: number;
   duration?: number;
   description?: string;
+  benefits?: string;
   images?: string[];
   requirements?: string[];
   isActive?: boolean;

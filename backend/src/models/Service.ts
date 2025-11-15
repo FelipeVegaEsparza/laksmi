@@ -23,6 +23,7 @@ export class ServiceModel {
       price: serviceData.price,
       duration: serviceData.duration,
       description: serviceData.description || null,
+      benefits: serviceData.benefits || null,
       images: JSON.stringify(serviceData.images || []),
       requirements: JSON.stringify(serviceData.requirements || []),
       is_active: serviceData.isActive !== undefined ? serviceData.isActive : true,
@@ -52,6 +53,7 @@ export class ServiceModel {
     if (updates.price !== undefined) updateData.price = updates.price;
     if (updates.duration !== undefined) updateData.duration = updates.duration;
     if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.benefits !== undefined) updateData.benefits = updates.benefits;
     if (updates.images !== undefined) updateData.images = JSON.stringify(updates.images);
     if (updates.requirements !== undefined) updateData.requirements = JSON.stringify(updates.requirements);
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
@@ -241,6 +243,7 @@ export class ServiceModel {
       price: parseFloat(dbService.price),
       duration: dbService.duration,
       description: dbService.description,
+      benefits: dbService.benefits || null,
       images: Array.isArray(dbService.images) ? dbService.images : (dbService.images ? JSON.parse(dbService.images) : []),
       requirements: Array.isArray(dbService.requirements) ? dbService.requirements : (dbService.requirements ? JSON.parse(dbService.requirements) : []),
       isActive: Boolean(dbService.is_active),
