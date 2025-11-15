@@ -26,34 +26,47 @@ TU PERSONALIDAD:
 - Usas un tono cálido pero profesional
 - Respondes de manera clara y concisa
 - Siempre intentas ayudar al cliente
+- Eres CONFIADO y ÚTIL - no dudes innecesariamente
 
 TUS CAPACIDADES:
 - Responder preguntas sobre servicios, productos, tecnologías e ingredientes
 - Ayudar a agendar citas
 - Proporcionar información sobre cuidados pre y post tratamiento
 - Explicar políticas de la clínica
+- Dar información general sobre tratamientos de belleza
 
 REGLAS CRÍTICAS - DEBES SEGUIRLAS ESTRICTAMENTE:
-1. SOLO proporciona información que esté en la base de conocimientos que te proporcionaré
-2. NUNCA inventes precios, servicios, tratamientos o información que no tengas
-3. Si NO tienes información específica sobre algo, di claramente: "No tengo esa información disponible en este momento, pero puedo conectarte con un especialista"
-4. Si te preguntan por precios y no los tienes, NO los inventes - di que deben consultar directamente
-5. Si te preguntan por servicios que no están en la base de conocimientos, NO los menciones
-6. Cuando uses información de la base de conocimientos, cítala fielmente sin agregar detalles extras
+1. SOLO proporciona información ESPECÍFICA (precios, horarios, disponibilidad) que esté en la base de conocimientos
+2. PUEDES dar información GENERAL sobre tratamientos de belleza comunes (qué es un facial, tipos de masajes, etc.) usando tu conocimiento general
+3. Si NO tienes información ESPECÍFICA de la clínica, di: "Para información específica sobre [tema], te recomiendo contactar directamente con la clínica"
+4. NUNCA inventes precios, horarios o disponibilidad específicos
+5. Si te preguntan por servicios que no están en la base de conocimientos, puedes explicar qué son en general, pero aclara que debes verificar si la clínica los ofrece
+6. Cuando uses información de la base de conocimientos, cítala fielmente
 7. Si el usuario confirma que quiere agendar un servicio, responde brevemente confirmando y menciona que le enviarás el link - NO incluyas URLs en tu respuesta, el sistema las agregará automáticamente
 
-INSTRUCCIONES IMPORTANTES:
-1. Si tienes información de la base de conocimientos, úsala como ÚNICA referencia
-2. Si no estás seguro de algo, admítelo y ofrece contactar a un agente humano
-3. Siempre sé cortés y profesional
-4. Mantén las respuestas concisas pero informativas
-5. Si detectas una situación compleja o delicada (alergias, reacciones, quejas), sugiere escalar a un humano
+CÓMO MANEJAR PREGUNTAS:
+- Pregunta sobre QUÉ ES un tratamiento → Responde con confianza usando conocimiento general
+- Pregunta sobre técnicas/procedimientos generales → Responde con información general de belleza
+- Pregunta sobre precios/horarios/disponibilidad ESPECÍFICOS → Solo usa la base de conocimientos
+- Pregunta sobre si ofrecen un servicio → Verifica en la base de conocimientos primero
+
+EVITA DECIR:
+- "No estoy seguro" (a menos que sea sobre algo específico de la clínica)
+- "No puedo ayudarte" (casi siempre puedes dar al menos información general)
+- "Necesitas hablar con un humano" (solo para casos realmente complejos)
+
+SOLO ESCALA A HUMANO SI:
+- El cliente tiene una alergia severa o problema médico
+- El cliente está muy molesto o tiene una queja seria
+- El cliente solicita explícitamente hablar con una persona
+- Es un caso verdaderamente complejo que requiere decisiones especiales
 
 FORMATO DE RESPUESTA:
 - Usa párrafos cortos
 - Usa listas cuando sea apropiado
 - Incluye emojis ocasionalmente para ser más amigable (pero no en exceso)
-- Termina con una pregunta o llamado a la acción cuando sea apropiado`;
+- Termina con una pregunta o llamado a la acción cuando sea apropiado
+- Sé ÚTIL y CONFIADO en tus respuestas`;
 
   /**
    * Generate AI response with knowledge base integration
@@ -110,11 +123,23 @@ FORMATO DE RESPUESTA:
 
       // Analyze if we should escalate
       const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
+      const confidence = this.calculateConfidence(completion, knowledgeContext);
+
+      // Si debe escalar Y la confianza es baja, crear escalación automática
+      if (shouldEscalate && conversationId) {
+        await this.createAutomaticEscalation(
+          conversationId,
+          userMessage,
+          aiMessage,
+          confidence,
+          !!knowledgeContext
+        );
+      }
 
       return {
         message: aiMessage,
         usedKnowledgeBase: !!knowledgeContext,
-        confidence: this.calculateConfidence(completion, knowledgeContext),
+        confidence,
         suggestedActions: shouldEscalate ? ['escalate'] : undefined,
       };
 
@@ -128,36 +153,38 @@ FORMATO DE RESPUESTA:
    * Determine if conversation should be escalated to human
    */
   private static shouldEscalate(userMessage: string, aiResponse: string): boolean {
+    // Solo palabras clave de EMERGENCIA REAL, no palabras comunes
     const escalationKeywords = [
-      'alergia',
-      'reacción',
-      'problema',
-      'queja',
-      'dolor',
+      'alergia severa',
+      'reacción alérgica',
+      'dolor intenso',
       'emergencia',
-      'urgente',
-      'mal',
-      'error',
-      'insatisfecho',
-      'molesto',
-      'enojado',
+      'sangrado',
+      'no puedo respirar',
+      'muy molesto',
+      'muy enojado',
+      'quiero una queja formal',
+      'hablar con el gerente',
+      'hablar con un supervisor'
+      // REMOVIDO: 'problema', 'mal', 'error', 'queja' (muy comunes)
     ];
 
     const messageLower = userMessage.toLowerCase();
     const responseLower = aiResponse.toLowerCase();
 
-    // Check if user message contains escalation keywords
+    // Check if user message contains REAL escalation keywords
     const hasEscalationKeyword = escalationKeywords.some(keyword => 
       messageLower.includes(keyword)
     );
 
-    // Check if AI is uncertain
-    const aiUncertain = responseLower.includes('no estoy seguro') ||
-                       responseLower.includes('no puedo') ||
-                       responseLower.includes('contactar') ||
-                       responseLower.includes('agente humano');
+    // Check if AI explicitly cannot help (no solo "no estoy seguro")
+    const aiCannotHelp = responseLower.includes('no puedo ayudarte con esto') ||
+                        responseLower.includes('necesitas contactar urgentemente') ||
+                        responseLower.includes('requiere atención médica');
+    // REMOVIDO: 'no estoy seguro', 'no puedo', 'contactar', 'agente humano'
+    // Estas frases son muy comunes y no indican necesidad de escalación
 
-    return hasEscalationKeyword || aiUncertain;
+    return hasEscalationKeyword || aiCannotHelp;
   }
 
   /**
@@ -180,6 +207,82 @@ FORMATO DE RESPUESTA:
     }
 
     return Math.min(confidence, 1.0);
+  }
+
+  /**
+   * Crear escalación automática cuando el bot no puede ayudar
+   */
+  private static async createAutomaticEscalation(
+    conversationId: string,
+    userMessage: string,
+    aiResponse: string,
+    confidence: number,
+    usedKnowledgeBase: boolean
+  ): Promise<void> {
+    try {
+      // Importar dinámicamente para evitar dependencias circulares
+      const { EscalationService } = await import('./ai/EscalationService');
+      const { AlertService } = await import('./AlertService');
+      
+      // Determinar razón y prioridad de escalación
+      let reason: 'low_confidence' | 'failed_attempts' | 'complaint' | 'complex_request' | 'client_request' = 'low_confidence';
+      let priority: 'urgent' | 'high' | 'medium' | 'low' = 'medium';
+      
+      const messageLower = userMessage.toLowerCase();
+      const responseLower = aiResponse.toLowerCase();
+      
+      // Detectar quejas o problemas serios
+      if (messageLower.includes('queja') || messageLower.includes('problema') || 
+          messageLower.includes('mal servicio') || messageLower.includes('insatisfecho')) {
+        reason = 'complaint';
+        priority = 'high';
+      }
+      // Detectar solicitud explícita de humano
+      else if (messageLower.includes('agente humano') || messageLower.includes('persona real') ||
+               messageLower.includes('hablar con alguien') || messageLower.includes('gerente')) {
+        reason = 'client_request';
+        priority = 'medium';
+      }
+      // Detectar solicitud compleja
+      else if (messageLower.includes('complicado') || messageLower.includes('especial') ||
+               messageLower.includes('personalizado') || messageLower.includes('urgente')) {
+        reason = 'complex_request';
+        priority = 'medium';
+      }
+      // Baja confianza
+      else if (confidence < 0.5) {
+        reason = 'low_confidence';
+        priority = confidence < 0.3 ? 'high' : 'medium';
+      }
+      
+      // Generar resumen
+      const summary = `Bot no pudo ayudar. Mensaje: "${userMessage.substring(0, 100)}${userMessage.length > 100 ? '...' : ''}". Confianza: ${(confidence * 100).toFixed(0)}%. Base de conocimientos: ${usedKnowledgeBase ? 'Sí' : 'No'}`;
+      
+      // Crear escalación con todos los detalles
+      const escalationResult = await EscalationService.escalateToHuman(
+        conversationId,
+        reason,
+        priority,
+        summary,
+        undefined, // humanAgentId (sin asignar aún)
+        userMessage, // clientMessage
+        aiResponse, // aiResponse
+        confidence // confidenceScore
+      );
+      
+      if (escalationResult.success) {
+        logger.info(`Automatic escalation created: ${escalationResult.escalationId}`, {
+          conversationId,
+          reason,
+          priority,
+          confidence
+        });
+      }
+      
+    } catch (error) {
+      logger.error('Error creating automatic escalation:', error);
+      // No lanzar error para no interrumpir el flujo
+    }
   }
 
   /**

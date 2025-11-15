@@ -17,8 +17,8 @@ import logger from '../../utils/logger';
 export class EscalationService {
   // Configuración de escalación
   private static config = {
-    confidenceThreshold: 0.6,
-    maxFailedAttempts: 3,
+    confidenceThreshold: 0.4,  // Reducido de 0.6 a 0.4 para ser menos sensible
+    maxFailedAttempts: 5,  // Aumentado de 3 a 5
     complexityKeywords: [
       'problema', 'queja', 'error', 'mal servicio', 'insatisfecho',
       'reembolso', 'cancelar todo', 'gerente', 'supervisor',
@@ -167,7 +167,10 @@ export class EscalationService {
     reason: EscalationReason,
     priority: EscalationPriority = 'medium',
     summary?: string,
-    humanAgentId?: string
+    humanAgentId?: string,
+    clientMessage?: string,
+    aiResponse?: string,
+    confidenceScore?: number
   ): Promise<{
     success: boolean;
     escalationId?: string;
@@ -186,8 +189,55 @@ export class EscalationService {
       // 2. Generar resumen de contexto
       const contextSummary = await this.generateContextSummary(conversationId, conversation.clientId);
 
-      // 3. Crear solicitud de escalación
-      const escalationRequest: EscalationRequest = {
+      // 3. Generar código único de escalación
+      const escalationCode = this.generateEscalationId();
+
+      // 4. Crear escalación en base de datos
+      const { EscalationModel } = await import('../../models/Escalation');
+      
+      const escalation = await EscalationModel.create({
+        escalationCode,
+        conversationId,
+        clientId: conversation.clientId,
+        reason,
+        priority,
+        summary: summary || contextSummary.summary,
+        clientMessage,
+        aiResponse,
+        confidenceScore,
+        metadata: {
+          conversationHistory: contextSummary.recentMessages.slice(0, 5), // Últimos 5 mensajes
+          currentIntent: conversation.context.currentIntent,
+          pendingBooking: conversation.context.pendingBooking,
+          variables: conversation.context.variables
+        }
+      });
+
+      // 5. Registrar en memoria para acceso rápido
+      this.activeEscalations.set(escalationCode, {
+        escalationId: escalationCode,
+        conversationId,
+        reason,
+        priority,
+        timestamp: new Date(),
+        humanAgentId,
+        status: humanAgentId ? 'assigned' : 'pending'
+      });
+
+      // 6. Si hay agente asignado, actualizar
+      if (humanAgentId) {
+        await EscalationModel.assign(escalation.id, humanAgentId);
+      }
+
+      // 7. Actualizar estado de la conversación
+      await ConversationModel.escalateConversation(
+        conversationId,
+        `${reason}: ${summary || 'Escalación automática'}`,
+        humanAgentId
+      );
+
+      // 8. Enviar notificaciones a agentes humanos
+      await this.notifyHumanAgents({
         conversationId,
         reason,
         priority,
@@ -199,41 +249,20 @@ export class EscalationService {
           pendingBooking: conversation.context.pendingBooking,
           variables: conversation.context.variables
         }
-      };
+      }, escalationCode);
 
-      // 4. Registrar escalación
-      const escalationId = this.generateEscalationId();
-      this.activeEscalations.set(escalationId, {
-        escalationId,
-        conversationId,
-        reason,
-        priority,
-        timestamp: new Date(),
-        humanAgentId,
-        status: humanAgentId ? 'assigned' : 'pending'
-      });
-
-      // 5. Actualizar estado de la conversación
-      await ConversationModel.escalateConversation(
-        conversationId,
-        `${reason}: ${summary || 'Escalación automática'}`,
-        humanAgentId
-      );
-
-      // 6. Enviar notificaciones a agentes humanos
-      await this.notifyHumanAgents(escalationRequest, escalationId);
-
-      // 7. Registrar en logs
-      logger.info(`Conversation escalated: ${conversationId} -> ${escalationId}`, {
+      // 9. Registrar en logs
+      logger.info(`Conversation escalated: ${conversationId} -> ${escalationCode}`, {
         reason,
         priority,
         clientId: conversation.clientId,
-        humanAgentId
+        humanAgentId,
+        escalationId: escalation.id
       });
 
       return {
         success: true,
-        escalationId,
+        escalationId: escalationCode,
         message: 'Escalación procesada exitosamente'
       };
 

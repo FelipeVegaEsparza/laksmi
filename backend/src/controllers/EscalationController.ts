@@ -11,26 +11,39 @@ export class EscalationController {
    */
   static async getActiveEscalations(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const filters = {
-        priority: req.query.priority as EscalationPriority,
-        reason: req.query.reason as EscalationReason,
-        status: req.query.status as 'pending' | 'assigned' | 'resolved',
-        humanAgentId: req.query.humanAgentId as string
+      const { EscalationModel } = await import('../models/Escalation');
+      
+      const filters: any = {
+        limit: parseInt(req.query.limit as string) || 50,
+        offset: parseInt(req.query.offset as string) || 0
       };
 
-      // Limpiar filtros undefined
-      Object.keys(filters).forEach(key => {
-        if (filters[key as keyof typeof filters] === undefined) {
-          delete filters[key as keyof typeof filters];
-        }
-      });
+      if (req.query.priority) {
+        filters.priority = req.query.priority;
+      }
+      if (req.query.reason) {
+        filters.reason = req.query.reason;
+      }
+      if (req.query.status) {
+        filters.status = req.query.status;
+      }
+      if (req.query.assignedTo) {
+        filters.assignedTo = req.query.assignedTo;
+      }
 
-      const escalations = EscalationService.getActiveEscalations(filters);
+      const escalations = await EscalationModel.findAll(filters);
+
+      // También obtener conteo por prioridad para el dashboard
+      const counts = await EscalationModel.countPendingByPriority();
 
       res.json({
         success: true,
         message: 'Escalaciones obtenidas exitosamente',
-        data: escalations
+        data: {
+          escalations,
+          counts,
+          total: escalations.length
+        }
       });
     } catch (error: any) {
       logger.error('Get active escalations error:', error);
