@@ -10,10 +10,29 @@ export class TwilioController {
    */
   static async webhookReceive(req: Request, res: Response): Promise<void> {
     try {
+      logger.info('📨 Webhook received from Twilio', {
+        from: req.body.From,
+        to: req.body.To,
+        body: req.body.Body,
+        messageSid: req.body.MessageSid,
+        headers: {
+          signature: req.headers['x-twilio-signature'],
+          contentType: req.headers['content-type']
+        }
+      });
+
       const payload: TwilioWebhookPayload = req.body;
       
       // Procesar mensaje con el nuevo procesador especializado
+      logger.info('🔄 Processing message with WhatsAppMessageProcessor...');
       const result = await WhatsAppMessageProcessor.processIncomingMessage(payload);
+      
+      logger.info('✅ Message processed', {
+        success: result.success,
+        hasResponse: !!result.response,
+        clientId: result.clientId,
+        conversationId: result.conversationId
+      });
 
       if (result.success && result.response) {
         // Extraer número de teléfono del payload
