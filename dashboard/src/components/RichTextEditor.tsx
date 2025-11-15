@@ -1,14 +1,8 @@
-'use client'
-
-import React, { useMemo } from 'react'
-import dynamic from 'next/dynamic'
+import React, { useMemo, lazy, Suspense } from 'react'
 import 'react-quill/dist/quill.snow.css'
 
-// @ts-ignore - React Quill tiene problemas de tipos con Next.js dynamic import
-const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false,
-  loading: () => <div className="border rounded-md p-4 bg-gray-50">Cargando editor...</div>
-})
+// Importar ReactQuill con lazy loading para Vite
+const ReactQuill = lazy(() => import('react-quill'))
 
 interface RichTextEditorProps {
   value: string
@@ -86,16 +80,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           error ? 'border-red-500' : 'border-gray-300'
         }`}
       >
-        {/* @ts-ignore - React Quill tiene problemas de tipos con Next.js */}
-        <ReactQuill
-          theme="snow"
-          value={value}
-          onChange={handleChange}
-          modules={modules}
-          formats={formats}
-          placeholder={placeholder}
-          style={{ minHeight: '200px' }}
-        />
+        <Suspense fallback={<div className="border rounded-md p-4 bg-gray-50">Cargando editor...</div>}>
+          <ReactQuill
+            theme="snow"
+            value={value}
+            onChange={handleChange}
+            modules={modules}
+            formats={formats}
+            placeholder={placeholder}
+            style={{ minHeight: '200px' }}
+          />
+        </Suspense>
       </div>
       <div className="flex justify-between items-center mt-1">
         <span
