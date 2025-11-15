@@ -13,17 +13,16 @@ import {
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { Service, ServiceFormData } from '@/types'
+import { apiService } from '@/services/apiService'
 import ImageUpload from './ImageUpload'
 import RichTextEditor from './RichTextEditor'
 
-const SERVICE_CATEGORIES = [
-  'Facial',
-  'Corporal',
-  'Spa',
-  'Masajes',
-  'Tratamientos',
-  'Otros'
-]
+interface Category {
+  id: string
+  name: string
+  type: 'service' | 'product'
+  isActive: boolean
+}
 
 interface ServiceFormProps {
   service?: Service | null
@@ -45,8 +44,28 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
     sessions: 1,
     tag: '',
   })
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const [newRequirement, setNewRequirement] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    // Cargar categorías desde el backend
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        const response = await apiService.get<any>('/categories?type=service&isActive=true')
+        const categoriesData = response.data || response
+        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+      } catch (error) {
+        console.error('Error cargando categorías:', error)
+        setCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    fetchCategories()
+  }, [])
 
   useEffect(() => {
     if (service) {
@@ -209,13 +228,20 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             onChange={handleInputChange('category')}
             error={!!errors.category}
             helperText={errors.category}
+            disabled={loadingCategories}
             required
           >
-            {SERVICE_CATEGORIES.map((category) => (
-              <MenuItem key={category} value={category}>
-                {category}
-              </MenuItem>
-            ))}
+            {loadingCategories ? (
+              <MenuItem value="">Cargando categorías...</MenuItem>
+            ) : categories.length === 0 ? (
+              <MenuItem value="">No hay categorías disponibles</MenuItem>
+            ) : (
+              categories.map((category) => (
+                <MenuItem key={category.id} value={category.name}>
+                  {category.name}
+                </MenuItem>
+              ))
+            )}
           </TextField>
         </Grid>
 

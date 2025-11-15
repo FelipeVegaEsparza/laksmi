@@ -15,15 +15,12 @@ import { Product, ProductFormData, Service } from '@/types'
 import { apiService } from '@/services/apiService'
 import ImageUpload from './ImageUpload'
 
-const PRODUCT_CATEGORIES = [
-  'Cremas',
-  'Serums',
-  'Limpiadores',
-  'Mascarillas',
-  'Aceites',
-  'Herramientas',
-  'Otros'
-]
+interface Category {
+  id: string
+  name: string
+  type: 'service' | 'product'
+  isActive: boolean
+}
 
 interface ProductFormProps {
   product?: Product | null
@@ -43,6 +40,8 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     ingredients: [],
     compatibleServices: [],
   })
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const [newIngredient, setNewIngredient] = useState('')
   const [services, setServices] = useState<Service[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -64,6 +63,22 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
   }, [product])
 
   useEffect(() => {
+    // Cargar categorías desde el backend
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        const response = await apiService.get<any>('/categories?type=product&isActive=true')
+        const categoriesData = response.data || response
+        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+      } catch (error) {
+        console.error('Error cargando categorías:', error)
+        setCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    fetchCategories()
+
     // Fetch services for compatibility selection
     const fetchServices = async () => {
       try {
@@ -190,13 +205,20 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             onChange={handleInputChange('category')}
             error={!!errors.category}
             helperText={errors.category}
+            disabled={loadingCategories}
             required
           >
-            {PRODUCT_CATEGORIES.map((category) => (
-              <MenuItem key={category} value={category}>
-                {category}
-              </MenuItem>
-            ))}
+            {loadingCategories ? (
+              <MenuItem value="">Cargando categorías...</MenuItem>
+            ) : categories.length === 0 ? (
+              <MenuItem value="">No hay categorías disponibles</MenuItem>
+            ) : (
+              categories.map((category) => (
+                <MenuItem key={category.id} value={category.name}>
+                  {category.name}
+                </MenuItem>
+              ))
+            )}
           </TextField>
         </Grid>
 
