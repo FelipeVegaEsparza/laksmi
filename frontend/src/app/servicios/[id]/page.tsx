@@ -257,9 +257,10 @@ const ServiceDetailPage = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-3">
                 Descripción del Tratamiento
               </h2>
-              <p className="text-gray-600 leading-relaxed">
-                {service.description}
-              </p>
+              <div 
+                className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: service.description }}
+              />
             </div>
 
             {service.requirements && service.requirements.length > 0 && (
@@ -284,9 +285,10 @@ const ServiceDetailPage = () => {
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">
                   Beneficios del Tratamiento
                 </h2>
-                <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-                  {service.benefits}
-                </div>
+                <div 
+                  className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: service.benefits }}
+                />
               </div>
             )}
 

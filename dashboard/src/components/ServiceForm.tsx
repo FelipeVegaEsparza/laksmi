@@ -14,6 +14,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { Service, ServiceFormData } from '@/types'
 import ImageUpload from './ImageUpload'
+import RichTextEditor from './RichTextEditor'
 
 const SERVICE_CATEGORIES = [
   'Facial',
@@ -269,30 +270,25 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         </Grid>
 
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            multiline
-            rows={6}
-            label="Descripción"
+          <RichTextEditor
+            label="Descripción *"
             value={formData.description}
-            onChange={handleInputChange('description')}
+            onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+            placeholder="Describe el servicio en detalle..."
             error={!!errors.description}
-            helperText={errors.description || `${formData.description?.length || 0}/5000 caracteres`}
-            required
-            inputProps={{ maxLength: 5000 }}
+            helperText={errors.description || 'Descripción detallada del servicio'}
+            maxLength={5000}
           />
         </Grid>
 
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
+          <RichTextEditor
             label="Beneficios"
             value={formData.benefits || ''}
-            onChange={handleInputChange('benefits')}
-            helperText={`Beneficios del servicio (opcional) - ${formData.benefits?.length || 0}/5000 caracteres`}
-            inputProps={{ maxLength: 5000 }}
+            onChange={(value) => setFormData(prev => ({ ...prev, benefits: value }))}
+            placeholder="Lista los beneficios del servicio..."
+            helperText="Beneficios del servicio (opcional)"
+            maxLength={5000}
           />
         </Grid>
 
