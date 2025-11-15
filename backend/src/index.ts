@@ -88,9 +88,29 @@ async function startServer() {
       AlertService.initialize();
       logger.info('Alert service initialized');
       
-      // Inicializar servicio de Twilio
-      TwilioService.initialize();
-      logger.info('Twilio service initialized');
+      // Inicializar servicio de Twilio con configuración de BD
+      logger.info('Initializing Twilio service...');
+      try {
+        const { CompanySettingsModel } = await import('./models/CompanySettings');
+        const settings = await CompanySettingsModel.getSettings();
+        
+        if (settings && settings.twilioAccountSid && settings.twilioAuthToken) {
+          TwilioService.updateConfig({
+            accountSid: settings.twilioAccountSid,
+            authToken: settings.twilioAuthToken,
+            phoneNumber: settings.twilioPhoneNumber || '',
+            webhookUrl: settings.twilioWebhookUrl || '',
+            validateSignatures: settings.twilioValidateSignatures !== false,
+          });
+          logger.info('✅ Twilio service initialized with database configuration');
+        } else {
+          logger.warn('⚠️  Twilio credentials not found in database, using default config');
+          TwilioService.initialize();
+        }
+      } catch (twilioError) {
+        logger.error('❌ Error initializing Twilio service:', twilioError);
+        logger.warn('⚠️  Continuing without Twilio');
+      }
       
       // Inicializar limpieza de eventos de seguridad
       setInterval(() => {
