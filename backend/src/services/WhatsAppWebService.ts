@@ -14,8 +14,11 @@ export class WhatsAppWebService {
    */
   static async initialize(): Promise<void> {
     try {
-      logger.info('🚀 Inicializando WhatsApp Web...');
+      logger.info('🚀 ========== INICIALIZANDO WHATSAPP WEB ==========');
+      logger.info('Environment:', process.env.NODE_ENV);
+      logger.info('Puppeteer path:', process.env.PUPPETEER_EXECUTABLE_PATH);
 
+      logger.info('Creating WhatsApp Client...');
       this.client = new Client({
         authStrategy: new LocalAuth({
           dataPath: './whatsapp-session'
@@ -86,8 +89,9 @@ export class WhatsAppWebService {
       });
 
       // Inicializar cliente
+      logger.info('Calling client.initialize()...');
       await this.client.initialize();
-      logger.info('✅ Cliente de WhatsApp Web inicializado');
+      logger.info('✅ Cliente de WhatsApp Web inicializado exitosamente');
 
     } catch (error) {
       logger.error('❌ Error inicializando WhatsApp Web:', error);

@@ -29,19 +29,29 @@ export class WhatsAppWebController {
    */
   static async connect(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      logger.info('📱 Iniciando conexión de WhatsApp...');
+      logger.info('📱 ========== INICIANDO CONEXIÓN DE WHATSAPP ==========');
+      logger.info('Request received from:', req.ip);
+      logger.info('User:', req.user?.email);
       
       // Inicializar en segundo plano
+      logger.info('Calling WhatsAppWebService.initialize()...');
       WhatsAppWebService.initialize().catch(error => {
-        logger.error('Error en inicialización de WhatsApp:', error);
+        logger.error('❌ Error en inicialización de WhatsApp:', {
+          message: error.message,
+          stack: error.stack
+        });
       });
 
+      logger.info('✅ Initialize called, returning response');
       res.json({
         success: true,
         message: 'Conexión iniciada. Escanea el código QR cuando aparezca.'
       });
     } catch (error: any) {
-      logger.error('Error connecting WhatsApp:', error);
+      logger.error('❌ Error connecting WhatsApp:', {
+        message: error.message,
+        stack: error.stack
+      });
       res.status(500).json({
         success: false,
         error: error.message || 'Error al conectar WhatsApp'

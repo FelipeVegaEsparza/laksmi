@@ -51,20 +51,36 @@ export default function WhatsAppWebConnection() {
 
   const fetchStatus = async () => {
     try {
+      console.log('🔵 Fetching WhatsApp status...');
       const response = await apiService.get<WhatsAppStatus>('/whatsapp-web/status');
+      console.log('📊 Status received:', response);
       setStatus(response);
     } catch (error) {
-      console.error('Error fetching WhatsApp status:', error);
+      console.error('❌ Error fetching WhatsApp status:', error);
     }
   };
 
   const handleConnect = async () => {
     try {
+      console.log('🔵 Iniciando conexión de WhatsApp...');
       setLoading(true);
-      await apiService.post('/whatsapp-web/connect', {});
-      setTimeout(fetchStatus, 2000); // Esperar 2 segundos y actualizar
+      
+      console.log('🔵 Llamando a /whatsapp-web/connect...');
+      const response = await apiService.post('/whatsapp-web/connect', {});
+      console.log('✅ Respuesta recibida:', response);
+      
+      console.log('🔵 Esperando 2 segundos antes de actualizar estado...');
+      setTimeout(() => {
+        console.log('🔵 Actualizando estado...');
+        fetchStatus();
+      }, 2000);
     } catch (error: any) {
-      console.error('Error connecting WhatsApp:', error);
+      console.error('❌ Error connecting WhatsApp:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
       alert('Error al conectar WhatsApp: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoading(false);
