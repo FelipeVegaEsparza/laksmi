@@ -215,14 +215,37 @@ export class WhatsAppWebService {
    * Desconectar WhatsApp
    */
   static async disconnect(): Promise<void> {
-    if (this.client) {
-      await this.client.destroy();
+    try {
+      logger.info('🔌 Desconectando WhatsApp...');
+      
+      if (this.client) {
+        logger.info('Destroying client...');
+        await this.client.destroy();
+        logger.info('Client destroyed');
+      }
+      
       this.client = null;
       this.isReady = false;
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado manualmente';
       this.qrCode = '';
-      logger.info('🔌 WhatsApp desconectado');
+      
+      logger.info('✅ WhatsApp desconectado exitosamente');
+    } catch (error: any) {
+      logger.error('❌ Error al desconectar WhatsApp:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Forzar desconexión aunque haya error
+      this.client = null;
+      this.isReady = false;
+      this.connectionStatus = 'disconnected';
+      this.statusMessage = 'Desconectado (con errores)';
+      this.qrCode = '';
+      
+      // No lanzar el error, solo loguearlo
+      logger.warn('⚠️  Desconexión forzada debido a error');
     }
   }
 
