@@ -92,7 +92,7 @@ export default function WhatsAppWebConnection() {
 
     try {
       setSendingTest(true);
-      const response = await apiService.post('/whatsapp-web/send-test', {
+      const response = await apiService.post<{ success: boolean; message?: string }>('/whatsapp-web/send-test', {
         phoneNumber: testPhone,
         message: testMessage,
       });
@@ -100,7 +100,7 @@ export default function WhatsAppWebConnection() {
       if (response.success) {
         alert('✅ Mensaje enviado correctamente');
       } else {
-        alert('❌ Error: ' + response.message);
+        alert('❌ Error: ' + (response.message || 'Error desconocido'));
       }
     } catch (error: any) {
       console.error('Error sending test message:', error);
