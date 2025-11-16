@@ -230,11 +230,11 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             value={formData.price}
             onChange={handleInputChange('price')}
             error={!!errors.price}
-            helperText={errors.price}
+            helperText={errors.price || 'Ingresa el precio del producto'}
             InputProps={{
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
-            inputProps={{ min: 0, step: 0.01 }}
+            inputProps={{ min: 0, step: 'any' }}
             required
           />
         </Grid>

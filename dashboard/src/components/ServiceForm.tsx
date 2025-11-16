@@ -253,11 +253,11 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
             value={formData.price}
             onChange={handleInputChange('price')}
             error={!!errors.price}
-            helperText={errors.price || 'Precio máximo: $10,000,000'}
+            helperText={errors.price || 'Ingresa el precio del servicio'}
             InputProps={{
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
-            inputProps={{ min: 0, max: 10000000, step: 1000 }}
+            inputProps={{ min: 0, step: 'any' }}
             required
           />
         </Grid>
