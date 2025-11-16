@@ -47,6 +47,7 @@ import { apiService } from '@/services/apiService'
 import { useNotifications } from '@/contexts/NotificationContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import WhatsAppWebConnection from '@/components/WhatsAppWebConnection'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -260,14 +261,20 @@ export default function SettingsPage() {
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tab label="WhatsApp Web" icon={<WhatsAppIcon />} />
           <Tab label="Twilio WhatsApp" icon={<WhatsAppIcon />} />
           <Tab label="Plantillas WhatsApp" />
           <Tab label="General" />
         </Tabs>
       </Box>
 
-      {/* Twilio Configuration Tab */}
+      {/* WhatsApp Web Tab */}
       <TabPanel value={tabValue} index={0}>
+        <WhatsAppWebConnection />
+      </TabPanel>
+
+      {/* Twilio Configuration Tab */}
+      <TabPanel value={tabValue} index={1}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Card>
@@ -527,7 +534,7 @@ export default function SettingsPage() {
       </TabPanel>
 
       {/* WhatsApp Templates Tab */}
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={2}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h6">
             Plantillas de WhatsApp Business
@@ -602,7 +609,7 @@ export default function SettingsPage() {
       </TabPanel>
 
       {/* General Settings Tab */}
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={3}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card>
