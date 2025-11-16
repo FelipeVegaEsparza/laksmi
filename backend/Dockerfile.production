@@ -69,7 +69,8 @@ COPY --from=builder /app/seeds ./seeds
 COPY start-production.sh ./
 
 # Crear directorios necesarios
-RUN mkdir -p uploads logs
+RUN mkdir -p uploads logs whatsapp-session && \
+    chmod 777 whatsapp-session
 
 # Usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && \

@@ -33,9 +33,21 @@ export class WhatsAppWebService {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
+            '--single-process',
             '--disable-gpu',
             '--disable-software-rasterizer',
-            '--disable-dev-shm-usage'
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--metrics-recording-only',
+            '--mute-audio',
+            '--no-default-browser-check',
+            '--safebrowsing-disable-auto-update',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process'
           ]
         }
       });
