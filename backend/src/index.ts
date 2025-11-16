@@ -70,8 +70,17 @@ async function startServer() {
     // Inicializar servicio de Twilio con configuración de BD ANTES de iniciar el servidor
     logger.info('Initializing Twilio service...');
     try {
+      logger.info('Importing CompanySettingsModel...');
       const { CompanySettingsModel } = await import('./models/CompanySettings');
+      
+      logger.info('Fetching Twilio settings from database...');
       const settings = await CompanySettingsModel.getSettings();
+      
+      logger.info('Settings fetched:', {
+        hasSettings: !!settings,
+        hasAccountSid: !!settings?.twilioAccountSid,
+        hasAuthToken: !!settings?.twilioAuthToken
+      });
       
       if (settings && settings.twilioAccountSid && settings.twilioAuthToken) {
         TwilioService.updateConfig({
@@ -86,10 +95,17 @@ async function startServer() {
         logger.warn('⚠️  Twilio credentials not found in database, using default config');
         TwilioService.initialize();
       }
-    } catch (twilioError) {
-      logger.error('❌ Error initializing Twilio service:', twilioError);
+    } catch (twilioError: any) {
+      logger.error('❌ Error initializing Twilio service:', {
+        message: twilioError?.message,
+        stack: twilioError?.stack
+      });
       logger.warn('⚠️  Continuing without Twilio');
+      // Inicializar con config por defecto para que no falle
+      TwilioService.initialize();
     }
+    
+    logger.info('Twilio initialization completed, starting HTTP server...');
 
     server.listen(config.port, '0.0.0.0', () => {
       clearTimeout(startTimeout);
