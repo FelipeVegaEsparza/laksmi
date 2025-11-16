@@ -22,6 +22,7 @@ export class WhatsAppWebService {
         }),
         puppeteer: {
           headless: true,
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -29,7 +30,9 @@ export class WhatsAppWebService {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-dev-shm-usage'
           ]
         }
       });

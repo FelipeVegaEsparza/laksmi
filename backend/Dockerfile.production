@@ -33,14 +33,24 @@ RUN npm run build
 # Etapa de producción
 FROM node:20-alpine
 
-# Instalar solo dependencias de runtime necesarias (sin build tools)
+# Instalar dependencias de runtime + Chromium para WhatsApp Web
 RUN apk update && \
     apk add --no-cache \
     cairo \
     libjpeg-turbo \
     pango \
     giflib \
-    pixman
+    pixman \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Configurar Puppeteer para usar Chromium de Alpine
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 
