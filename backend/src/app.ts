@@ -27,6 +27,7 @@ import conversationRoutes from './routes/conversations';
 import escalationRoutes from './routes/escalations';
 import humanTakeoverRoutes from './routes/humanTakeover';
 import twilioRoutes from './routes/twilio';
+import whatsappWebRoutes from './routes/whatsappWeb';
 import securityRoutes from './routes/security';
 import gdprRoutes from './routes/gdpr';
 import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
@@ -138,6 +139,7 @@ app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
 app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
+app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
 app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
 app.use(`/api/${config.apiVersion}/upload`, uploadRoutes); // UNA SOLA RUTA DE UPLOAD

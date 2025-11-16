@@ -128,6 +128,10 @@ async function startServer() {
       AlertService.initialize();
       logger.info('Alert service initialized');
       
+      // Inicializar WhatsApp Web (opcional, se puede iniciar desde el dashboard)
+      logger.info('WhatsApp Web service available (start from dashboard)');
+      // WhatsAppWebService.initialize(); // Descomentar para auto-iniciar
+      
       // Inicializar limpieza de eventos de seguridad
       setInterval(() => {
         SecurityAuditService.cleanupOldEvents();
