@@ -170,9 +170,12 @@ export class SettingsController {
    */
   static async testTwilioMessage(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      logger.info('📱 Test message request received', { body: req.body });
+      
       const { testPhoneNumber } = req.body;
 
       if (!testPhoneNumber) {
+        logger.warn('⚠️  No phone number provided for test');
         res.status(400).json({
           success: false,
           error: 'Número de teléfono requerido'
@@ -180,10 +183,18 @@ export class SettingsController {
         return;
       }
 
+      logger.info('📤 Sending test WhatsApp message...', { to: testPhoneNumber });
+
       // Intentar enviar un mensaje de prueba
       const result = await TwilioService.sendWhatsAppMessage({
         to: testPhoneNumber,
         body: '¡Hola! Este es un mensaje de prueba desde Laksmi. Tu configuración de Twilio está funcionando correctamente. 🎉'
+      });
+
+      logger.info('📬 Test message result:', { 
+        success: result.success, 
+        messageSid: result.messageSid,
+        error: result.error 
       });
 
       res.json({
@@ -196,9 +207,15 @@ export class SettingsController {
         }
       });
     } catch (error: any) {
-      logger.error('Test Twilio message error:', error);
-      res.json({
+      logger.error('❌ Test Twilio message error:', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code
+      });
+      
+      res.status(500).json({
         success: false,
+        error: error.message || 'Error al enviar mensaje de prueba',
         data: {
           success: false,
           message: error.message || 'Error al enviar mensaje de prueba'
