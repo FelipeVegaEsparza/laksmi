@@ -25,7 +25,23 @@ const ServiceImage = ({ src, alt, className = '', fallbackClassName = '' }: Serv
     return decoded;
   };
 
+  // Construir URL completa si es una ruta relativa
+  const getFullImageUrl = (url: string): string => {
+    if (!url) return '';
+    
+    // Si ya es una URL completa, devolverla tal cual
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // Si es una ruta relativa, construir URL completa con el backend
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const baseUrl = apiUrl.replace('/api/v1', ''); // Remover /api/v1 del final
+    return `${baseUrl}${url}`;
+  };
+
   const decodedSrc = decodeImageUrl(src);
+  const fullImageUrl = getFullImageUrl(decodedSrc);
 
   if (imageError || !src) {
     return (
@@ -57,12 +73,12 @@ const ServiceImage = ({ src, alt, className = '', fallbackClassName = '' }: Serv
         </div>
       )}
       <img
-        src={decodedSrc}
+        src={fullImageUrl}
         alt={alt}
         className={`${className} ${!imageLoaded ? 'hidden' : ''}`}
         onLoad={() => setImageLoaded(true)}
         onError={(e) => {
-          console.error('Error loading image:', decodedSrc);
+          console.error('Error loading image:', fullImageUrl);
           setImageError(true);
         }}
       />
