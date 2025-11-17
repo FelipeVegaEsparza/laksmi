@@ -33,7 +33,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Banner {
   id: string
-  title: string
+  title?: string
   description?: string
   link?: string
   imageUrl?: string
@@ -82,7 +82,7 @@ export default function BannersPage() {
     if (banner) {
       setEditingBanner(banner)
       setFormData({
-        title: banner.title,
+        title: banner.title || '',
         description: banner.description || '',
         link: banner.link || '',
         active: banner.active,
@@ -286,7 +286,7 @@ export default function BannersPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
                     <Typography variant="h6" component="div">
-                      {banner.title}
+                      {banner.title || 'Banner sin título'}
                     </Typography>
                     <Chip
                       label={banner.active ? 'Activo' : 'Inactivo'}
@@ -384,9 +384,9 @@ export default function BannersPage() {
             <TextField
               label="Título"
               fullWidth
-              required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              helperText="Opcional - Deja vacío para mostrar solo la imagen"
             />
             <TextField
               label="Descripción"

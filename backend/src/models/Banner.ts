@@ -2,7 +2,7 @@ import db from '../config/database';
 
 export interface Banner {
   id: string;
-  title: string;
+  title?: string;
   description?: string;
   link?: string;
   imageUrl?: string;
@@ -13,7 +13,7 @@ export interface Banner {
 }
 
 export interface CreateBannerRequest {
-  title: string;
+  title?: string;
   description?: string;
   link?: string;
   imageUrl?: string;

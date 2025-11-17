@@ -6,7 +6,7 @@ import Button from './Button'
 
 interface Banner {
   id: string
-  title: string
+  title?: string
   description?: string
   link?: string
   imageUrl?: string
@@ -117,36 +117,40 @@ export default function BannerCarousel() {
             zIndex: 2,
           }} />
 
-          {/* Content */}
-          <div style={{
-            position: 'relative',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            zIndex: 3,
-          }}>
-            <div className="max-w-4xl mx-auto text-center text-white">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-4 drop-shadow-lg">
-                {currentBanner.title}
-              </h1>
-              {currentBanner.description && (
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-4 md:mb-6 drop-shadow-lg max-w-2xl mx-auto">
-                  {currentBanner.description}
-                </p>
-              )}
-              {currentBanner.link && (
-                <Button
-                  href={currentBanner.link}
-                  variant="primary"
-                  size="md"
-                >
-                  Más Información
-                </Button>
-              )}
+          {/* Content - Only show if there's text content */}
+          {(currentBanner.title || currentBanner.description || currentBanner.link) && (
+            <div style={{
+              position: 'relative',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+              zIndex: 3,
+            }}>
+              <div className="max-w-4xl mx-auto text-center text-white">
+                {currentBanner.title && (
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-4 drop-shadow-lg">
+                    {currentBanner.title}
+                  </h1>
+                )}
+                {currentBanner.description && (
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-4 md:mb-6 drop-shadow-lg max-w-2xl mx-auto">
+                    {currentBanner.description}
+                  </p>
+                )}
+                {currentBanner.link && (
+                  <Button
+                    href={currentBanner.link}
+                    variant="primary"
+                    size="md"
+                  >
+                    Más Información
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation Arrows */}
           {banners.length > 1 && (
