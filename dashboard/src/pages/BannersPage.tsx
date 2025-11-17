@@ -231,7 +231,10 @@ export default function BannersPage() {
 
   const getImageUrl = (imageUrl?: string) => {
     if (!imageUrl) return null
-    return imageUrl.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`
+    if (imageUrl.startsWith('http')) return imageUrl
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
+    const baseUrl = apiUrl.replace('/api/v1', '')
+    return `${baseUrl}${imageUrl}`
   }
 
   if (loading) {
