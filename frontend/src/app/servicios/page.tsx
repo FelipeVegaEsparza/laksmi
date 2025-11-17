@@ -304,7 +304,8 @@ const ServicesContent = () => {
                         </div>
                       </div>
                     </Card>
-                  )}))}
+                  );
+                  })}
                 </div>
               )}
             </div>
