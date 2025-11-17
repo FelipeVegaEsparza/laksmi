@@ -13,6 +13,7 @@ import { servicesApi } from '@/services/api';
 import { Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { themeColors, hoverEffects } from '@/utils/colors';
 import { formatPrice } from '@/utils/currency';
+import { getPlainTextPreview } from '@/utils/text';
 import ServiceImage from '@/components/ServiceImage';
 
 export default function Home() {

@@ -13,6 +13,7 @@ import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
+import { getPlainTextPreview } from '@/utils/text';
 
 const ServicesContent = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -260,7 +261,7 @@ const ServicesContent = () => {
                           </p>
                         )}
                         <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-grow">
-                          {service.description}
+                          {getPlainTextPreview(service.description, 100)}
                         </p>
                         <div className="flex items-center text-sm text-gray-500 mb-3">
                           <Clock className="h-4 w-4 mr-1" />
