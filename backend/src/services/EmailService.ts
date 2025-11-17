@@ -51,15 +51,22 @@ export class EmailService {
    * Enviar email genérico
    */
   private static async sendEmail(options: EmailOptions): Promise<boolean> {
+    console.log('📧 sendEmail called');
     try {
+      console.log('📧 Checking SMTP credentials...');
+      console.log('📧 SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'NOT SET');
+      console.log('📧 SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'NOT SET');
+      
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        logger.warn('SMTP credentials not configured, email not sent');
-        logger.info('Email would be sent to:', options.to);
-        logger.info('Subject:', options.subject);
+        console.warn('⚠️ SMTP credentials not configured, email not sent');
+        console.log('📧 Email would be sent to:', options.to);
+        console.log('📧 Subject:', options.subject);
         return false;
       }
 
+      console.log('📧 Getting transporter...');
       const transporter = this.getTransporter();
+      console.log('📧 Transporter obtained');
 
       const mailOptions = {
         from: process.env.SMTP_FROM || `"Clínica de Belleza" <${process.env.SMTP_USER}>`,
@@ -69,11 +76,12 @@ export class EmailService {
         text: options.text || this.htmlToText(options.html),
       };
 
+      console.log('📧 Sending email...');
       const info = await transporter.sendMail(mailOptions);
-      logger.info(`Email sent successfully to ${options.to}: ${info.messageId}`);
+      console.log(`✅ Email sent successfully to ${options.to}: ${info.messageId}`);
       return true;
     } catch (error) {
-      logger.error('Error sending email:', error);
+      console.error('❌ Error sending email:', error);
       return false;
     }
   }
@@ -122,9 +130,14 @@ export class EmailService {
       bookingId?: string;
     }
   ): Promise<boolean> {
-    // Obtener configuración de la empresa para el logo
-    const { CompanySettingsModel } = await import('../models/CompanySettings');
-    const companySettings = await CompanySettingsModel.getSettings();
+    console.log('📧 sendBookingConfirmation called with email:', email);
+    try {
+      // Obtener configuración de la empresa para el logo
+      console.log('📧 Importing CompanySettingsModel...');
+      const { CompanySettingsModel } = await import('../models/CompanySettings');
+      console.log('📧 Getting company settings...');
+      const companySettings = await CompanySettingsModel.getSettings();
+      console.log('📧 Company settings retrieved');
     
     // Convertir logo URL relativa a absoluta
     if (companySettings?.logoUrl) {
@@ -138,18 +151,27 @@ export class EmailService {
       paymentLink: companySettings?.paymentLink
     });
     
-    const html = this.getBookingConfirmationTemplate(bookingDetails, companySettings);
-    
-    // Cambiar el asunto según el estado
-    const subject = bookingDetails.status === 'pending_payment'
-      ? `⚠️ Reserva Pendiente - Confirma tu Pago - ${companySettings?.companyName || 'Clínica de Belleza'}`
-      : `✅ Reserva Confirmada - ${companySettings?.companyName || 'Clínica de Belleza'}`;
-    
-    return await this.sendEmail({
-      to: email,
-      subject,
-      html,
-    });
+      console.log('📧 Generating email template...');
+      const html = this.getBookingConfirmationTemplate(bookingDetails, companySettings);
+      console.log('📧 Template generated');
+      
+      // Cambiar el asunto según el estado
+      const subject = bookingDetails.status === 'pending_payment'
+        ? `⚠️ Reserva Pendiente - Confirma tu Pago - ${companySettings?.companyName || 'Clínica de Belleza'}`
+        : `✅ Reserva Confirmada - ${companySettings?.companyName || 'Clínica de Belleza'}`;
+      
+      console.log('📧 Calling sendEmail with subject:', subject);
+      const result = await this.sendEmail({
+        to: email,
+        subject,
+        html,
+      });
+      console.log('📧 sendEmail result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error in sendBookingConfirmation:', error);
+      return false;
+    }
   }
 
   /**
