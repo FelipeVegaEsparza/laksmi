@@ -106,16 +106,7 @@ export default function BannerCarousel() {
             }}
           />
           
-          {/* Overlay */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            zIndex: 2,
-          }} />
+
 
           {/* Content - Only show if there's text content */}
           {(currentBanner.title || currentBanner.description || currentBanner.link) && (
@@ -126,7 +117,7 @@ export default function BannerCarousel() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: '1rem',
-              zIndex: 3,
+              zIndex: 2,
             }}>
               <div className="max-w-4xl mx-auto text-center text-white">
                 {currentBanner.title && (
@@ -159,7 +150,7 @@ export default function BannerCarousel() {
                 onClick={goToPrevious}
                 className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-1.5 md:p-2 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
                 aria-label="Banner anterior"
-                style={{ zIndex: 4 }}
+                style={{ zIndex: 3 }}
               >
                 <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </button>
@@ -167,7 +158,7 @@ export default function BannerCarousel() {
                 onClick={goToNext}
                 className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-1.5 md:p-2 rounded-full bg-white/30 hover:bg-white/50 backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
                 aria-label="Siguiente banner"
-                style={{ zIndex: 4 }}
+                style={{ zIndex: 3 }}
               >
                 <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </button>
@@ -176,7 +167,7 @@ export default function BannerCarousel() {
 
           {/* Dots Indicator */}
           {banners.length > 1 && (
-            <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex gap-2" style={{ zIndex: 4 }}>
+            <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex gap-2" style={{ zIndex: 3 }}>
               {banners.map((_, index) => (
                 <button
                   key={index}
