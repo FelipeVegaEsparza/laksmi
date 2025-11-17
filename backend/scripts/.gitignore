@@ -1,0 +1,8 @@
+# Ignorar archivo de configuración con credenciales
+.env.import
+
+# Ignorar carpeta temporal de imágenes
+temp-images/
+
+# Ignorar logs
+*.log

@@ -388,9 +388,10 @@ const ServiceDetailPage = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {relatedService.name}
                   </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {relatedService.description}
-                  </p>
+                  <div 
+                    className="text-gray-600 mb-4 line-clamp-2 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: relatedService.description }}
+                  />
                   <div className="flex items-center justify-between">
                     <span 
                       className="text-xl font-bold"

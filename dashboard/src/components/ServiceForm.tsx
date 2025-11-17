@@ -56,7 +56,18 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         setLoadingCategories(true)
         const response = await apiService.get<any>('/categories?type=service&isActive=true')
         const categoriesData = response.data || response
-        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+        let cats = Array.isArray(categoriesData) ? categoriesData : []
+        
+        // Si estamos editando y la categoría del servicio no está en la lista, agregarla
+        if (service && service.category) {
+          const categoryExists = cats.some(c => c.name === service.category)
+          if (!categoryExists) {
+            console.warn(`⚠️ Categoría "${service.category}" no encontrada en la lista, agregándola temporalmente`)
+            cats = [...cats, { id: service.category, name: service.category, type: 'service', isActive: true }]
+          }
+        }
+        
+        setCategories(cats)
       } catch (error) {
         console.error('Error cargando categorías:', error)
         setCategories([])
@@ -65,11 +76,13 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       }
     }
     fetchCategories()
-  }, [])
+  }, [service])
 
   useEffect(() => {
     if (service) {
       console.log('📝 Cargando servicio en formulario:')
+      console.log('   Categoría del servicio:', `"${service.category}"`)
+      console.log('   Categorías disponibles:', categories.map(c => `"${c.name}"`))
       console.log('   Description:', service.description?.substring(0, 200))
       console.log('   Benefits:', service.benefits?.substring(0, 200))
       console.log('   Description tiene HTML?:', service.description?.includes('<'))
@@ -89,7 +102,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
         tag: service.tag || '',
       })
     }
-  }, [service])
+  }, [service, categories])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
