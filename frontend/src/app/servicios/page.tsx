@@ -82,7 +82,7 @@ const ServicesContent = () => {
     if (searchTerm) {
       filtered = filtered.filter(service =>
         service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (service.description && service.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
