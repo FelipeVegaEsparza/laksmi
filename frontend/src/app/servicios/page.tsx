@@ -220,6 +220,18 @@ const ServicesContent = () => {
                           className="max-w-full max-h-full object-contain"
                           fallbackClassName="w-full h-full"
                         />
+                        {/* Sessions Badge */}
+                        {service.sessions && service.sessions > 1 && (
+                          <div className="absolute top-3 left-3">
+                            <div 
+                              className="text-white px-3 py-1 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-xs flex items-center gap-1"
+                              style={{ background: themeColors.gradientPrimary }}
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              {service.sessions} Sesiones
+                            </div>
+                          </div>
+                        )}
                         {/* Service Tag Badge */}
                         {service.tag && (
                           <div className="absolute top-3 right-3">
