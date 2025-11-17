@@ -44,10 +44,10 @@ export class BookingService {
       throw new Error('Las citas deben reservarse con al menos 1 hora de anticipación');
     }
 
-    logger.info(`🔄 Calling BookingModel.create()...`);
+    console.log('🔄 Calling BookingModel.create()...');
     const booking = await BookingModel.create(bookingData);
-    logger.info(`✅ BookingModel.create() returned successfully`);
-    logger.info(`New booking created: ${booking.id} for client ${booking.clientId}`);
+    console.log('✅ BookingModel.create() returned successfully');
+    console.log(`✅ New booking created: ${booking.id} for client ${booking.clientId}`);
     
     // Programar notificaciones automáticamente
     try {
@@ -64,11 +64,11 @@ export class BookingService {
     }
 
     // Enviar email de confirmación
-    logger.info(`📧 Starting email confirmation process for booking ${booking.id}`);
+    console.log(`📧 Starting email confirmation process for booking ${booking.id}`);
     try {
-      logger.info(`📧 Importing EmailService...`);
+      console.log(`📧 Importing EmailService...`);
       const { EmailService } = await import('./EmailService');
-      logger.info(`📧 EmailService imported successfully`);
+      console.log(`📧 EmailService imported successfully`);
       const { ProfessionalModel } = await import('../models/Professional');
       
       let professionalName: string | undefined;
@@ -78,7 +78,7 @@ export class BookingService {
       }
 
       if (client.email) {
-        logger.info(`Attempting to send confirmation email to ${client.email} for booking ${booking.id}, status: ${booking.status}`);
+        console.log(`📧 Attempting to send confirmation email to ${client.email} for booking ${booking.id}, status: ${booking.status}`);
         
         const emailSent = await EmailService.sendBookingConfirmation(client.email, {
           clientName: client.name,
