@@ -1,5 +1,23 @@
 import db from '../config/database';
 
+export interface DaySchedule {
+  isOpen: boolean;
+  openTime: string | null;
+  closeTime: string | null;
+  lunchStart: string | null;
+  lunchEnd: string | null;
+}
+
+export interface BusinessHours {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
 export interface CompanySettings {
   id: string;
   companyName: string;
@@ -28,6 +46,9 @@ export interface CompanySettings {
   instagramUrl?: string;
   tiktokUrl?: string;
   xUrl?: string;
+  
+  // Horarios del local
+  businessHours?: BusinessHours;
   
   // Colores del Dashboard
   dashboardPrimaryColor: string;
@@ -64,6 +85,7 @@ export interface UpdateCompanySettingsRequest {
   instagramUrl?: string;
   tiktokUrl?: string;
   xUrl?: string;
+  businessHours?: BusinessHours;
   dashboardPrimaryColor?: string;
   dashboardSecondaryColor?: string;
   dashboardBackgroundColor?: string;
@@ -115,6 +137,7 @@ export class CompanySettingsModel {
     if (updates.instagramUrl !== undefined) updateData.instagram_url = updates.instagramUrl;
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
     if (updates.xUrl !== undefined) updateData.x_url = updates.xUrl;
+    if (updates.businessHours !== undefined) updateData.business_hours = JSON.stringify(updates.businessHours);
     if (updates.dashboardPrimaryColor !== undefined) updateData.dashboard_primary_color = updates.dashboardPrimaryColor;
     if (updates.dashboardSecondaryColor !== undefined) updateData.dashboard_secondary_color = updates.dashboardSecondaryColor;
     if (updates.dashboardBackgroundColor !== undefined) updateData.dashboard_background_color = updates.dashboardBackgroundColor;
@@ -160,6 +183,9 @@ export class CompanySettingsModel {
       instagramUrl: dbSettings.instagram_url,
       tiktokUrl: dbSettings.tiktok_url,
       xUrl: dbSettings.x_url,
+      businessHours: dbSettings.business_hours ? 
+        (typeof dbSettings.business_hours === 'string' ? JSON.parse(dbSettings.business_hours) : dbSettings.business_hours) 
+        : undefined,
       dashboardPrimaryColor: dbSettings.dashboard_primary_color,
       dashboardSecondaryColor: dbSettings.dashboard_secondary_color,
       dashboardBackgroundColor: dbSettings.dashboard_background_color,

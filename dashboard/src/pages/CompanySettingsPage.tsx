@@ -29,6 +29,25 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import { useSnackbar } from 'notistack'
 import { useAppTheme } from '@/contexts/ThemeContext'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import BusinessHoursForm from '@/components/BusinessHoursForm'
+
+interface DaySchedule {
+  isOpen: boolean
+  openTime: string
+  closeTime: string
+  lunchStart: string
+  lunchEnd: string
+}
+
+interface BusinessHours {
+  monday: DaySchedule
+  tuesday: DaySchedule
+  wednesday: DaySchedule
+  thursday: DaySchedule
+  friday: DaySchedule
+  saturday: DaySchedule
+  sunday: DaySchedule
+}
 
 interface CompanySettings {
   id: string
@@ -45,6 +64,7 @@ interface CompanySettings {
   instagramUrl?: string
   tiktokUrl?: string
   xUrl?: string
+  businessHours?: BusinessHours
   dashboardPrimaryColor: string
   dashboardSecondaryColor: string
   dashboardBackgroundColor: string
@@ -603,6 +623,18 @@ export default function CompanySettingsPage() {
                   </Box>
                 </Box>
               </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Horarios del Local */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <BusinessHoursForm
+                businessHours={settings.businessHours}
+                onChange={(businessHours) => setSettings({ ...settings, businessHours })}
+              />
             </CardContent>
           </Card>
         </Grid>

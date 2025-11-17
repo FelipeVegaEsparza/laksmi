@@ -216,10 +216,9 @@ export class BookingModel {
       throw new Error('Servicio no encontrado');
     }
 
-    // Obtener profesionales que pueden realizar este servicio
-    const professionals = await ProfessionalModel.findBySpecialty(request.serviceId);
-    
-    if (professionals.length === 0) {
+    // Obtener horarios del local desde company_settings
+    const companySettings = await db('company_settings').first();
+    if (!companySettings || !companySettings.business_hours) {
       return {
         serviceId: request.serviceId,
         serviceName: service.name,
@@ -230,27 +229,23 @@ export class BookingModel {
       };
     }
 
+    const businessHours = typeof companySettings.business_hours === 'string' 
+      ? JSON.parse(companySettings.business_hours) 
+      : companySettings.business_hours;
+
     const slots: AvailabilitySlot[] = [];
     const currentDate = new Date(request.dateFrom);
     const endDate = new Date(request.dateTo);
 
-    // Generar slots para cada día en el rango
+    // Generar slots para cada día en el rango basado en horarios del local
     while (currentDate <= endDate) {
-      for (const professional of professionals) {
-        // Si se especifica un profesional preferido, solo usar ese
-        if (request.preferredProfessionalId && professional.id !== request.preferredProfessionalId) {
-          continue;
-        }
-
-        const daySlots = await this.generateDaySlots(
-          professional.id,
-          professional.name,
-          currentDate,
-          service.duration
-        );
-        
-        slots.push(...daySlots);
-      }
+      const daySlots = await this.generateDaySlotsFromBusinessHours(
+        currentDate,
+        service.duration,
+        businessHours
+      );
+      
+      slots.push(...daySlots);
       
       // Avanzar al siguiente día
       currentDate.setDate(currentDate.getDate() + 1);
@@ -439,6 +434,84 @@ export class BookingModel {
       revenue,
       averageBookingValue
     };
+  }
+
+  private static async generateDaySlotsFromBusinessHours(
+    date: Date,
+    serviceDuration: number,
+    businessHours: any
+  ): Promise<AvailabilitySlot[]> {
+    const slots: AvailabilitySlot[] = [];
+    
+    // Obtener el día de la semana
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[date.getDay()];
+    const daySchedule = businessHours[dayName];
+    
+    // Si el local está cerrado ese día, no hay slots
+    if (!daySchedule || !daySchedule.isOpen) {
+      return slots;
+    }
+    
+    const openTime = this.parseTimeString(date, daySchedule.openTime);
+    const closeTime = this.parseTimeString(date, daySchedule.closeTime);
+    const lunchStart = daySchedule.lunchStart ? this.parseTimeString(date, daySchedule.lunchStart) : null;
+    const lunchEnd = daySchedule.lunchEnd ? this.parseTimeString(date, daySchedule.lunchEnd) : null;
+    
+    // Generar slots cada 30 minutos
+    const slotInterval = 30; // minutos
+    let currentTime = new Date(openTime);
+    
+    while (currentTime.getTime() + serviceDuration * 60000 <= closeTime.getTime()) {
+      // Verificar si el slot está en horario de colación
+      const isInLunchTime = lunchStart && lunchEnd && 
+        currentTime.getTime() >= lunchStart.getTime() && 
+        currentTime.getTime() < lunchEnd.getTime();
+      
+      if (!isInLunchTime) {
+        // Verificar si hay conflicto con citas existentes
+        const isAvailable = await this.isTimeSlotAvailable(currentTime, serviceDuration);
+        
+        slots.push({
+          dateTime: new Date(currentTime),
+          professionalId: 'general', // Ya no usamos profesionales específicos
+          professionalName: 'Disponible',
+          duration: serviceDuration,
+          available: isAvailable
+        });
+      }
+      
+      // Avanzar al siguiente slot
+      currentTime.setMinutes(currentTime.getMinutes() + slotInterval);
+    }
+    
+    return slots;
+  }
+
+  private static async isTimeSlotAvailable(dateTime: Date, duration: number): Promise<boolean> {
+    const endTime = new Date(dateTime.getTime() + duration * 60000);
+    
+    // Buscar citas confirmadas que se solapen con este horario
+    const conflictingBookings = await db('bookings')
+      .where('status', 'confirmed')
+      .where(function() {
+        this.where(function() {
+          // La cita existente empieza antes y termina después del inicio del slot
+          this.where('date_time', '<=', dateTime)
+            .whereRaw('DATE_ADD(date_time, INTERVAL duration MINUTE) > ?', [dateTime]);
+        }).orWhere(function() {
+          // La cita existente empieza durante el slot
+          this.where('date_time', '<', endTime)
+            .whereRaw('DATE_ADD(date_time, INTERVAL duration MINUTE) >= ?', [endTime]);
+        }).orWhere(function() {
+          // La cita existente está completamente dentro del slot
+          this.where('date_time', '>=', dateTime)
+            .where('date_time', '<', endTime);
+        });
+      })
+      .first();
+    
+    return !conflictingBookings;
   }
 
   private static async generateDaySlots(
