@@ -18,34 +18,14 @@ export class BookingModel {
       throw new Error('Servicio no encontrado');
     }
 
-    // Asignar profesional automáticamente si no se especifica
-    let professionalId = bookingData.preferredProfessionalId;
-    if (!professionalId) {
-      try {
-        const assignedProfessionalId = await this.assignProfessional(bookingData.serviceId, bookingData.dateTime, service.duration);
-        if (assignedProfessionalId) {
-          professionalId = assignedProfessionalId;
-        }
-        // Si no hay profesional disponible, continuar sin asignar (será null)
-      } catch (error) {
-        // Si hay error al asignar profesional, continuar sin asignar
-        console.warn('No se pudo asignar profesional automáticamente:', error);
-      }
-    }
+    // Ya no asignamos profesionales automáticamente
+    // El sistema ahora funciona basado en horarios del local
+    const professionalId = bookingData.preferredProfessionalId || null;
 
-    // Validar disponibilidad solo si hay profesional asignado
-    if (professionalId) {
-      const validation = await this.validateBooking({
-        clientId: bookingData.clientId,
-        serviceId: bookingData.serviceId,
-        professionalId,
-        dateTime: bookingData.dateTime,
-        duration: service.duration
-      });
-
-      if (!validation.isValid) {
-        throw new Error(`No se puede crear la cita: ${validation.conflicts.map(c => c.message).join(', ')}`);
-      }
+    // Validar que no haya conflictos de horario
+    const isAvailable = await this.isTimeSlotAvailable(bookingData.dateTime, service.duration);
+    if (!isAvailable) {
+      throw new Error('El horario seleccionado ya no está disponible');
     }
 
     const insertData = {
@@ -54,29 +34,39 @@ export class BookingModel {
       professional_id: professionalId,
       date_time: bookingData.dateTime,
       duration: service.duration,
-      status: bookingData.status || 'pending_payment',
+      status: bookingData.status || 'confirmed', // Cambiar a 'confirmed' por defecto
       notes: bookingData.notes || null,
-      payment_amount: bookingData.paymentAmount || 20000,
+      payment_amount: bookingData.paymentAmount || service.price,
       payment_method: bookingData.paymentMethod || null,
       payment_notes: bookingData.paymentNotes || null
     };
 
-    await db('bookings').insert(insertData);
+    console.log('📝 Insertando reserva:', insertData);
 
-    // Buscar la cita recién creada
-    const booking = await db('bookings')
-      .where({
-        client_id: bookingData.clientId,
-        service_id: bookingData.serviceId,
-        date_time: bookingData.dateTime
-      })
-      .first();
-    
-    if (!booking) {
-      throw new Error('Error creating booking');
+    try {
+      const [insertedId] = await db('bookings').insert(insertData);
+      console.log('✅ Reserva insertada con ID:', insertedId);
+
+      // Buscar la cita recién creada
+      const booking = await db('bookings')
+        .where({
+          client_id: bookingData.clientId,
+          service_id: bookingData.serviceId,
+          date_time: bookingData.dateTime
+        })
+        .first();
+      
+      if (!booking) {
+        console.error('❌ No se encontró la reserva después de insertarla');
+        throw new Error('Error creating booking');
+      }
+
+      console.log('✅ Reserva creada exitosamente:', booking.id);
+      return this.formatBooking(booking);
+    } catch (error) {
+      console.error('❌ Error al insertar reserva:', error);
+      throw error;
     }
-
-    return this.formatBooking(booking);
   }
 
   static async update(id: string, updates: UpdateBookingRequest): Promise<Booking | null> {
