@@ -23,8 +23,9 @@ export default function Home() {
     const loadFeaturedServices = async () => {
       try {
         const services = await servicesApi.getAll();
-        // Get first 3 services as featured
-        setFeaturedServices(services.slice(0, 3));
+        // Get last 8 services (most recent)
+        const recentServices = services.slice(-8).reverse();
+        setFeaturedServices(recentServices);
       } catch (error) {
         console.error('Error loading services:', error);
         setFeaturedServices([]);
@@ -57,8 +58,8 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <Card key={i} className="overflow-hidden">
                   <Loading type="skeleton" className="h-48 mb-4" />
                   <Loading type="skeleton" className="h-4 mb-2" />
@@ -70,30 +71,16 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredServices.map((service) => (
                 <Card key={service.id} hover className="overflow-hidden" padding="none">
-                  <div 
-                    className="relative w-full aspect-square overflow-hidden"
-                    style={{ backgroundColor: themeColors.primaryLight }}
-                  >
-                    <div className="absolute inset-3 flex items-center justify-center">
-                      {service.images?.[0] ? (
-                        <img
-                          src={service.images[0]}
-                          alt={service.name}
-                          className="max-w-full max-h-full object-contain rounded-lg shadow-sm mx-auto"
-                          style={{ display: 'block' }}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full">
-                          <Sparkles 
-                            className="h-16 w-16" 
-                            style={{ color: themeColors.primary }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                  <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
+                    <ServiceImage
+                      src={service.images?.[0] || ''}
+                      alt={service.name}
+                      className="max-w-full max-h-full object-contain"
+                      fallbackClassName="w-full h-full"
+                    />
                     {/* Service Tag Badge */}
                     {service.tag && (
                       <div className="absolute top-3 right-3">
@@ -106,25 +93,33 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+                  <div className="p-4 flex flex-col flex-grow">
+                    <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                       {service.name}
                     </h3>
-                    <div className="flex flex-col items-center mb-6 space-y-2">
-                    <div 
-                      className="text-3xl font-bold"
-                      style={{ color: themeColors.primary }}
-                    >
-                      {formatPrice(service.price)}
+                    {/* Sessions Info */}
+                    {service.sessions && service.sessions > 1 && (
+                      <p className="text-gray-600 text-xs mb-2 flex items-center">
+                        <Sparkles className="h-3 w-3 mr-1" style={{ color: themeColors.primary }} />
+                        Incluye: <span className="font-semibold ml-1">{service.sessions} sesiones</span>
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between mb-3">
+                      <div 
+                        className="text-xl font-bold"
+                        style={{ color: themeColors.primary }}
+                      >
+                        {formatPrice(service.price)}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {service.duration} min
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {service.duration} min
-                    </div>
-                  </div>
                     <Button
                       href={`/servicios/${service.id}`}
                       variant="primary"
+                      size="sm"
                       fullWidth
                       className="flex items-center justify-center"
                     >
