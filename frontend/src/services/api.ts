@@ -13,7 +13,7 @@ const api = axios.create({
 // Services API
 export const servicesApi = {
   getAll: async (): Promise<Service[]> => {
-    const response = await api.get('/services/public');
+    const response = await api.get('/services/public?limit=200');
     return response.data.data?.services || response.data.data || response.data;
   },
 
