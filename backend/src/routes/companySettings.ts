@@ -32,4 +32,11 @@ router.post('/logo', authenticateToken, requireAdmin, upload.single('logo'), Com
  */
 router.delete('/logo', authenticateToken, requireAdmin, CompanySettingsController.deleteLogo);
 
+/**
+ * @route POST /api/v1/company-settings/init-business-hours
+ * @desc Inicializar horarios por defecto del local
+ * @access Private (Admin only)
+ */
+router.post('/init-business-hours', authenticateToken, requireAdmin, CompanySettingsController.initBusinessHours);
+
 export default router;

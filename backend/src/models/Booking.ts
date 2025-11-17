@@ -448,15 +448,22 @@ export class BookingModel {
     const dayName = dayNames[date.getDay()];
     const daySchedule = businessHours[dayName];
     
+    console.log('🕐 Generating slots for:', { date: date.toISOString(), dayName, daySchedule });
+    
     // Si el local está cerrado ese día, no hay slots
     if (!daySchedule || !daySchedule.isOpen) {
+      console.log('❌ Local cerrado este día');
       return slots;
     }
     
     const openTime = this.parseTimeString(date, daySchedule.openTime);
     const closeTime = this.parseTimeString(date, daySchedule.closeTime);
-    const lunchStart = daySchedule.lunchStart ? this.parseTimeString(date, daySchedule.lunchStart) : null;
-    const lunchEnd = daySchedule.lunchEnd ? this.parseTimeString(date, daySchedule.lunchEnd) : null;
+    const lunchStart = daySchedule.lunchStart && daySchedule.lunchStart.trim() !== '' 
+      ? this.parseTimeString(date, daySchedule.lunchStart) 
+      : null;
+    const lunchEnd = daySchedule.lunchEnd && daySchedule.lunchEnd.trim() !== '' 
+      ? this.parseTimeString(date, daySchedule.lunchEnd) 
+      : null;
     
     // Generar slots cada 30 minutos
     const slotInterval = 30; // minutos
@@ -485,6 +492,7 @@ export class BookingModel {
       currentTime.setMinutes(currentTime.getMinutes() + slotInterval);
     }
     
+    console.log(`✅ Generated ${slots.length} slots for ${dayName}`);
     return slots;
   }
 

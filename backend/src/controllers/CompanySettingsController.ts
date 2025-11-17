@@ -211,4 +211,90 @@ export class CompanySettingsController {
       });
     }
   }
+
+  /**
+   * Inicializar horarios por defecto del local
+   */
+  static async initBusinessHours(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      // Solo admin puede inicializar horarios
+      if (req.user?.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: 'No tienes permisos para inicializar horarios'
+        });
+        return;
+      }
+
+      const defaultBusinessHours = {
+        monday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '20:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00'
+        },
+        tuesday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '20:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00'
+        },
+        wednesday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '20:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00'
+        },
+        thursday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '20:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00'
+        },
+        friday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '20:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00'
+        },
+        saturday: {
+          isOpen: true,
+          openTime: '09:00',
+          closeTime: '14:00',
+          lunchStart: '',
+          lunchEnd: ''
+        },
+        sunday: {
+          isOpen: false,
+          openTime: '',
+          closeTime: '',
+          lunchStart: '',
+          lunchEnd: ''
+        }
+      };
+
+      const updatedSettings = await CompanySettingsModel.updateSettings({ 
+        businessHours: defaultBusinessHours 
+      });
+
+      logger.info('Business hours initialized successfully');
+
+      res.json({
+        success: true,
+        message: 'Horarios del local inicializados exitosamente',
+        data: updatedSettings
+      });
+    } catch (error: any) {
+      logger.error('Init business hours error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al inicializar horarios'
+      });
+    }
+  }
 }
