@@ -211,7 +211,12 @@ const ServicesContent = () => {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredServices.map((service) => (
+                  {filteredServices.map((service) => {
+                    // Debug: log service sessions
+                    if (service.name.includes('Criolipólisis')) {
+                      console.log('Service:', service.name, 'Sessions:', service.sessions, 'Type:', typeof service.sessions);
+                    }
+                    return (
                     <Card key={service.id} hover className="overflow-hidden flex flex-col" padding="none">
                       <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
                         <ServiceImage
@@ -299,7 +304,7 @@ const ServicesContent = () => {
                         </div>
                       </div>
                     </Card>
-                  ))}
+                  )}))}
                 </div>
               )}
             </div>
