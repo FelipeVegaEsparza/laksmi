@@ -161,6 +161,18 @@ const ServiceDetailPage = () => {
                 className="w-full h-full object-cover"
                 fallbackClassName="w-full h-full"
               />
+              {/* Sessions Badge */}
+              {service.sessions && service.sessions > 1 && (
+                <div className="absolute top-4 left-4">
+                  <div 
+                    className="text-white px-4 py-2 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-sm flex items-center gap-2"
+                    style={{ background: themeColors.gradientPrimary }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {service.sessions} Sesiones
+                  </div>
+                </div>
+              )}
               {/* Service Tag Badge */}
               {service.tag && (
                 <div className="absolute top-4 right-4">
