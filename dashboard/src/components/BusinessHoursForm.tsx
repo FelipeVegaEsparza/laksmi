@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar } from 'lucide-react';
+import { Schedule as ClockIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
 
 interface DaySchedule {
   isOpen: boolean;
@@ -88,7 +88,7 @@ const BusinessHoursForm: React.FC<BusinessHoursFormProps> = ({ businessHours, on
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 mb-4">
-        <Calendar className="h-5 w-5 text-blue-600" />
+        <CalendarIcon className="h-5 w-5 text-blue-600" />
         <h3 className="text-lg font-semibold text-gray-900">Horarios del Local</h3>
       </div>
 
@@ -128,7 +128,7 @@ const BusinessHoursForm: React.FC<BusinessHoursFormProps> = ({ businessHours, on
                   {/* Horario de apertura y cierre */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      <Clock className="inline h-4 w-4 mr-1" />
+                      <ClockIcon className="inline h-4 w-4 mr-1" />
                       Horario de Atención
                     </label>
                     <div className="flex items-center gap-2">
