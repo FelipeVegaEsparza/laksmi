@@ -39,6 +39,23 @@ class ApiService {
       (config) => {
         const token = localStorage.getItem('token')
         if (token) {
+          // Check if token is expired (JWT tokens have exp claim)
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            const isExpired = payload.exp && payload.exp * 1000 < Date.now()
+            
+            if (isExpired) {
+              console.warn('🔒 Token expirado detectado, redirigiendo al login...')
+              localStorage.removeItem('token')
+              localStorage.removeItem('user')
+              window.location.href = '/login'
+              return Promise.reject(new Error('Token expirado'))
+            }
+          } catch (e) {
+            // Si no se puede parsear el token, continuar de todos modos
+            console.warn('⚠️ No se pudo verificar la expiración del token')
+          }
+          
           config.headers.Authorization = `Bearer ${token}`
         }
         return config
@@ -52,8 +69,12 @@ class ApiService {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
+        // Handle authentication errors (401 Unauthorized or 403 Forbidden with token issues)
+        if (error.response?.status === 401 || 
+            (error.response?.status === 403 && error.response?.data?.error?.includes('Token'))) {
+          console.warn('🔒 Token inválido o expirado, redirigiendo al login...')
           localStorage.removeItem('token')
+          localStorage.removeItem('user')
           window.location.href = '/login'
           return Promise.reject(error)
         }
