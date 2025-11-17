@@ -39,6 +39,7 @@ ADD COLUMN business_hours JSON DEFAULT NULL COMMENT 'Horarios de apertura, cierr
 -- DATOS INICIALES
 -- ============================================
 
+-- Actualizar solo si business_hours es NULL (no sobrescribir configuración existente)
 UPDATE company_settings 
 SET business_hours = JSON_OBJECT(
   'monday', JSON_OBJECT(
@@ -91,7 +92,7 @@ SET business_hours = JSON_OBJECT(
     'lunchEnd', NULL
   )
 )
-WHERE id = 1;
+WHERE business_hours IS NULL;
 
 -- ============================================
 -- NOTAS
