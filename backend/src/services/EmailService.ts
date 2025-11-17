@@ -54,15 +54,19 @@ export class EmailService {
     console.log('📧 sendEmail called');
     try {
       console.log('📧 Checking SMTP credentials...');
-      console.log('📧 SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'NOT SET');
-      console.log('📧 SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'NOT SET');
+      const smtpUser = process.env.SMTP_USER;
+      const smtpPass = process.env.SMTP_PASS;
+      console.log('📧 SMTP_USER:', smtpUser ? 'SET' : 'NOT SET');
+      console.log('📧 SMTP_PASS:', smtpPass ? 'SET' : 'NOT SET');
       
-      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      if (!smtpUser || !smtpPass) {
         console.warn('⚠️ SMTP credentials not configured, email not sent');
         console.log('📧 Email would be sent to:', options.to);
         console.log('📧 Subject:', options.subject);
         return false;
       }
+      
+      console.log('✅ SMTP credentials are configured');
 
       console.log('📧 Getting transporter...');
       const transporter = this.getTransporter();
