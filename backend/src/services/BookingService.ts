@@ -44,7 +44,9 @@ export class BookingService {
       throw new Error('Las citas deben reservarse con al menos 1 hora de anticipación');
     }
 
+    logger.info(`🔄 Calling BookingModel.create()...`);
     const booking = await BookingModel.create(bookingData);
+    logger.info(`✅ BookingModel.create() returned successfully`);
     logger.info(`New booking created: ${booking.id} for client ${booking.clientId}`);
     
     // Programar notificaciones automáticamente
