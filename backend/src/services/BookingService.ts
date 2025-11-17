@@ -62,8 +62,11 @@ export class BookingService {
     }
 
     // Enviar email de confirmación
+    logger.info(`📧 Starting email confirmation process for booking ${booking.id}`);
     try {
+      logger.info(`📧 Importing EmailService...`);
       const { EmailService } = await import('./EmailService');
+      logger.info(`📧 EmailService imported successfully`);
       const { ProfessionalModel } = await import('../models/Professional');
       
       let professionalName: string | undefined;
@@ -101,6 +104,7 @@ export class BookingService {
       // No fallar la creación por error de email
     }
     
+    logger.info(`✅ Booking created successfully: ${booking.id}, returning to controller`);
     return booking;
   }
 
