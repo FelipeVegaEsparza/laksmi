@@ -205,10 +205,10 @@ const ServiceDetailPage = () => {
               className="hidden lg:block"
               style={{ backgroundColor: themeColors.primaryLight }}
             >
-              <h3 className="font-semibold text-gray-900 mb-2">
+              <h3 className="font-semibold text-white mb-2">
                 ¿Tienes dudas sobre este tratamiento?
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-white mb-4">
                 Nuestro equipo de profesionales está disponible para resolver 
                 todas tus consultas y ayudarte a elegir el mejor tratamiento.
               </p>
@@ -329,10 +329,10 @@ const ServiceDetailPage = () => {
               className="lg:hidden"
               style={{ backgroundColor: themeColors.primaryLight }}
             >
-              <h3 className="font-semibold text-gray-900 mb-2">
+              <h3 className="font-semibold text-white mb-2">
                 ¿Tienes dudas sobre este tratamiento?
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-white mb-4">
                 Nuestro equipo de profesionales está disponible para resolver 
                 todas tus consultas y ayudarte a elegir el mejor tratamiento.
               </p>
