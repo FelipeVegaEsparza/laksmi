@@ -25,8 +25,8 @@ const contactSchema = Joi.object({
   subject: Joi.string().max(200).optional().allow('').messages({
     'string.max': 'El asunto no puede tener más de 200 caracteres'
   }),
-  message: Joi.string().min(10).max(1000).required().messages({
-    'string.min': 'El mensaje debe tener al menos 10 caracteres',
+  message: Joi.string().min(5).max(1000).required().messages({
+    'string.min': 'El mensaje debe tener al menos 5 caracteres',
     'string.max': 'El mensaje no puede tener más de 1000 caracteres',
     'any.required': 'El mensaje es requerido'
   }),
