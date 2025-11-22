@@ -42,9 +42,12 @@ const contactSchema = Joi.object({
  * @access Public
  */
 router.post('/', async (req: Request, res: Response): Promise<void> => {
+  console.log('📧 Contact form endpoint called');
+  console.log('📧 Request body:', req.body);
   try {
     // Validar datos
     const { error, value } = contactSchema.validate(req.body);
+    console.log('📧 Validation result:', { error: error?.message, value });
     
     if (error) {
       const errorMessage = error.details.map(detail => detail.message).join(', ');
@@ -70,6 +73,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Enviar email a la empresa
+    console.log('📧 Sending contact email to:', companySettings.contactEmail);
     const emailSent = await EmailService.sendContactEmail(companySettings.contactEmail, {
       name,
       phone,
@@ -77,6 +81,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       subject: subject || 'Sin asunto',
       message
     });
+    console.log('📧 Email sent result:', emailSent);
 
     if (emailSent) {
       logger.info(`Contact form submitted by ${email}`);
