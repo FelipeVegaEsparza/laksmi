@@ -22,6 +22,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: `
           #initial-loader {
             position: fixed;
@@ -31,7 +34,7 @@ export default function RootLayout({
             align-items: center;
             justify-content: center;
             background-color: white;
-            transition: opacity 0.5s ease-out;
+            transition: opacity 0.6s ease-out;
           }
           #initial-loader.hidden {
             opacity: 0;
@@ -41,13 +44,15 @@ export default function RootLayout({
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5rem;
+            gap: 2rem;
           }
           .loader-title {
-            font-size: 2.25rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
             font-weight: 700;
             color: #1e40af;
-            animation: pulse 2s infinite;
+            letter-spacing: 0.05em;
+            animation: fadeInOut 2.5s ease-in-out infinite;
           }
           .loader-spinner {
             position: relative;
@@ -109,6 +114,10 @@ export default function RootLayout({
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
           }
+          @keyframes fadeInOut {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.02); }
+          }
           @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-0.5rem); }
@@ -159,14 +168,26 @@ export default function RootLayout({
             }
 
             // Esperar a que los estilos del tema se carguen
+            let checksCount = 0;
+            const minDisplayTime = 1500; // Mínimo 1.5 segundos visible
+            const startTime = Date.now();
+            
             function checkThemeLoaded() {
+              checksCount++;
               const primaryColor = getComputedStyle(document.documentElement)
                 .getPropertyValue('--color-primary')
                 .trim();
               
-              if (primaryColor && primaryColor !== '') {
-                setTimeout(hideLoader, 200);
+              const elapsedTime = Date.now() - startTime;
+              
+              // Si los estilos están listos Y ha pasado el tiempo mínimo
+              if (primaryColor && primaryColor !== '' && elapsedTime >= minDisplayTime) {
+                setTimeout(hideLoader, 300);
+              } else if (checksCount > 100) {
+                // Después de 100 intentos (5 segundos), ocultar de todos modos
+                setTimeout(hideLoader, 300);
               } else {
+                // Reintentar
                 setTimeout(checkThemeLoaded, 50);
               }
             }
@@ -178,8 +199,8 @@ export default function RootLayout({
               checkThemeLoaded();
             }
 
-            // Timeout de seguridad
-            setTimeout(hideLoader, 3000);
+            // Timeout de seguridad aumentado
+            setTimeout(hideLoader, 5000);
           })();
         `}} />
       </body>
