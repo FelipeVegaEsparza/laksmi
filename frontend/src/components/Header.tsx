@@ -172,7 +172,7 @@ const Header = () => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-5">
           {/* Logo - Elegante */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center transition-all duration-300 hover:scale-105 hover:opacity-90">
               {logoUrl ? (
                 <img 
@@ -191,6 +191,17 @@ const Header = () => {
                 </span>
               )}
             </Link>
+            {/* Imagen de resolución */}
+            <img 
+              src="/resolucion.png" 
+              alt="Resolución"
+              className="hidden sm:block"
+              style={{
+                height: '60px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+            />
           </div>
 
           {/* Desktop navigation - Minimalista y elegante */}
