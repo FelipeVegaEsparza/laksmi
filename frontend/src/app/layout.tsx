@@ -33,11 +33,8 @@ export default function RootLayout({
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
             transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
           }
           
           #initial-loader.hidden {
@@ -45,240 +42,140 @@ export default function RootLayout({
             pointer-events: none;
           }
           
-          /* Partículas flotantes de fondo */
-          .loader-particles {
-            position: absolute;
-            inset: 0;
-            overflow: hidden;
-          }
-          
-          .particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 50%;
-            animation: float 20s infinite;
-          }
-          
-          .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 15s; }
-          .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 18s; }
-          .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 20s; }
-          .particle:nth-child(4) { left: 40%; animation-delay: 1s; animation-duration: 16s; }
-          .particle:nth-child(5) { left: 50%; animation-delay: 3s; animation-duration: 19s; }
-          .particle:nth-child(6) { left: 60%; animation-delay: 5s; animation-duration: 17s; }
-          .particle:nth-child(7) { left: 70%; animation-delay: 2.5s; animation-duration: 21s; }
-          .particle:nth-child(8) { left: 80%; animation-delay: 4.5s; animation-duration: 15s; }
-          .particle:nth-child(9) { left: 90%; animation-delay: 1.5s; animation-duration: 18s; }
-          
-          /* Contenedor principal con glassmorphism */
+          /* Contenedor principal - Minimalista */
           .loader-content {
-            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3rem;
-            padding: 4rem 3rem;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(20px);
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-            animation: floatIn 1s ease-out;
+            gap: 2rem;
+            animation: fadeIn 0.6s ease-out;
           }
           
-          /* Logo/Icono animado */
+          /* Logo simple y elegante */
           .loader-logo-container {
             position: relative;
-            width: 200px;
-            height: 200px;
+            width: 120px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
           }
           
           .loader-logo-image {
-            width: 160px;
-            height: 160px;
-            position: relative;
-            z-index: 2;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(224, 231, 255, 0.9) 100%);
+            width: 100px;
+            height: 100px;
+            background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 0 0 80px rgba(255, 255, 255, 0.3);
-            animation: logoFloat 3s ease-in-out infinite;
-            border: 3px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 20px rgba(13, 110, 253, 0.15);
+            animation: gentlePulse 2s ease-in-out infinite;
           }
           
           .logo-letter {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 90px;
+            font-size: 56px;
             font-weight: 700;
-            color: #667eea;
-            text-shadow: 0 4px 15px rgba(102, 126, 234, 0.5), 0 2px 5px rgba(118, 75, 162, 0.3);
+            color: #0D6EFD;
           }
           
+          /* Anillo giratorio simple */
           .logo-ring {
             position: absolute;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid transparent;
+            border-top-color: #0D6EFD;
+            border-right-color: #0D6EFD;
+            animation: smoothSpin 2s linear infinite;
           }
           
-          .logo-ring-1 {
-            width: 200px;
-            height: 200px;
-            border-top-color: rgba(255, 255, 255, 0.6);
-            border-right-color: rgba(255, 255, 255, 0.6);
-            animation: spin 4s linear infinite;
-          }
-          
-          .logo-ring-2 {
-            width: 160px;
-            height: 160px;
-            border-bottom-color: rgba(255, 255, 255, 0.4);
-            border-left-color: rgba(255, 255, 255, 0.4);
-            animation: spin-reverse 3s linear infinite;
-          }
-          
-
-          
-          /* Barra de progreso */
+          /* Barra de progreso elegante */
           .loader-progress {
-            width: 280px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 200px;
+            height: 3px;
+            background: rgba(13, 110, 253, 0.1);
             border-radius: 10px;
             overflow: hidden;
-            position: relative;
           }
           
           .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), #fff, rgba(255, 255, 255, 0.8));
-            background-size: 200% 100%;
+            background: #0D6EFD;
             border-radius: 10px;
-            animation: progressFlow 2s ease-in-out infinite;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+            animation: progressSlide 1.5s ease-in-out infinite;
           }
           
-          /* Texto de carga */
+          /* Texto simple */
           .loader-text {
             font-family: 'Montserrat', sans-serif;
             font-size: 0.875rem;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
+            font-weight: 500;
+            color: #6c757d;
+            letter-spacing: 0.02em;
           }
           
-          .loader-dot {
-            animation: dotBounce 1.4s infinite;
-          }
-          .loader-dot:nth-child(2) { animation-delay: 0.2s; }
-          .loader-dot:nth-child(3) { animation-delay: 0.4s; }
-          
-          /* Animaciones */
-          @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-          
-          @keyframes float {
-            0%, 100% {
-              transform: translateY(100vh) translateX(0);
-              opacity: 0;
-            }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% {
-              transform: translateY(-100px) translateX(100px);
-              opacity: 0;
-            }
-          }
-          
-          @keyframes floatIn {
+          /* Animaciones suaves */
+          @keyframes fadeIn {
             from {
               opacity: 0;
-              transform: translateY(30px) scale(0.9);
+              transform: translateY(10px);
             }
             to {
               opacity: 1;
-              transform: translateY(0) scale(1);
+              transform: translateY(0);
             }
           }
           
-          @keyframes spin {
+          @keyframes gentlePulse {
+            0%, 100% {
+              transform: scale(1);
+              box-shadow: 0 4px 20px rgba(13, 110, 253, 0.15);
+            }
+            50% {
+              transform: scale(1.05);
+              box-shadow: 0 6px 25px rgba(13, 110, 253, 0.25);
+            }
+          }
+          
+          @keyframes smoothSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
           
-          @keyframes spin-reverse {
-            from { transform: rotate(360deg); }
-            to { transform: rotate(0deg); }
-          }
-          
-          @keyframes pulse {
-            0%, 100% {
-              transform: scale(1);
-              opacity: 1;
+          @keyframes progressSlide {
+            0% {
+              transform: translateX(-100%);
             }
             50% {
-              transform: scale(1.1);
-              opacity: 0.8;
+              transform: translateX(0%);
             }
-          }
-          
-          @keyframes logoFloat {
-            0%, 100% {
-              transform: translateY(0) scale(1);
-            }
-            50% {
-              transform: translateY(-10px) scale(1.05);
-            }
-          }
-          
-          @keyframes progressFlow {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 200% 0%; }
-          }
-          
-          @keyframes dotBounce {
-            0%, 80%, 100% {
-              transform: translateY(0);
-              opacity: 1;
-            }
-            40% {
-              transform: translateY(-8px);
-              opacity: 0.7;
+            100% {
+              transform: translateX(100%);
             }
           }
           
           /* Responsive */
           @media (max-width: 768px) {
-            .loader-content {
-              padding: 3rem 2rem;
-              gap: 2rem;
-            }
             .loader-logo-container {
-              width: 150px;
-              height: 150px;
+              width: 100px;
+              height: 100px;
             }
             .loader-logo-image {
-              width: 130px;
-              height: 130px;
+              width: 80px;
+              height: 80px;
             }
             .logo-letter {
-              font-size: 70px;
+              font-size: 44px;
             }
-            .logo-ring-1 { width: 150px; height: 150px; }
-            .logo-ring-2 { width: 120px; height: 120px; }
+            .logo-ring {
+              width: 100px;
+              height: 100px;
+            }
             .loader-progress {
-              width: 220px;
+              width: 160px;
             }
           }
         `}} />
@@ -289,25 +186,10 @@ export default function RootLayout({
       >
         {/* Loader inline que se muestra INMEDIATAMENTE */}
         <div id="initial-loader">
-          {/* Partículas flotantes */}
-          <div className="loader-particles">
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-            <div className="particle"></div>
-          </div>
-          
-          {/* Contenido principal */}
           <div className="loader-content">
             {/* Logo animado */}
             <div className="loader-logo-container">
-              <div className="logo-ring logo-ring-1"></div>
-              <div className="logo-ring logo-ring-2"></div>
+              <div className="logo-ring"></div>
               <div className="loader-logo-image">
                 <div className="logo-letter">L</div>
               </div>
@@ -320,10 +202,7 @@ export default function RootLayout({
             
             {/* Texto de carga */}
             <div className="loader-text">
-              <span>Preparando tu experiencia</span>
-              <span className="loader-dot">.</span>
-              <span className="loader-dot">.</span>
-              <span className="loader-dot">.</span>
+              Cargando...
             </div>
           </div>
         </div>
