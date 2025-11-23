@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import InitialLoader from './InitialLoader';
 
 interface ClientProviderProps {
   children: React.ReactNode;
@@ -25,7 +24,6 @@ const ClientProvider = ({ children }: ClientProviderProps) => {
   return (
     <ThemeProvider>
       <ChatProvider>
-        <InitialLoader />
         {children}
       </ChatProvider>
     </ThemeProvider>
