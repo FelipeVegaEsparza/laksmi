@@ -193,16 +193,11 @@ const Header = () => {
               )}
             </Link>
             {/* Imagen de resolución */}
-            <div className="relative h-10 sm:h-14 md:h-16 w-auto">
-              <Image 
-                src="/resolucion.png" 
-                alt="Resolución"
-                width={120}
-                height={64}
-                className="h-full w-auto object-contain"
-                priority
-              />
-            </div>
+            <img 
+              src="/resolucion.png" 
+              alt="Resolución Ministerio de Salud"
+              className="h-10 sm:h-12 md:h-14 w-auto object-contain"
+            />
           </div>
 
           {/* Desktop navigation - Minimalista y elegante */}
