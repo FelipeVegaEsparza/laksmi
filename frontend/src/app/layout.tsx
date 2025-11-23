@@ -107,11 +107,7 @@ export default function RootLayout({
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 
-              0 15px 50px rgba(0, 0, 0, 0.4),
-              0 0 80px rgba(255, 255, 255, 0.3),
-              inset 0 -5px 20px rgba(102, 126, 234, 0.2),
-              inset 0 5px 20px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 0 0 80px rgba(255, 255, 255, 0.3);
             animation: logoFloat 3s ease-in-out infinite;
             border: 3px solid rgba(255, 255, 255, 0.5);
           }
@@ -120,24 +116,8 @@ export default function RootLayout({
             font-family: 'Cormorant Garamond', serif;
             font-size: 90px;
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 4px 15px rgba(102, 126, 234, 0.5));
-            position: relative;
-          }
-          
-          .logo-letter::before {
-            content: 'L';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            z-index: -1;
+            color: #667eea;
+            text-shadow: 0 4px 15px rgba(102, 126, 234, 0.5), 0 2px 5px rgba(118, 75, 162, 0.3);
           }
           
           .logo-ring {
