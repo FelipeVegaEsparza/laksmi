@@ -86,18 +86,13 @@ export default function BannerCarousel() {
   return (
     <div className="w-full pt-4 md:pt-6 pb-2 md:pb-3">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[450px] overflow-hidden rounded-lg shadow-lg group">
+        <div className="relative w-full h-48 sm:h-64 md:h-80 lg:h-96 xl:h-[450px] overflow-hidden rounded-lg shadow-lg group">
           {/* Banner Image */}
           <img
             src={imageUrl}
             alt={currentBanner.title}
+            className="absolute top-0 left-0 w-full h-full object-contain md:object-cover"
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
               zIndex: 1,
               display: 'block',
             }}
