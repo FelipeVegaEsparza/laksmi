@@ -24,8 +24,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: `
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          
           #initial-loader {
             position: fixed;
             inset: 0;
@@ -33,94 +35,263 @@ export default function RootLayout({
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: white;
-            transition: opacity 0.6s ease-out;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
           }
+          
           #initial-loader.hidden {
             opacity: 0;
             pointer-events: none;
           }
+          
+          /* Partículas flotantes de fondo */
+          .loader-particles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+          }
+          
+          .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float 20s infinite;
+          }
+          
+          .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 15s; }
+          .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 18s; }
+          .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 20s; }
+          .particle:nth-child(4) { left: 40%; animation-delay: 1s; animation-duration: 16s; }
+          .particle:nth-child(5) { left: 50%; animation-delay: 3s; animation-duration: 19s; }
+          .particle:nth-child(6) { left: 60%; animation-delay: 5s; animation-duration: 17s; }
+          .particle:nth-child(7) { left: 70%; animation-delay: 2.5s; animation-duration: 21s; }
+          .particle:nth-child(8) { left: 80%; animation-delay: 4.5s; animation-duration: 15s; }
+          .particle:nth-child(9) { left: 90%; animation-delay: 1.5s; animation-duration: 18s; }
+          
+          /* Contenedor principal con glassmorphism */
           .loader-content {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2rem;
+            gap: 3rem;
+            padding: 4rem 3rem;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            animation: floatIn 1s ease-out;
           }
-          .loader-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 3rem;
-            font-weight: 700;
-            color: #1e40af;
-            letter-spacing: 0.05em;
-            animation: fadeInOut 2.5s ease-in-out infinite;
-          }
-          .loader-spinner {
+          
+          /* Logo/Icono animado */
+          .loader-logo {
             position: relative;
-            width: 5rem;
-            height: 5rem;
-          }
-          .spinner-circle {
-            position: absolute;
-            inset: 0;
-            border: 4px solid #dbeafe;
-            border-radius: 50%;
-          }
-          .spinner-circle-1 {
-            border-top-color: #3b82f6;
-            border-right-color: #3b82f6;
-            animation: spin 1s linear infinite;
-          }
-          .spinner-circle-2 {
-            inset: 0.5rem;
-            border-bottom-color: #1e40af;
-            border-left-color: #1e40af;
-            animation: spin-reverse 1.5s linear infinite;
-          }
-          .spinner-dot {
-            position: absolute;
-            inset: 0;
+            width: 120px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
           }
-          .spinner-dot-inner {
-            width: 0.75rem;
-            height: 0.75rem;
-            background-color: #3b82f6;
+          
+          .logo-ring {
+            position: absolute;
             border-radius: 50%;
-            animation: pulse 2s infinite;
+            border: 3px solid rgba(255, 255, 255, 0.3);
           }
-          .loader-text {
+          
+          .logo-ring-1 {
+            width: 120px;
+            height: 120px;
+            border-top-color: #fff;
+            border-right-color: #fff;
+            animation: spin 3s linear infinite;
+          }
+          
+          .logo-ring-2 {
+            width: 90px;
+            height: 90px;
+            border-bottom-color: rgba(255, 255, 255, 0.8);
+            border-left-color: rgba(255, 255, 255, 0.8);
+            animation: spin-reverse 2s linear infinite;
+          }
+          
+          .logo-ring-3 {
+            width: 60px;
+            height: 60px;
+            border-top-color: rgba(255, 255, 255, 0.6);
+            animation: spin 4s linear infinite;
+          }
+          
+          .logo-center {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+          }
+          
+          /* Título elegante */
+          .loader-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 0.1em;
+            text-align: center;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: titleGlow 3s ease-in-out infinite;
+          }
+          
+          .loader-subtitle {
+            font-family: 'Montserrat', sans-serif;
             font-size: 0.875rem;
-            color: #6b7280;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-top: -1.5rem;
+          }
+          
+          /* Barra de progreso */
+          .loader-progress {
+            width: 280px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+          }
+          
+          .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), #fff, rgba(255, 255, 255, 0.8));
+            background-size: 200% 100%;
+            border-radius: 10px;
+            animation: progressFlow 2s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+          }
+          
+          /* Texto de carga */
+          .loader-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.05em;
             display: flex;
             align-items: center;
             gap: 0.25rem;
           }
+          
           .loader-dot {
-            animation: bounce 1s infinite;
+            animation: dotBounce 1.4s infinite;
           }
           .loader-dot:nth-child(2) { animation-delay: 0.2s; }
           .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+          
+          /* Animaciones */
+          @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(100vh) translateX(0);
+              opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% {
+              transform: translateY(-100px) translateX(100px);
+              opacity: 0;
+            }
+          }
+          
+          @keyframes floatIn {
+            from {
+              opacity: 0;
+              transform: translateY(30px) scale(0.9);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+          
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
+          
           @keyframes spin-reverse {
             from { transform: rotate(360deg); }
             to { transform: rotate(0deg); }
           }
+          
           @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: scale(1.1);
+              opacity: 0.8;
+            }
           }
-          @keyframes fadeInOut {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.02); }
+          
+          @keyframes titleGlow {
+            0%, 100% {
+              text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            }
+            50% {
+              text-shadow: 0 4px 30px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3);
+            }
           }
-          @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-0.5rem); }
+          
+          @keyframes progressFlow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+          }
+          
+          @keyframes dotBounce {
+            0%, 80%, 100% {
+              transform: translateY(0);
+              opacity: 1;
+            }
+            40% {
+              transform: translateY(-8px);
+              opacity: 0.7;
+            }
+          }
+          
+          /* Responsive */
+          @media (max-width: 768px) {
+            .loader-content {
+              padding: 3rem 2rem;
+              gap: 2rem;
+            }
+            .loader-title {
+              font-size: 2.5rem;
+            }
+            .loader-logo {
+              width: 100px;
+              height: 100px;
+            }
+            .logo-ring-1 { width: 100px; height: 100px; }
+            .logo-ring-2 { width: 75px; height: 75px; }
+            .logo-ring-3 { width: 50px; height: 50px; }
+            .loader-progress {
+              width: 220px;
+            }
           }
         `}} />
       </head>
@@ -130,18 +301,43 @@ export default function RootLayout({
       >
         {/* Loader inline que se muestra INMEDIATAMENTE */}
         <div id="initial-loader">
+          {/* Partículas flotantes */}
+          <div className="loader-particles">
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+            <div className="particle"></div>
+          </div>
+          
+          {/* Contenido principal */}
           <div className="loader-content">
-            <div className="loader-title">Estética Laksmi</div>
-            <div className="loader-spinner">
-              <div className="spinner-circle"></div>
-              <div className="spinner-circle spinner-circle-1"></div>
-              <div className="spinner-circle spinner-circle-2"></div>
-              <div className="spinner-dot">
-                <div className="spinner-dot-inner"></div>
-              </div>
+            {/* Logo animado */}
+            <div className="loader-logo">
+              <div className="logo-ring logo-ring-1"></div>
+              <div className="logo-ring logo-ring-2"></div>
+              <div className="logo-ring logo-ring-3"></div>
+              <div className="logo-center"></div>
             </div>
+            
+            {/* Título */}
+            <div>
+              <div className="loader-title">Estética Laksmi</div>
+              <div className="loader-subtitle">Beauty & Wellness</div>
+            </div>
+            
+            {/* Barra de progreso */}
+            <div className="loader-progress">
+              <div className="progress-bar"></div>
+            </div>
+            
+            {/* Texto de carga */}
             <div className="loader-text">
-              <span>Cargando</span>
+              <span>Preparando tu experiencia</span>
               <span className="loader-dot">.</span>
               <span className="loader-dot">.</span>
               <span className="loader-dot">.</span>
