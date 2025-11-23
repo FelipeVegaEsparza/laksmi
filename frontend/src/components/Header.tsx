@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
   Menu, 
@@ -192,15 +193,16 @@ const Header = () => {
               )}
             </Link>
             {/* Imagen de resolución */}
-            <img 
-              src="/resolucion.png" 
-              alt="Resolución"
-              className="h-10 sm:h-14 md:h-16 w-auto object-contain"
-              onError={(e) => {
-                console.error('Error loading resolucion.png');
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            <div className="relative h-10 sm:h-14 md:h-16 w-auto">
+              <Image 
+                src="/resolucion.png" 
+                alt="Resolución"
+                width={120}
+                height={64}
+                className="h-full w-auto object-contain"
+                priority
+              />
+            </div>
           </div>
 
           {/* Desktop navigation - Minimalista y elegante */}
