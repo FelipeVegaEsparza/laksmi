@@ -307,10 +307,26 @@ export default function RootLayout({
             <div className="loader-logo-container">
               <div className="logo-ring logo-ring-1"></div>
               <div className="logo-ring logo-ring-2"></div>
-              <div className="loader-logo-image">
-                <div className="logo-letter">L</div>
+              <div className="loader-logo-wrapper">
+                <div className="loader-logo-image">
+                  <div className="logo-letter">L</div>
+                </div>
               </div>
             </div>
+            
+            <script dangerouslySetInnerHTML={{ __html: `
+              (function() {
+                // Intentar cargar el logo real
+                var img = new Image();
+                img.onload = function() {
+                  var wrapper = document.querySelector('.loader-logo-wrapper');
+                  if (wrapper) {
+                    wrapper.innerHTML = '<img src="/logo.png" alt="Logo" style="width: 140px; height: auto; filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.3)); animation: logoFloat 3s ease-in-out infinite;" />';
+                  }
+                };
+                img.src = '/logo.png';
+              })();
+            `}} />
             
             {/* Barra de progreso */}
             <div className="loader-progress">
