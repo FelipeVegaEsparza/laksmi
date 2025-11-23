@@ -195,11 +195,10 @@ const Header = () => {
             <img 
               src="/resolucion.png" 
               alt="Resolución"
-              className="hidden sm:block"
-              style={{
-                height: '60px',
-                width: 'auto',
-                objectFit: 'contain',
+              className="h-10 sm:h-14 md:h-16 w-auto object-contain"
+              onError={(e) => {
+                console.error('Error loading resolucion.png');
+                e.currentTarget.style.display = 'none';
               }}
             />
           </div>
