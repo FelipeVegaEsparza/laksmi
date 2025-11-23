@@ -12,6 +12,7 @@ interface ThemeColors {
 interface ThemeContextType {
   colors: ThemeColors
   refreshTheme: () => Promise<void>
+  isLoaded: boolean
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -37,6 +38,7 @@ const defaultColors: ThemeColors = {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [colors, setColors] = useState<ThemeColors>(defaultColors)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     loadTheme()
@@ -94,9 +96,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         }
         console.log('🎨 Frontend - Applying colors:', newColors)
         setColors(newColors)
+        setIsLoaded(true)
       }
     } catch (error) {
       console.error('❌ Frontend - Error loading theme:', error)
+      setIsLoaded(true) // Marcar como cargado incluso si falla
     }
   }
 
@@ -105,7 +109,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }
 
   return (
-    <ThemeContext.Provider value={{ colors, refreshTheme }}>
+    <ThemeContext.Provider value={{ colors, refreshTheme, isLoaded }}>
       {children}
     </ThemeContext.Provider>
   )

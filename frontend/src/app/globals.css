@@ -55,6 +55,11 @@ body {
   50% { opacity: 0.5; }
 }
 
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }
@@ -65,6 +70,10 @@ body {
 
 .animate-pulse-slow {
   animation: pulse 2s infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 1s linear infinite;
 }
 
 /* Dynamic color utilities */

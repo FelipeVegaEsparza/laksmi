@@ -17,21 +17,38 @@ export class EmailService {
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
       const port = parseInt(process.env.SMTP_PORT || '587');
+      const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+      
+      console.log('📧 Creating SMTP transporter with config:', {
+        host,
+        port,
+        secure: port === 465,
+        user: process.env.SMTP_USER ? 'SET' : 'NOT SET'
+      });
       
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: port,
+        host,
+        port,
         secure: port === 465, // true para puerto 465 (SSL), false para 587 (STARTTLS) y otros
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
         // Opciones adicionales para compatibilidad con diferentes servidores SMTP
+        connectionTimeout: 60000, // 60 segundos (aumentado desde default de 2 min)
+        greetingTimeout: 30000, // 30 segundos
+        socketTimeout: 60000, // 60 segundos
         tls: {
           // No fallar en certificados auto-firmados (útil para desarrollo)
-          rejectUnauthorized: process.env.NODE_ENV === 'production'
-        }
-      });
+          rejectUnauthorized: process.env.NODE_ENV === 'production',
+          // Permitir conexiones TLS menos seguras si es necesario
+          minVersion: 'TLSv1' as const
+        },
+        // Configuración adicional para Gmail y otros proveedores
+        pool: false, // No usar pool de conexiones
+        maxConnections: 1,
+        maxMessages: 1
+      } as any);
 
       // Verificar conexión al inicializar (opcional, útil para debugging)
       if (process.env.NODE_ENV === 'development') {
@@ -48,46 +65,92 @@ export class EmailService {
   }
 
   /**
-   * Enviar email genérico
+   * Enviar email genérico con reintentos
    */
-  private static async sendEmail(options: EmailOptions): Promise<boolean> {
+  private static async sendEmail(options: EmailOptions, retries = 3): Promise<boolean> {
     console.log('📧 sendEmail called');
-    try {
-      console.log('📧 Checking SMTP credentials...');
-      const smtpUser = process.env.SMTP_USER;
-      const smtpPass = process.env.SMTP_PASS;
-      console.log('📧 SMTP_USER:', smtpUser ? 'SET' : 'NOT SET');
-      console.log('📧 SMTP_PASS:', smtpPass ? 'SET' : 'NOT SET');
-      
-      if (!smtpUser || !smtpPass) {
-        console.warn('⚠️ SMTP credentials not configured, email not sent');
-        console.log('📧 Email would be sent to:', options.to);
-        console.log('📧 Subject:', options.subject);
-        return false;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`📧 Attempt ${attempt}/${retries}`);
+        console.log('📧 Checking SMTP credentials...');
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+        const smtpHost = process.env.SMTP_HOST;
+        const smtpPort = process.env.SMTP_PORT;
+        
+        console.log('📧 SMTP Configuration:', {
+          host: smtpHost || 'smtp.gmail.com',
+          port: smtpPort || '587',
+          user: smtpUser ? 'SET' : 'NOT SET',
+          pass: smtpPass ? 'SET' : 'NOT SET'
+        });
+        
+        if (!smtpUser || !smtpPass) {
+          console.warn('⚠️ SMTP credentials not configured, email not sent');
+          console.log('📧 Email would be sent to:', options.to);
+          console.log('📧 Subject:', options.subject);
+          return false;
+        }
+        
+        console.log('✅ SMTP credentials are configured');
+
+        console.log('📧 Getting transporter...');
+        const transporter = this.getTransporter();
+        console.log('📧 Transporter obtained');
+
+        const mailOptions = {
+          from: process.env.SMTP_FROM || `"Clínica de Belleza" <${process.env.SMTP_USER}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text || this.htmlToText(options.html),
+        };
+
+        console.log('📧 Sending email...');
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email sent successfully to ${options.to}: ${info.messageId}`);
+        return true;
+      } catch (error: any) {
+        console.error(`❌ Error sending email (attempt ${attempt}/${retries}):`, {
+          code: error.code,
+          command: error.command,
+          message: error.message,
+          response: error.response
+        });
+        
+        // Si es el último intento, fallar
+        if (attempt === retries) {
+          console.error('❌ All email sending attempts failed');
+          
+          // Log detallado del error para debugging
+          if (error.code === 'ETIMEDOUT') {
+            console.error('⚠️ SMTP Connection Timeout - Possible causes:');
+            console.error('  1. Firewall blocking outbound SMTP connections');
+            console.error('  2. SMTP server not reachable from container');
+            console.error('  3. Incorrect SMTP host or port');
+            console.error('  4. Network restrictions in hosting environment');
+            console.error('💡 Suggestion: Use a dedicated email service like Resend, SendGrid, or Mailgun');
+          } else if (error.code === 'EAUTH') {
+            console.error('⚠️ SMTP Authentication Failed - Check credentials');
+          } else if (error.code === 'ECONNECTION') {
+            console.error('⚠️ SMTP Connection Failed - Check host and port');
+          }
+          
+          return false;
+        }
+        
+        // Esperar antes de reintentar (backoff exponencial)
+        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        
+        // Resetear transporter para forzar nueva conexión
+        this.transporter = null;
       }
-      
-      console.log('✅ SMTP credentials are configured');
-
-      console.log('📧 Getting transporter...');
-      const transporter = this.getTransporter();
-      console.log('📧 Transporter obtained');
-
-      const mailOptions = {
-        from: process.env.SMTP_FROM || `"Clínica de Belleza" <${process.env.SMTP_USER}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text || this.htmlToText(options.html),
-      };
-
-      console.log('📧 Sending email...');
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to ${options.to}: ${info.messageId}`);
-      return true;
-    } catch (error) {
-      console.error('❌ Error sending email:', error);
-      return false;
     }
+    
+    return false;
   }
 
   /**
