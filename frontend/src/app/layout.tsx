@@ -214,50 +214,69 @@ export default function RootLayout({
         {/* Script para ocultar el loader cuando React esté listo */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
-            // Ocultar loader cuando el DOM esté completamente cargado
             function hideLoader() {
               const loader = document.getElementById('initial-loader');
               if (loader) {
                 loader.classList.add('hidden');
-                // NO remover del DOM, solo ocultar con CSS
-                loader.style.display = 'none';
+                setTimeout(() => {
+                  loader.style.display = 'none';
+                }, 800);
               }
             }
 
-            // Esperar a que los estilos del tema se carguen
             let checksCount = 0;
-            const minDisplayTime = 1500; // Mínimo 1.5 segundos visible
+            const minDisplayTime = 3000; // Mínimo 3 segundos visible
             const startTime = Date.now();
+            let dataLoaded = false;
             
-            function checkThemeLoaded() {
-              checksCount++;
+            // Verificar si los datos del backend están cargados
+            function checkDataLoaded() {
+              // Verificar si hay elementos del header/footer cargados
+              const header = document.querySelector('header');
+              const hasContent = header && header.textContent.trim().length > 0;
+              
+              // Verificar si las variables CSS están cargadas
               const primaryColor = getComputedStyle(document.documentElement)
                 .getPropertyValue('--color-primary')
                 .trim();
               
+              return hasContent && primaryColor && primaryColor !== '';
+            }
+            
+            function checkIfReady() {
+              checksCount++;
               const elapsedTime = Date.now() - startTime;
               
-              // Si los estilos están listos Y ha pasado el tiempo mínimo
-              if (primaryColor && primaryColor !== '' && elapsedTime >= minDisplayTime) {
-                setTimeout(hideLoader, 300);
-              } else if (checksCount > 100) {
-                // Después de 100 intentos (5 segundos), ocultar de todos modos
-                setTimeout(hideLoader, 300);
+              // Verificar si los datos están listos
+              if (!dataLoaded) {
+                dataLoaded = checkDataLoaded();
+              }
+              
+              // Ocultar solo si:
+              // 1. Ha pasado el tiempo mínimo
+              // 2. Los datos están cargados
+              if (elapsedTime >= minDisplayTime && dataLoaded) {
+                setTimeout(hideLoader, 500);
+              } else if (checksCount > 200) {
+                // Después de 200 intentos (10 segundos), ocultar de todos modos
+                setTimeout(hideLoader, 500);
               } else {
-                // Reintentar
-                setTimeout(checkThemeLoaded, 50);
+                // Reintentar cada 50ms
+                setTimeout(checkIfReady, 50);
               }
             }
 
             // Iniciar verificación cuando el DOM esté listo
             if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', checkThemeLoaded);
+              document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(checkIfReady, 100);
+              });
             } else {
-              checkThemeLoaded();
+              setTimeout(checkIfReady, 100);
             }
 
-            // Timeout de seguridad aumentado
-            setTimeout(hideLoader, 5000);
+            // Timeout de seguridad: 10 segundos máximo
+            setTimeout(hideLoader, 10000);
           })();
         `}} />
       </body>
