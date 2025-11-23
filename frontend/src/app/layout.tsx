@@ -88,74 +88,47 @@ export default function RootLayout({
           }
           
           /* Logo/Icono animado */
-          .loader-logo {
+          .loader-logo-container {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 200px;
+            height: 200px;
             display: flex;
             align-items: center;
             justify-content: center;
           }
           
+          .loader-logo-image {
+            width: 180px;
+            height: auto;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+            animation: logoFloat 3s ease-in-out infinite;
+          }
+          
           .logo-ring {
             position: absolute;
             border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.2);
           }
           
           .logo-ring-1 {
-            width: 120px;
-            height: 120px;
-            border-top-color: #fff;
-            border-right-color: #fff;
-            animation: spin 3s linear infinite;
-          }
-          
-          .logo-ring-2 {
-            width: 90px;
-            height: 90px;
-            border-bottom-color: rgba(255, 255, 255, 0.8);
-            border-left-color: rgba(255, 255, 255, 0.8);
-            animation: spin-reverse 2s linear infinite;
-          }
-          
-          .logo-ring-3 {
-            width: 60px;
-            height: 60px;
+            width: 200px;
+            height: 200px;
             border-top-color: rgba(255, 255, 255, 0.6);
+            border-right-color: rgba(255, 255, 255, 0.6);
             animation: spin 4s linear infinite;
           }
           
-          .logo-center {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-            animation: pulse 2s ease-in-out infinite;
+          .logo-ring-2 {
+            width: 160px;
+            height: 160px;
+            border-bottom-color: rgba(255, 255, 255, 0.4);
+            border-left-color: rgba(255, 255, 255, 0.4);
+            animation: spin-reverse 3s linear infinite;
           }
           
-          /* Título elegante */
-          .loader-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 3.5rem;
-            font-weight: 600;
-            color: #ffffff;
-            letter-spacing: 0.1em;
-            text-align: center;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            animation: titleGlow 3s ease-in-out infinite;
-          }
-          
-          .loader-subtitle {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.875rem;
-            font-weight: 300;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-            margin-top: -1.5rem;
-          }
+
           
           /* Barra de progreso */
           .loader-progress {
@@ -246,12 +219,12 @@ export default function RootLayout({
             }
           }
           
-          @keyframes titleGlow {
+          @keyframes logoFloat {
             0%, 100% {
-              text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+              transform: translateY(0) scale(1);
             }
             50% {
-              text-shadow: 0 4px 30px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3);
+              transform: translateY(-10px) scale(1.05);
             }
           }
           
@@ -277,16 +250,15 @@ export default function RootLayout({
               padding: 3rem 2rem;
               gap: 2rem;
             }
-            .loader-title {
-              font-size: 2.5rem;
+            .loader-logo-container {
+              width: 150px;
+              height: 150px;
             }
-            .loader-logo {
-              width: 100px;
-              height: 100px;
+            .loader-logo-image {
+              width: 130px;
             }
-            .logo-ring-1 { width: 100px; height: 100px; }
-            .logo-ring-2 { width: 75px; height: 75px; }
-            .logo-ring-3 { width: 50px; height: 50px; }
+            .logo-ring-1 { width: 150px; height: 150px; }
+            .logo-ring-2 { width: 120px; height: 120px; }
             .loader-progress {
               width: 220px;
             }
@@ -315,17 +287,10 @@ export default function RootLayout({
           {/* Contenido principal */}
           <div className="loader-content">
             {/* Logo animado */}
-            <div className="loader-logo">
+            <div className="loader-logo-container">
               <div className="logo-ring logo-ring-1"></div>
               <div className="logo-ring logo-ring-2"></div>
-              <div className="logo-ring logo-ring-3"></div>
-              <div className="logo-center"></div>
-            </div>
-            
-            {/* Título */}
-            <div>
-              <div className="loader-title">Estética Laksmi</div>
-              <div className="loader-subtitle">Beauty & Wellness</div>
+              <img src="/logo.png" alt="Estética Laksmi" className="loader-logo-image" />
             </div>
             
             {/* Barra de progreso */}
