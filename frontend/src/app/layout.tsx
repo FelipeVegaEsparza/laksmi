@@ -98,12 +98,25 @@ export default function RootLayout({
           }
           
           .loader-logo-image {
-            width: 180px;
-            height: auto;
+            width: 140px;
+            height: 140px;
             position: relative;
             z-index: 2;
-            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(224, 231, 255, 0.9) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(255, 255, 255, 0.2);
             animation: logoFloat 3s ease-in-out infinite;
+          }
+          
+          .logo-letter {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 80px;
+            font-weight: 700;
+            color: #667eea;
+            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
           }
           
           .logo-ring {
@@ -255,7 +268,11 @@ export default function RootLayout({
               height: 150px;
             }
             .loader-logo-image {
-              width: 130px;
+              width: 110px;
+              height: 110px;
+            }
+            .logo-letter {
+              font-size: 60px;
             }
             .logo-ring-1 { width: 150px; height: 150px; }
             .logo-ring-2 { width: 120px; height: 120px; }
@@ -290,7 +307,9 @@ export default function RootLayout({
             <div className="loader-logo-container">
               <div className="logo-ring logo-ring-1"></div>
               <div className="logo-ring logo-ring-2"></div>
-              <img src="/logo.png" alt="Estética Laksmi" className="loader-logo-image" />
+              <div className="loader-logo-image">
+                <div className="logo-letter">L</div>
+              </div>
             </div>
             
             {/* Barra de progreso */}
