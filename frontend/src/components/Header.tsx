@@ -10,7 +10,7 @@ import {
   Mail, 
   MapPin, 
   Home,
-  Scissors,
+  Sparkles,
   ShoppingBag,
   Calendar,
   MessageCircle,
@@ -38,7 +38,7 @@ const Header = () => {
 
   const navigation = [
     { name: 'Inicio', href: '/', icon: Home },
-    { name: 'Servicios', href: '/servicios', icon: Scissors },
+    { name: 'Servicios', href: '/servicios', icon: Sparkles },
     { name: 'Productos', href: '/productos', icon: ShoppingBag },
     { name: 'Contacto', href: '/contacto', icon: MessageCircle },
   ];
@@ -334,7 +334,7 @@ const Header = () => {
                   color: 'white'
                 } : {}}
               >
-                <Scissors className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
                 Servicios
               </button>
               <button
