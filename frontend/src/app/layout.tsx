@@ -340,9 +340,8 @@ export default function RootLayout({
               const loader = document.getElementById('initial-loader');
               if (loader) {
                 loader.classList.add('hidden');
-                setTimeout(() => {
-                  loader.remove();
-                }, 500);
+                // NO remover del DOM, solo ocultar con CSS
+                loader.style.display = 'none';
               }
             }
 
