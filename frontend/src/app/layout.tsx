@@ -98,25 +98,46 @@ export default function RootLayout({
           }
           
           .loader-logo-image {
-            width: 140px;
-            height: 140px;
+            width: 160px;
+            height: 160px;
             position: relative;
             z-index: 2;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(224, 231, 255, 0.9) 100%);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(224, 231, 255, 0.9) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 60px rgba(255, 255, 255, 0.2);
+            box-shadow: 
+              0 15px 50px rgba(0, 0, 0, 0.4),
+              0 0 80px rgba(255, 255, 255, 0.3),
+              inset 0 -5px 20px rgba(102, 126, 234, 0.2),
+              inset 0 5px 20px rgba(255, 255, 255, 0.8);
             animation: logoFloat 3s ease-in-out infinite;
+            border: 3px solid rgba(255, 255, 255, 0.5);
           }
           
           .logo-letter {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 80px;
+            font-size: 90px;
             font-weight: 700;
-            color: #667eea;
-            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 4px 15px rgba(102, 126, 234, 0.5));
+            position: relative;
+          }
+          
+          .logo-letter::before {
+            content: 'L';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            z-index: -1;
           }
           
           .logo-ring {
@@ -268,11 +289,11 @@ export default function RootLayout({
               height: 150px;
             }
             .loader-logo-image {
-              width: 110px;
-              height: 110px;
+              width: 130px;
+              height: 130px;
             }
             .logo-letter {
-              font-size: 60px;
+              font-size: 70px;
             }
             .logo-ring-1 { width: 150px; height: 150px; }
             .logo-ring-2 { width: 120px; height: 120px; }
@@ -307,26 +328,10 @@ export default function RootLayout({
             <div className="loader-logo-container">
               <div className="logo-ring logo-ring-1"></div>
               <div className="logo-ring logo-ring-2"></div>
-              <div className="loader-logo-wrapper">
-                <div className="loader-logo-image">
-                  <div className="logo-letter">L</div>
-                </div>
+              <div className="loader-logo-image">
+                <div className="logo-letter">L</div>
               </div>
             </div>
-            
-            <script dangerouslySetInnerHTML={{ __html: `
-              (function() {
-                // Intentar cargar el logo real
-                var img = new Image();
-                img.onload = function() {
-                  var wrapper = document.querySelector('.loader-logo-wrapper');
-                  if (wrapper) {
-                    wrapper.innerHTML = '<img src="/logo.png" alt="Logo" style="width: 140px; height: auto; filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.3)); animation: logoFloat 3s ease-in-out infinite;" />';
-                  }
-                };
-                img.src = '/logo.png';
-              })();
-            `}} />
             
             {/* Barra de progreso */}
             <div className="loader-progress">
