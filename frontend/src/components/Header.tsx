@@ -25,6 +25,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'services' | 'products'>('all');
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const { 
     logoUrl, 
     companyName, 
@@ -193,11 +194,17 @@ const Header = () => {
               )}
             </Link>
             {/* Imagen de resolución */}
-            <img 
-              src="/resolucion.png" 
-              alt="Resolución Ministerio de Salud"
-              className="h-10 sm:h-12 md:h-14 w-auto object-contain"
-            />
+            <button
+              onClick={() => setShowPdfModal(true)}
+              className="transition-transform duration-300 hover:scale-105 cursor-pointer"
+              aria-label="Ver resolución ministerial"
+            >
+              <img 
+                src="/resolucion.png" 
+                alt="Resolución Ministerio de Salud"
+                className="h-10 sm:h-12 md:h-14 w-auto object-contain"
+              />
+            </button>
           </div>
 
           {/* Desktop navigation - Minimalista y elegante */}
@@ -411,6 +418,42 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal para mostrar PDF */}
+      {showPdfModal && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowPdfModal(false)}
+        >
+          <div 
+            className="relative w-full h-full max-w-6xl max-h-[90vh] m-4 bg-white rounded-lg shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del modal */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Resolución Ministerio de Salud
+              </h3>
+              <button
+                onClick={() => setShowPdfModal(false)}
+                className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-6 h-6 text-gray-600" />
+              </button>
+            </div>
+            
+            {/* Contenido del PDF */}
+            <div className="w-full h-[calc(100%-4rem)]">
+              <iframe
+                src="/resolucion.pdf"
+                className="w-full h-full"
+                title="Resolución Ministerio de Salud"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
