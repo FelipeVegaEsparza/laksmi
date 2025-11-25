@@ -34,7 +34,7 @@ export class BookingModel {
       professional_id: professionalId,
       date_time: bookingData.dateTime,
       duration: service.duration,
-      status: bookingData.status || 'confirmed', // Cambiar a 'confirmed' por defecto
+      status: bookingData.status || 'pending_payment', // Todas las reservas inician como pendientes de pago
       notes: bookingData.notes || null,
       payment_amount: bookingData.paymentAmount || service.price,
       payment_method: bookingData.paymentMethod || null,
