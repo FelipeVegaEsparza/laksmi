@@ -482,7 +482,7 @@ export class EmailService {
         
         <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <p style="margin: 5px 0; font-size: 14px; color: #666;">Precio total del servicio:</p>
-          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${details.price?.toLocaleString('es-CL')}</p>
+          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${(details.price || 0).toLocaleString('es-CL')}</p>
           
           <div style="border-top: 2px dashed #ffc107; margin: 15px 0; padding-top: 15px;">
             <p style="margin: 5px 0; font-size: 14px; color: #666;">Pago adelantado para confirmar (Evaluación):</p>
@@ -490,7 +490,7 @@ export class EmailService {
           </div>
           
           <p style="margin: 15px 0 5px 0; font-size: 14px; color: #666;">Saldo a pagar en el centro:</p>
-          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${(details.price - 20000).toLocaleString('es-CL')}</p>
+          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${((details.price || 0) - 20000).toLocaleString('es-CL')}</p>
         </div>
         ${companySettings?.paymentLink ? `
         <a href="${companySettings.paymentLink}" style="display: inline-block; padding: 15px 40px; background: #11998e; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin: 15px 0;">
