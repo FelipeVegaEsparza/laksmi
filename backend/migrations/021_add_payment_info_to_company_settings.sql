@@ -9,8 +9,8 @@
 
 -- Agregar columnas para información de pago
 ALTER TABLE company_settings
-ADD COLUMN IF NOT EXISTS payment_link VARCHAR(500) NULL COMMENT 'Link para realizar el pago (ej: link de pago online)',
-ADD COLUMN IF NOT EXISTS payment_instructions TEXT NULL COMMENT 'Instrucciones de pago (transferencia, efectivo, etc.)';
+ADD COLUMN payment_link VARCHAR(500) NULL COMMENT 'Link para realizar el pago (ej: link de pago online)',
+ADD COLUMN payment_instructions TEXT NULL COMMENT 'Instrucciones de pago (transferencia, efectivo, etc.)';
 
 -- ============================================
 -- NOTAS
