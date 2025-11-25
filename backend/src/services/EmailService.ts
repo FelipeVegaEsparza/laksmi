@@ -479,10 +479,22 @@ export class EmailService {
       <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
         <h2 style="margin: 0 0 15px 0; color: #856404;">⚠️ IMPORTANTE: Confirma tu Reserva</h2>
         <p style="margin: 10px 0; font-size: 16px;">Tu reserva está <strong>PENDIENTE</strong> hasta que confirmes el pago</p>
-        <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: #11998e;">Monto a pagar: $${details.paymentAmount?.toLocaleString('es-CL') || '20.000'}</p>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 5px 0; font-size: 14px; color: #666;">Precio total del servicio:</p>
+          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${details.price?.toLocaleString('es-CL')}</p>
+          
+          <div style="border-top: 2px dashed #ffc107; margin: 15px 0; padding-top: 15px;">
+            <p style="margin: 5px 0; font-size: 14px; color: #666;">Pago adelantado para confirmar (Evaluación):</p>
+            <p style="margin: 5px 0; font-size: 28px; font-weight: bold; color: #11998e;">$20.000</p>
+          </div>
+          
+          <p style="margin: 15px 0 5px 0; font-size: 14px; color: #666;">Saldo a pagar en el centro:</p>
+          <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #333;">$${(details.price - 20000).toLocaleString('es-CL')}</p>
+        </div>
         ${companySettings?.paymentLink ? `
         <a href="${companySettings.paymentLink}" style="display: inline-block; padding: 15px 40px; background: #11998e; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin: 15px 0;">
-          🔒 PAGAR AHORA
+          🔒 PAGAR $20.000 AHORA
         </a>
         ` : ''}
         ${companySettings?.paymentInstructions ? `
@@ -492,8 +504,11 @@ export class EmailService {
         </div>
         ` : ''}
         <p style="margin: 15px 0; font-size: 14px; color: #856404;">
-          Una vez realizado el pago, envíanos el comprobante por WhatsApp o email<br/>
+          Una vez realizado el pago de $20.000, envíanos el comprobante por WhatsApp o email<br/>
           <strong>Referencia: Reserva #${details.bookingId || ''}</strong>
+        </p>
+        <p style="margin: 10px 0; font-size: 13px; color: #666; font-style: italic;">
+          * El saldo restante se cancela en el centro de estética el día de tu cita
         </p>
       </div>
       ` : ''}
