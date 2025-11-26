@@ -402,13 +402,14 @@ export class EmailService {
   private static getBookingConfirmationTemplate(details: any, companySettings?: any): string {
     const companyName = companySettings?.companyName || 'Clínica de Belleza';
     const logoUrl = companySettings?.logoUrl;
-    const dateStr = new Date(details.date).toLocaleString('es-ES', {
+    const dateStr = new Date(details.date).toLocaleString('es-CL', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Santiago'
     });
 
     return `
@@ -543,13 +544,14 @@ export class EmailService {
   private static getBookingReminderTemplate(details: any, companySettings?: any): string {
     const companyName = companySettings?.companyName || 'Clínica de Belleza';
     const logoUrl = companySettings?.logoUrl;
-    const dateStr = new Date(details.date).toLocaleString('es-ES', {
+    const dateStr = new Date(details.date).toLocaleString('es-CL', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Santiago'
     });
 
     return `
@@ -638,13 +640,14 @@ export class EmailService {
   private static getBookingCancellationTemplate(details: any, companySettings?: any): string {
     const companyName = companySettings?.companyName || 'Clínica de Belleza';
     const logoUrl = companySettings?.logoUrl;
-    const dateStr = new Date(details.date).toLocaleString('es-ES', {
+    const dateStr = new Date(details.date).toLocaleString('es-CL', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Santiago'
     });
 
     return `
