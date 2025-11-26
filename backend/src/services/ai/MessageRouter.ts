@@ -702,38 +702,40 @@ export class MessageRouter {
       }
 
       // 2. Confirmar reserva (NO requiere autenticación - es una acción positiva)
-      else if (
-        intent === 'affirmative' &&
-        context.variables?.pendingBookingConfirmation
+      if (
+        !action && (
+          (intent === 'affirmative' && context.variables?.pendingBookingConfirmation) ||
+          (messageLower.includes('confirmar') && (messageLower.includes('reserva') || messageLower.includes('cita')))
+        )
       ) {
         action = 'confirm';
-        const bookingId = context.variables.pendingBookingConfirmation;
-        result = await BookingManagementService.confirmBooking(bookingId, clientId);
-      } else if (
-        messageLower.includes('confirmar') &&
-        (messageLower.includes('reserva') || messageLower.includes('cita'))
-      ) {
-        action = 'confirm';
-        const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
-        if (booking) {
-          result = await BookingManagementService.confirmBooking(booking.id, clientId);
+        
+        if (intent === 'affirmative' && context.variables?.pendingBookingConfirmation) {
+          const bookingId = context.variables.pendingBookingConfirmation;
+          result = await BookingManagementService.confirmBooking(bookingId, clientId);
         } else {
-          const bookings = await BookingManagementService.getClientActiveBookings(clientId);
-          if (bookings.length === 1) {
-            result = await BookingManagementService.confirmBooking(bookings[0].id, clientId);
-          } else if (bookings.length > 1) {
-            result = await BookingManagementService.listClientBookings(clientId);
-            result.message = 'Tienes varias reservas. ¿Cuál quieres confirmar?\n\n' + result.message;
+          const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
+          if (booking) {
+            result = await BookingManagementService.confirmBooking(booking.id, clientId);
           } else {
-            return null;
+            const bookings = await BookingManagementService.getClientActiveBookings(clientId);
+            if (bookings.length === 1) {
+              result = await BookingManagementService.confirmBooking(bookings[0].id, clientId);
+            } else if (bookings.length > 1) {
+              result = await BookingManagementService.listClientBookings(clientId);
+              result.message = 'Tienes varias reservas. ¿Cuál quieres confirmar?\n\n' + result.message;
+            }
+            // Si no hay reservas, no hacer nada y continuar evaluando otras acciones
           }
         }
       }
 
       // 3. Cancelar reserva (REQUIERE AUTENTICACIÓN)
-      else if (
-        intent === 'cancel_booking' ||
-        messageLower.includes('cancelar') && (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora'))
+      if (
+        !action && (
+          intent === 'cancel_booking' ||
+          (messageLower.includes('cancelar') && (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora')))
+        )
       ) {
         action = 'cancel';
         requiresAuth = true;
@@ -777,10 +779,12 @@ export class MessageRouter {
       }
 
       // 4. Reagendar reserva (REQUIERE AUTENTICACIÓN)
-      else if (
-        intent === 'reschedule_booking' ||
-        (messageLower.includes('reagendar') || messageLower.includes('reprogramar') || messageLower.includes('cambiar')) &&
-        (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora'))
+      if (
+        !action && (
+          intent === 'reschedule_booking' ||
+          ((messageLower.includes('reagendar') || messageLower.includes('reprogramar') || messageLower.includes('cambiar')) &&
+          (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora')))
+        )
       ) {
         action = 'reschedule';
         requiresAuth = true;
@@ -824,9 +828,11 @@ export class MessageRouter {
       }
 
       // 5. Consultar información de reserva
-      else if (
-        (messageLower.includes('información') || messageLower.includes('detalles') || messageLower.includes('ver')) &&
-        (messageLower.includes('reserva') || messageLower.includes('cita'))
+      if (
+        !action && (
+          (messageLower.includes('información') || messageLower.includes('detalles') || messageLower.includes('ver')) &&
+          (messageLower.includes('reserva') || messageLower.includes('cita'))
+        )
       ) {
         action = 'info';
         const booking = await BookingManagementService.findBookingByContext(clientId, userMessage);
