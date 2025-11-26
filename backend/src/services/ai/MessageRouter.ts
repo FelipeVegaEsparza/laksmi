@@ -678,6 +678,13 @@ export class MessageRouter {
       const { ChatAuthService } = await import('./ChatAuthService');
       const messageLower = userMessage.toLowerCase();
 
+      logger.info('🔍 handleBookingManagement ejecutándose', {
+        userMessage,
+        intent,
+        messageLower,
+        conversationId
+      });
+
       // Detectar acción de gestión de reserva
       let action: string | null = null;
       let result: any = null;
@@ -726,10 +733,16 @@ export class MessageRouter {
       // 3. Cancelar reserva (REQUIERE AUTENTICACIÓN)
       else if (
         intent === 'cancel_booking' ||
-        (messageLower.includes('cancelar') && (messageLower.includes('reserva') || messageLower.includes('cita')))
+        messageLower.includes('cancelar') && (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora'))
       ) {
         action = 'cancel';
         requiresAuth = true;
+        
+        logger.info('🔍 Cancelación detectada', {
+          intent,
+          messageLower,
+          conversationId
+        });
 
         // Verificar autenticación
         const authResult = await ChatAuthService.verifyClientForSensitiveAction(
@@ -766,11 +779,17 @@ export class MessageRouter {
       // 4. Reagendar reserva (REQUIERE AUTENTICACIÓN)
       else if (
         intent === 'reschedule_booking' ||
-        (messageLower.includes('reagendar') || messageLower.includes('cambiar')) &&
+        (messageLower.includes('reagendar') || messageLower.includes('reprogramar') || messageLower.includes('cambiar')) &&
         (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora'))
       ) {
         action = 'reschedule';
         requiresAuth = true;
+        
+        logger.info('🔍 Reagendamiento detectado', {
+          intent,
+          messageLower,
+          conversationId
+        });
 
         // Verificar autenticación
         const authResult = await ChatAuthService.verifyClientForSensitiveAction(
