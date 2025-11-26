@@ -13,28 +13,23 @@ export interface BookingManagementResult {
 export class BookingManagementService {
   /**
    * Obtener reservas activas de un cliente con información completa
+   * Incluye: confirmed, pending, pending_payment
    */
   static async getClientActiveBookings(clientId: string): Promise<any[]> {
     try {
-      // Obtener reservas confirmadas
-      const confirmedResult = await BookingModel.findAll({
-        clientId,
-        status: 'confirmed',
-        limit: 10
-      });
-
-      // Obtener reservas canceladas y completadas para filtrar
+      // Obtener todas las reservas del cliente
       const allStatuses = await BookingModel.findAll({
         clientId,
-        limit: 10
+        limit: 20 // Aumentar límite para asegurar que obtenemos todas
       });
 
-      // Combinar y filtrar solo futuras y no canceladas/completadas
+      // Filtrar solo futuras y con estados activos
       const now = new Date();
+      const activeStatuses = ['confirmed', 'pending', 'pending_payment'];
+      
       const bookings = allStatuses.bookings.filter(booking => 
         new Date(booking.dateTime) > now &&
-        booking.status !== 'cancelled' &&
-        booking.status !== 'completed'
+        activeStatuses.includes(booking.status)
       );
 
       // Enriquecer con información de servicio
