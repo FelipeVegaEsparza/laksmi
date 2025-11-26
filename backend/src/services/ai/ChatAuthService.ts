@@ -362,25 +362,122 @@ export class ChatAuthService {
       // Limpiar código usado
       this.verificationCodes.delete(verificationToken);
 
-      // Obtener acción pendiente
+      // Obtener acción pendiente y cliente ID
       const pendingAction = await ContextManager.getVariable(conversationId, 'pendingAction') as string | undefined;
+      const pendingClientId = await ContextManager.getVariable(conversationId, 'pendingClientId') as string | undefined;
       
       let message = '✅ **Identidad verificada correctamente**\n\n';
       
-      if (pendingAction) {
+      if (pendingAction && pendingClientId) {
         // Dar mensaje específico según la acción pendiente
         if (pendingAction === 'cancel' || pendingAction === 'cancel_booking') {
-          message += 'Perfecto, ahora puedo ayudarte a cancelar tu reserva.\n\n';
-          message += '¿Cuál reserva deseas cancelar? Puedes decirme:\n';
-          message += '• "La de hoy"\n';
-          message += '• "La del [fecha]"\n';
-          message += '• "Todas mis reservas" (para ver la lista)';
+          // Obtener reservas activas del cliente
+          try {
+            const { BookingManagementService } = await import('./BookingManagementService');
+            const bookings = await BookingManagementService.getClientActiveBookings(pendingClientId);
+            
+            if (bookings.length === 0) {
+              message += 'No tienes reservas activas para cancelar en este momento.';
+            } else if (bookings.length === 1) {
+              // Si solo tiene una reserva, mostrarla y preguntar si quiere cancelarla
+              const booking = bookings[0];
+              const bookingDate = new Date(booking.date);
+              const dateStr = bookingDate.toLocaleDateString('es-CL', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              
+              message += `Tienes la siguiente reserva activa:\n\n`;
+              message += `📅 **${booking.serviceName}**\n`;
+              message += `🕐 ${dateStr}\n`;
+              message += `⏱️ ${booking.duration} minutos\n`;
+              message += `💰 ${booking.price}\n\n`;
+              message += '¿Deseas cancelar esta reserva? Responde "sí" para confirmar.';
+            } else {
+              // Múltiples reservas, mostrar lista
+              message += `Tienes ${bookings.length} reservas activas:\n\n`;
+              
+              bookings.forEach((booking: any, index: number) => {
+                const bookingDate = new Date(booking.date);
+                const dateStr = bookingDate.toLocaleDateString('es-CL', { 
+                  weekday: 'short', 
+                  day: 'numeric', 
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                
+                message += `${index + 1}️⃣ **${booking.serviceName}**\n`;
+                message += `   📅 ${dateStr}\n`;
+                message += `   ⏱️ ${booking.duration} min | 💰 ${booking.price}\n\n`;
+              });
+              
+              message += '¿Cuál deseas cancelar? Puedes decirme:\n';
+              message += '• El número (1, 2, 3...)\n';
+              message += '• "La de hoy" o "La de mañana"\n';
+              message += '• El nombre del servicio';
+            }
+          } catch (error) {
+            logger.error('Error fetching bookings for verification message:', error);
+            message += 'Perfecto, ahora puedo ayudarte a cancelar tu reserva.\n\n';
+            message += '¿Cuál reserva deseas cancelar? Puedes decirme "la de hoy", "la de mañana" o el nombre del servicio.';
+          }
         } else if (pendingAction === 'reschedule' || pendingAction === 'reschedule_booking') {
-          message += 'Perfecto, ahora puedo ayudarte a reagendar tu reserva.\n\n';
-          message += '¿Cuál reserva deseas reagendar? Puedes decirme:\n';
-          message += '• "La de hoy"\n';
-          message += '• "La del [fecha]"\n';
-          message += '• "Todas mis reservas" (para ver la lista)';
+          // Similar para reagendar
+          try {
+            const { BookingManagementService } = await import('./BookingManagementService');
+            const bookings = await BookingManagementService.getClientActiveBookings(pendingClientId);
+            
+            if (bookings.length === 0) {
+              message += 'No tienes reservas activas para reagendar en este momento.';
+            } else if (bookings.length === 1) {
+              const booking = bookings[0];
+              const bookingDate = new Date(booking.date);
+              const dateStr = bookingDate.toLocaleDateString('es-CL', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              
+              message += `Tienes la siguiente reserva activa:\n\n`;
+              message += `📅 **${booking.serviceName}**\n`;
+              message += `🕐 ${dateStr}\n`;
+              message += `⏱️ ${booking.duration} minutos\n`;
+              message += `💰 ${booking.price}\n\n`;
+              message += '¿Deseas reagendar esta reserva? Responde "sí" para continuar.';
+            } else {
+              message += `Tienes ${bookings.length} reservas activas:\n\n`;
+              
+              bookings.forEach((booking: any, index: number) => {
+                const bookingDate = new Date(booking.date);
+                const dateStr = bookingDate.toLocaleDateString('es-CL', { 
+                  weekday: 'short', 
+                  day: 'numeric', 
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                
+                message += `${index + 1}️⃣ **${booking.serviceName}**\n`;
+                message += `   📅 ${dateStr}\n`;
+                message += `   ⏱️ ${booking.duration} min | 💰 ${booking.price}\n\n`;
+              });
+              
+              message += '¿Cuál deseas reagendar? Puedes decirme:\n';
+              message += '• El número (1, 2, 3...)\n';
+              message += '• "La de hoy" o "La de mañana"\n';
+              message += '• El nombre del servicio';
+            }
+          } catch (error) {
+            logger.error('Error fetching bookings for verification message:', error);
+            message += 'Perfecto, ahora puedo ayudarte a reagendar tu reserva.\n\n';
+            message += '¿Cuál reserva deseas reagendar? Puedes decirme "la de hoy", "la de mañana" o el nombre del servicio.';
+          }
         } else {
           message += 'Ahora puedes continuar con tu solicitud. ¿Qué te gustaría hacer?';
         }

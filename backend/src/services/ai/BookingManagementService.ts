@@ -407,7 +407,7 @@ export class BookingManagementService {
   }
 
   /**
-   * Buscar reserva por servicio o fecha
+   * Buscar reserva por servicio, fecha o número de lista
    */
   static async findBookingByContext(
     clientId: string,
@@ -420,9 +420,28 @@ export class BookingManagementService {
         return null;
       }
 
-      const searchLower = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase().trim();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
+      // Buscar por número de lista (1, 2, 3, etc.)
+      const numberMatch = searchTerm.match(/^(\d+)$/);
+      if (numberMatch) {
+        const index = parseInt(numberMatch[1]) - 1; // Convertir a índice base 0
+        if (index >= 0 && index < bookings.length) {
+          return bookings[index];
+        }
+      }
+
+      // Buscar por emoji de número (1️⃣, 2️⃣, etc.)
+      const emojiNumbers = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+      for (let i = 0; i < emojiNumbers.length; i++) {
+        if (searchTerm.includes(emojiNumbers[i])) {
+          if (i < bookings.length) {
+            return bookings[i];
+          }
+        }
+      }
 
       // Buscar por fecha relativa (hoy, mañana, etc.)
       if (searchLower.includes('hoy') || searchLower.includes('today')) {
