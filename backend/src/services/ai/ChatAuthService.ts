@@ -368,7 +368,22 @@ export class ChatAuthService {
       let message = '✅ **Identidad verificada correctamente**\n\n';
       
       if (pendingAction) {
-        message += 'Ahora puedes continuar con tu solicitud. ¿Qué te gustaría hacer?';
+        // Dar mensaje específico según la acción pendiente
+        if (pendingAction === 'cancel' || pendingAction === 'cancel_booking') {
+          message += 'Perfecto, ahora puedo ayudarte a cancelar tu reserva.\n\n';
+          message += '¿Cuál reserva deseas cancelar? Puedes decirme:\n';
+          message += '• "La de hoy"\n';
+          message += '• "La del [fecha]"\n';
+          message += '• "Todas mis reservas" (para ver la lista)';
+        } else if (pendingAction === 'reschedule' || pendingAction === 'reschedule_booking') {
+          message += 'Perfecto, ahora puedo ayudarte a reagendar tu reserva.\n\n';
+          message += '¿Cuál reserva deseas reagendar? Puedes decirme:\n';
+          message += '• "La de hoy"\n';
+          message += '• "La del [fecha]"\n';
+          message += '• "Todas mis reservas" (para ver la lista)';
+        } else {
+          message += 'Ahora puedes continuar con tu solicitud. ¿Qué te gustaría hacer?';
+        }
       } else {
         message += 'Tu sesión está verificada. Puedes gestionar tus reservas con seguridad.';
       }

@@ -421,6 +421,33 @@ export class BookingManagementService {
       }
 
       const searchLower = searchTerm.toLowerCase();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Buscar por fecha relativa (hoy, mañana, etc.)
+      if (searchLower.includes('hoy') || searchLower.includes('today')) {
+        const todayBooking = bookings.find(b => {
+          const bookingDate = new Date(b.date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === today.getTime();
+        });
+        if (todayBooking) {
+          return todayBooking;
+        }
+      }
+
+      if (searchLower.includes('mañana') || searchLower.includes('tomorrow')) {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowBooking = bookings.find(b => {
+          const bookingDate = new Date(b.date);
+          bookingDate.setHours(0, 0, 0, 0);
+          return bookingDate.getTime() === tomorrow.getTime();
+        });
+        if (tomorrowBooking) {
+          return tomorrowBooking;
+        }
+      }
 
       // Buscar por nombre de servicio
       const byService = bookings.find(b =>
