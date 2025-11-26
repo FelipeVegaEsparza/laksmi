@@ -158,14 +158,16 @@ export class ChatAuthService {
     conversationId: string,
     action: string
   ): Promise<AuthVerificationResult> {
+    // Guardar acción pendiente SIEMPRE (antes de verificar si tiene email)
+    await ContextManager.setVariable(conversationId, 'pendingAction', action);
+    await ContextManager.setVariable(conversationId, 'pendingClientId', client.id);
+    
     // Verificar que tenga email
     const hasEmail = !!client.email;
 
     if (!hasEmail) {
       // Solicitar email al usuario
       await ContextManager.setVariable(conversationId, 'awaitingEmailInput', true);
-      await ContextManager.setVariable(conversationId, 'pendingAction', action);
-      await ContextManager.setVariable(conversationId, 'pendingClientId', client.id);
       
       return {
         isVerified: false,
