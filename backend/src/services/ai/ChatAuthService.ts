@@ -162,11 +162,16 @@ export class ChatAuthService {
     const hasEmail = !!client.email;
 
     if (!hasEmail) {
+      // Solicitar email al usuario
+      await ContextManager.setVariable(conversationId, 'awaitingEmailInput', true);
+      await ContextManager.setVariable(conversationId, 'pendingAction', action);
+      await ContextManager.setVariable(conversationId, 'pendingClientId', client.id);
+      
       return {
         isVerified: false,
-        message: '⚠️ Por seguridad, necesito verificar tu identidad. No tengo un email registrado para ti. Por favor, contacta directamente a la clínica para gestionar tu reserva.',
+        message: '📧 **Verificación de Seguridad**\n\nPara continuar, necesito verificar tu identidad.\n\n¿Cuál es tu correo electrónico?',
         requiresVerification: true,
-        verificationMethod: undefined
+        verificationMethod: 'email'
       };
     }
 
@@ -435,12 +440,131 @@ export class ChatAuthService {
   }
 
   /**
+   * Verificar si está esperando que el usuario proporcione su email
+   */
+  static async isAwaitingEmailInput(conversationId: string): Promise<boolean> {
+    try {
+      const awaiting = await ContextManager.getVariable(conversationId, 'awaitingEmailInput');
+      return awaiting === true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Capturar email del usuario, guardarlo y enviar código de verificación
+   */
+  static async captureAndSaveEmail(
+    conversationId: string,
+    clientId: string,
+    emailInput: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    emailSaved?: boolean;
+  }> {
+    try {
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const trimmedEmail = emailInput.trim().toLowerCase();
+      
+      if (!emailRegex.test(trimmedEmail)) {
+        return {
+          success: false,
+          message: '❌ El formato del email no es válido. Por favor, ingresa un email válido (ejemplo: tu@email.com)'
+        };
+      }
+
+      // Obtener cliente
+      const client = await ClientModel.findById(clientId);
+      if (!client) {
+        return {
+          success: false,
+          message: 'Error: Cliente no encontrado. Por favor, contacta a la clínica.'
+        };
+      }
+
+      // Guardar email en el perfil del cliente
+      await ClientModel.update(clientId, { email: trimmedEmail });
+      logger.info(`Email saved for client ${clientId}: ${this.maskEmail(trimmedEmail)}`);
+
+      // Limpiar flag de espera de email
+      await ContextManager.setVariable(conversationId, 'awaitingEmailInput', false);
+
+      // Obtener acción pendiente
+      const pendingAction = await ContextManager.getVariable(conversationId, 'pendingAction') as string;
+
+      // Generar código de verificación
+      const verificationCode = this.generateVerificationCode();
+      const verificationToken = this.generateVerificationToken();
+
+      // Guardar código con expiración de 10 minutos
+      this.verificationCodes.set(verificationToken, {
+        code: verificationCode,
+        clientId: client.id,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        attempts: 0
+      });
+
+      // Guardar token en contexto
+      await ContextManager.setVariable(conversationId, 'verificationToken', verificationToken);
+
+      // Enviar código por email
+      const { EmailService } = await import('../EmailService');
+      const emailSent = await EmailService.sendVerificationCode(
+        trimmedEmail,
+        verificationCode,
+        client.name
+      );
+
+      // Preparar mensaje de respuesta
+      let message = '✅ **Email guardado correctamente**\n\n';
+      message += `📧 Email registrado: **${this.maskEmail(trimmedEmail)}**\n\n`;
+      message += '🔒 **Verificación de Seguridad**\n\n';
+
+      if (emailSent) {
+        message += `Te he enviado un código de verificación de 6 dígitos a tu email.\n\n`;
+        message += `Por favor, revisa tu bandeja de entrada (y carpeta de spam) y responde con el código que recibiste.\n\n`;
+        message += `⏰ El código expira en 10 minutos.`;
+      } else {
+        // Fallback si el email no se pudo enviar
+        message += `Intenté enviarte un código pero hubo un problema con el servicio de email.\n\n`;
+        message += `⚠️ **CÓDIGO TEMPORAL:** ${verificationCode}\n\n`;
+        message += `Por favor, responde con este código para continuar.`;
+        
+        logger.warn(`Failed to send verification email to ${trimmedEmail}, showing code in message`);
+      }
+
+      return {
+        success: true,
+        message,
+        emailSaved: true
+      };
+
+    } catch (error) {
+      logger.error('Error capturing and saving email:', error);
+      return {
+        success: false,
+        message: 'Error al procesar tu email. Por favor, intenta nuevamente o contacta a la clínica.'
+      };
+    }
+  }
+
+  /**
    * Detectar si el mensaje es un código de verificación
    */
   static isVerificationCodeMessage(message: string): boolean {
     // Detectar patrones de código: 6 dígitos con o sin espacios/guiones
     const codePattern = /^\d{6}$|^\d{3}[\s-]?\d{3}$/;
     return codePattern.test(message.trim());
+  }
+
+  /**
+   * Detectar si el mensaje parece ser un email
+   */
+  static isEmailMessage(message: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(message.trim());
   }
 
   /**

@@ -93,8 +93,49 @@ export class MessageRouter {
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);
       
-      // Verificar si está esperando verificación por teléfono
+      // Verificar si está esperando que proporcione su email
       const { ChatAuthService } = await import('./ChatAuthService');
+      const awaitingEmailInput = await ChatAuthService.isAwaitingEmailInput(conversation.id);
+      
+      if (awaitingEmailInput) {
+        const captureResult = await ChatAuthService.captureAndSaveEmail(
+          conversation.id,
+          client.id,
+          request.content
+        );
+
+        const aiMessage = await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: captureResult.message,
+          metadata: {
+            emailCapture: true,
+            emailSaved: captureResult.emailSaved,
+            success: captureResult.success
+          }
+        });
+
+        await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+        const processingTime = Date.now() - startTime;
+
+        return {
+          response: {
+            message: captureResult.message,
+            intent: 'email_capture',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              emailCapture: true,
+              emailSaved: captureResult.emailSaved
+            }
+          },
+          conversationId: conversation.id,
+          messageId: aiMessage.id,
+          processingTime
+        };
+      }
+
+      // Verificar si está esperando verificación por teléfono
       const awaitingPhoneVerification = await ChatAuthService.isAwaitingPhoneVerification(conversation.id);
       
       if (awaitingPhoneVerification) {
