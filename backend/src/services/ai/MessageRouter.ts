@@ -23,6 +23,13 @@ export class MessageRouter {
   static async processMessage(request: ProcessMessageRequest): Promise<ProcessMessageResponse> {
     const startTime = Date.now();
     
+    logger.info('🔵 Processing message START', {
+      clientId: request.clientId,
+      channel: request.channel,
+      contentLength: request.content?.length,
+      hasMedia: !!request.mediaUrl
+    });
+    
     try {
       // Validar entrada
       this.validateRequest(request);
@@ -297,6 +304,11 @@ export class MessageRouter {
       } else {
         // Intentar generar respuesta con OpenAI
         try {
+          logger.info('🤖 Preparing to call AIService', {
+            conversationId: conversation.id,
+            messageContent: request.content.substring(0, 100)
+          });
+          
           const { AIService } = await import('../AIService');
           
           // Preparar historial de conversación para OpenAI
@@ -305,12 +317,23 @@ export class MessageRouter {
             content: msg.content
           }));
           
+          logger.info('📞 Calling AIService.generateResponse', {
+            conversationId: conversation.id,
+            historyLength: conversationHistory.length
+          });
+          
           // Generar respuesta con OpenAI
           const aiResult = await AIService.generateResponse(
             request.content,
             conversationHistory,
             conversation.id
           );
+          
+          logger.info('✅ AIService response received', {
+            conversationId: conversation.id,
+            messageLength: aiResult.message.length,
+            usedKnowledgeBase: aiResult.usedKnowledgeBase
+          });
           
           // Detectar y guardar servicio mencionado en la respuesta del AI
           await this.detectAndSaveServiceFromResponse(aiResult.message, conversation.id);

@@ -230,6 +230,22 @@ export class WhatsAppWebService {
       this.statusMessage = 'Desconectado manualmente';
       this.qrCode = '';
       
+      // Eliminar la sesión guardada para permitir conectar con otro número
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const sessionPath = path.join(process.cwd(), 'whatsapp-session');
+        
+        if (fs.existsSync(sessionPath)) {
+          logger.info('🗑️  Eliminando sesión guardada...');
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+          logger.info('✅ Sesión eliminada correctamente');
+        }
+      } catch (sessionError: any) {
+        logger.warn('⚠️  No se pudo eliminar la sesión:', sessionError.message);
+        // No fallar si no se puede eliminar la sesión
+      }
+      
       logger.info('✅ WhatsApp desconectado exitosamente');
     } catch (error: any) {
       logger.error('❌ Error al desconectar WhatsApp:', {
@@ -243,6 +259,18 @@ export class WhatsAppWebService {
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado (con errores)';
       this.qrCode = '';
+      
+      // Intentar eliminar sesión de todas formas
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const sessionPath = path.join(process.cwd(), 'whatsapp-session');
+        if (fs.existsSync(sessionPath)) {
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+        }
+      } catch (sessionError) {
+        // Ignorar errores al eliminar sesión
+      }
       
       // No lanzar el error, solo loguearlo
       logger.warn('⚠️  Desconexión forzada debido a error');
