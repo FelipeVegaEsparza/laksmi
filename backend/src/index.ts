@@ -107,7 +107,7 @@ async function startServer() {
     
     logger.info('Twilio initialization completed, starting HTTP server...');
 
-    server.listen(config.port, '0.0.0.0', () => {
+    server.listen(config.port, '0.0.0.0', async () => {
       clearTimeout(startTimeout);
       logger.info('=== ✅ SERVIDOR INICIADO EXITOSAMENTE ===');
       logger.info(`🚀 Servidor escuchando en puerto ${config.port}`);
