@@ -312,6 +312,9 @@ export class MessageRouter {
             conversation.id
           );
           
+          // Detectar y guardar servicio mencionado en la respuesta del AI
+          await this.detectAndSaveServiceFromResponse(aiResult.message, conversation.id);
+          
           // Detectar si el usuario quiere agendar y hay un servicio en contexto
           const bookingLink = await this.generateBookingLinkIfNeeded(
             request.content,
@@ -908,20 +911,45 @@ export class MessageRouter {
         }
       }
       
-      // 2. Si no se encontró en el mensaje, buscar en el contexto de los últimos mensajes
+      // 2. Si no se encontró en el mensaje, buscar en el contexto guardado
+      if (!serviceId) {
+        try {
+          const { ContextManager } = await import('./ContextManager');
+          const lastMentionedService = await ContextManager.getVariable(
+            context.id || 'unknown',
+            'lastMentionedService'
+          );
+          
+          if (lastMentionedService && lastMentionedService.id) {
+            serviceId = lastMentionedService.id;
+            serviceName = lastMentionedService.name;
+            logger.info('Using service from context:', { serviceId, serviceName });
+          }
+        } catch (error) {
+          logger.warn('Error retrieving service from context:', error);
+        }
+      }
+      
+      // 3. Si aún no se encontró, buscar en los últimos mensajes del AI
       if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
-        // Revisar los últimos 3 mensajes del AI para encontrar servicios mencionados
+        // Revisar los últimos 5 mensajes del AI para encontrar servicios mencionados
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
-          .slice(-3);
+          .slice(-5);
         
         for (const aiMsg of recentAIMessages) {
           const aiContent = aiMsg.content.toLowerCase();
           for (const service of services) {
             const serviceNameLower = service.name.toLowerCase();
-            if (aiContent.includes(serviceNameLower)) {
+            // Buscar coincidencias parciales también
+            const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
+            const matchCount = serviceKeywords.filter(keyword => aiContent.includes(keyword)).length;
+            
+            // Si coinciden al menos 2 palabras clave o el nombre completo
+            if (aiContent.includes(serviceNameLower) || matchCount >= 2) {
               serviceId = service.id;
               serviceName = service.name;
+              logger.info('Found service in AI messages:', { serviceId, serviceName });
               break;
             }
           }
@@ -929,13 +957,18 @@ export class MessageRouter {
         }
       }
       
-      // 3. Guardar servicio en contexto para futuras referencias
+      // 4. Guardar servicio en contexto para futuras referencias
       if (serviceId && serviceName) {
-        const { ContextManager } = await import('./ContextManager');
-        await ContextManager.setVariable(context.id || 'unknown', 'lastMentionedService', {
-          id: serviceId,
-          name: serviceName
-        });
+        try {
+          const { ContextManager } = await import('./ContextManager');
+          await ContextManager.setVariable(context.id || 'unknown', 'lastMentionedService', {
+            id: serviceId,
+            name: serviceName
+          });
+          logger.info('Saved service to context:', { serviceId, serviceName });
+        } catch (error) {
+          logger.warn('Error saving service to context:', error);
+        }
       }
       
       // Generar link si encontramos un servicio
@@ -1000,6 +1033,49 @@ export class MessageRouter {
       
       default:
         return 'Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...';
+    }
+  }
+
+  /**
+   * Detectar y guardar servicio mencionado en la respuesta del AI
+   */
+  private static async detectAndSaveServiceFromResponse(
+    aiMessage: string,
+    conversationId: string
+  ): Promise<void> {
+    try {
+      const { ServiceService } = await import('../ServiceService');
+      const { ContextManager } = await import('./ContextManager');
+      
+      const result = await ServiceService.getServices({ isActive: true, limit: 100 });
+      const services = result.services;
+      
+      const messageLower = aiMessage.toLowerCase();
+      
+      // Buscar servicios mencionados en la respuesta del AI
+      for (const service of services) {
+        const serviceNameLower = service.name.toLowerCase();
+        
+        // Buscar coincidencias exactas o parciales
+        const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
+        const matchCount = serviceKeywords.filter(keyword => messageLower.includes(keyword)).length;
+        
+        // Si coinciden al menos 2 palabras clave o el nombre completo
+        if (messageLower.includes(serviceNameLower) || matchCount >= 2) {
+          await ContextManager.setVariable(conversationId, 'lastMentionedService', {
+            id: service.id,
+            name: service.name
+          });
+          logger.info('Service detected and saved from AI response:', {
+            conversationId,
+            serviceId: service.id,
+            serviceName: service.name
+          });
+          break; // Solo guardar el primer servicio encontrado
+        }
+      }
+    } catch (error) {
+      logger.warn('Error detecting service from AI response:', error);
     }
   }
 
