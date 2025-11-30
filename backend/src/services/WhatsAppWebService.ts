@@ -238,9 +238,12 @@ export class WhatsAppWebService {
       logger.info('========================================');
 
     } catch (error: any) {
-      logger.error('❌ Error procesando mensaje:', {
+      logger.error('❌ Error procesando mensaje en WhatsAppWebService:', {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        errorType: error.constructor.name,
+        from: message?.from,
+        body: message?.body
       });
       
       // Intentar enviar mensaje de error al usuario

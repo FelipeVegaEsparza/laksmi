@@ -448,11 +448,17 @@ export class MessageRouter {
       };
 
     } catch (error) {
-      logger.error('Message processing error:', error);
+      logger.error('❌ Message processing error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        clientId: request.clientId,
+        channel: request.channel,
+        contentLength: request.content?.length
+      });
       
       // Respuesta de fallback
       const fallbackResponse: AIResponse = {
-        message: 'Lo siento, ha ocurrido un error. Un agente humano te contactará pronto.',
+        message: 'Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.',
         needsHumanEscalation: true,
         metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
       };
