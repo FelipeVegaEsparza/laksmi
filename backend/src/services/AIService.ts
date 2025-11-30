@@ -140,6 +140,15 @@ FORMATO GENERAL:
         content: userMessage,
       });
 
+      // Log context size for debugging
+      const contextSize = JSON.stringify(messages).length;
+      logger.info('Calling OpenAI API', {
+        model: 'gpt-4o-mini',
+        messageCount: messages.length,
+        contextSize,
+        conversationId
+      });
+
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini', // Modelo más rápido, económico y estable
@@ -149,6 +158,12 @@ FORMATO GENERAL:
       });
 
       const aiMessage = completion.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
+      
+      logger.info('OpenAI response received', {
+        conversationId,
+        responseLength: aiMessage.length,
+        finishReason: completion.choices[0]?.finish_reason
+      });
 
       // Analyze if we should escalate
       const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
@@ -172,8 +187,14 @@ FORMATO GENERAL:
         suggestedActions: shouldEscalate ? ['escalate'] : undefined,
       };
 
-    } catch (error) {
-      logger.error('Error generating AI response:', error);
+    } catch (error: any) {
+      logger.error('Error generating AI response:', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        type: error.type,
+        conversationId
+      });
       return this.getFallbackResponse(userMessage);
     }
   }
