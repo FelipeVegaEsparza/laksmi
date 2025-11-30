@@ -128,9 +128,19 @@ async function startServer() {
       AlertService.initialize();
       logger.info('Alert service initialized');
       
-      // Inicializar WhatsApp Web (opcional, se puede iniciar desde el dashboard)
-      logger.info('WhatsApp Web service available (start from dashboard)');
-      // WhatsAppWebService.initialize(); // Descomentar para auto-iniciar
+      // Inicializar WhatsApp Web automáticamente
+      logger.info('Initializing WhatsApp Web service...');
+      try {
+        const { WhatsAppWebService } = await import('./services/WhatsAppWebService');
+        WhatsAppWebService.initialize().catch(error => {
+          logger.error('❌ Error initializing WhatsApp Web:', error);
+          logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
+        });
+        logger.info('✅ WhatsApp Web initialization started');
+      } catch (whatsappError) {
+        logger.error('❌ Error importing WhatsApp Web service:', whatsappError);
+        logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
+      }
       
       // Inicializar limpieza de eventos de seguridad
       setInterval(() => {
