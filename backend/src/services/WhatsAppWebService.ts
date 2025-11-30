@@ -59,7 +59,7 @@ export class WhatsAppWebService {
         this.qrCode = qr;
         this.connectionStatus = 'qr';
         this.statusMessage = 'Escanea el código QR con tu WhatsApp';
-        
+
         // Mostrar QR en consola para debugging
         qrcode.generate(qr, { small: true });
         logger.info('==========================================');
@@ -112,7 +112,7 @@ export class WhatsAppWebService {
         logger.info('🔔 EVENT: message listener triggered!');
         await this.handleIncomingMessage(message);
       });
-      
+
       logger.info('✅ Message listener registered');
 
       // Inicializar cliente
@@ -163,9 +163,9 @@ export class WhatsAppWebService {
     try {
       // Formatear número (agregar @c.us si no lo tiene)
       const chatId = to.includes('@c.us') ? to : `${to.replace(/[^\d]/g, '')}@c.us`;
-      
+
       const sentMessage = await this.client.sendMessage(chatId, message);
-      
+
       logger.info('✅ Mensaje enviado:', {
         to: chatId,
         messageId: sentMessage.id.id
@@ -223,12 +223,16 @@ export class WhatsAppWebService {
       logger.info('Payload:', JSON.stringify(payload, null, 2));
 
       const { WhatsAppMessageProcessor } = await import('./WhatsAppMessageProcessor');
+      logger.info('📞 Calling WhatsAppMessageProcessor.processIncomingMessage...');
       const result = await WhatsAppMessageProcessor.processIncomingMessage(payload as any);
 
       logger.info('📥 Resultado del procesador:', {
         success: result.success,
         hasResponse: !!result.response,
-        error: result.error
+        responseLength: result.response?.length,
+        error: result.error,
+        clientId: result.clientId,
+        conversationId: result.conversationId
       });
 
       if (result.success && result.response) {
@@ -247,14 +251,18 @@ export class WhatsAppWebService {
       logger.info('========================================');
 
     } catch (error: any) {
-      logger.error('❌ Error procesando mensaje en WhatsAppWebService:', {
-        message: error.message,
-        stack: error.stack,
+      logger.error('❌ ========== ERROR EN WHATSAPPWEBSERVICE ==========');
+      logger.error('Error procesando mensaje en WhatsAppWebService:', {
+        errorMessage: error.message,
+        errorStack: error.stack,
         errorType: error.constructor.name,
+        errorCode: error.code,
         from: message?.from,
-        body: message?.body
+        body: message?.body,
+        messageId: message?.id?.id
       });
-      
+      logger.error('====================================================');
+
       // Intentar enviar mensaje de error al usuario
       try {
         await message.reply('Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.');
@@ -270,25 +278,25 @@ export class WhatsAppWebService {
   static async disconnect(): Promise<void> {
     try {
       logger.info('🔌 Desconectando WhatsApp...');
-      
+
       if (this.client) {
         logger.info('Destroying client...');
         await this.client.destroy();
         logger.info('Client destroyed');
       }
-      
+
       this.client = null;
       this.isReady = false;
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado manualmente';
       this.qrCode = '';
-      
+
       // Eliminar la sesión guardada para permitir conectar con otro número
       try {
         const fs = require('fs');
         const path = require('path');
         const sessionPath = path.join(process.cwd(), 'whatsapp-session');
-        
+
         if (fs.existsSync(sessionPath)) {
           logger.info('🗑️  Eliminando sesión guardada...');
           fs.rmSync(sessionPath, { recursive: true, force: true });
@@ -298,21 +306,21 @@ export class WhatsAppWebService {
         logger.warn('⚠️  No se pudo eliminar la sesión:', sessionError.message);
         // No fallar si no se puede eliminar la sesión
       }
-      
+
       logger.info('✅ WhatsApp desconectado exitosamente');
     } catch (error: any) {
       logger.error('❌ Error al desconectar WhatsApp:', {
         message: error.message,
         stack: error.stack
       });
-      
+
       // Forzar desconexión aunque haya error
       this.client = null;
       this.isReady = false;
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado (con errores)';
       this.qrCode = '';
-      
+
       // Intentar eliminar sesión de todas formas
       try {
         const fs = require('fs');
@@ -324,7 +332,7 @@ export class WhatsAppWebService {
       } catch (sessionError) {
         // Ignorar errores al eliminar sesión
       }
-      
+
       // No lanzar el error, solo loguearlo
       logger.warn('⚠️  Desconexión forzada debido a error');
     }
