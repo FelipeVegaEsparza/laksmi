@@ -54,16 +54,27 @@ export class WhatsAppWebService {
 
       // Evento: QR Code generado
       this.client.on('qr', (qr) => {
-        logger.info('📱 Código QR generado');
+        logger.info('📱 ========== CÓDIGO QR GENERADO ==========');
+        logger.info('Por favor escanea el código QR con tu WhatsApp');
         this.qrCode = qr;
         this.connectionStatus = 'qr';
         this.statusMessage = 'Escanea el código QR con tu WhatsApp';
         
         // Mostrar QR en consola para debugging
         qrcode.generate(qr, { small: true });
+        logger.info('==========================================');
       });
 
-      // Evento: Cliente listo
+      // Evento: Cliente autenticado (se dispara DESPUÉS de escanear el QR)
+      this.client.on('authenticated', () => {
+        logger.info('🔐 ========== WHATSAPP AUTENTICADO ==========');
+        logger.info('QR escaneado exitosamente, esperando conexión...');
+        this.connectionStatus = 'connected';
+        this.statusMessage = 'Autenticación exitosa';
+        logger.info('==========================================');
+      });
+
+      // Evento: Cliente listo (se dispara cuando está completamente conectado)
       this.client.on('ready', () => {
         logger.info('✅ ========== WHATSAPP WEB READY ==========');
         logger.info('Client is now ready to send and receive messages');
@@ -75,11 +86,9 @@ export class WhatsAppWebService {
         this.qrCode = '';
       });
 
-      // Evento: Cliente autenticado
-      this.client.on('authenticated', () => {
-        logger.info('🔐 WhatsApp autenticado');
-        this.connectionStatus = 'connected';
-        this.statusMessage = 'Autenticación exitosa';
+      // Evento: Loading screen (progreso de conexión)
+      this.client.on('loading_screen', (percent, message) => {
+        logger.info(`⏳ Cargando WhatsApp Web: ${percent}% - ${message}`);
       });
 
       // Evento: Desconexión
