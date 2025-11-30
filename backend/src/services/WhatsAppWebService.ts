@@ -176,38 +176,73 @@ export class WhatsAppWebService {
     try {
       // Ignorar mensajes propios
       if (message.fromMe) {
+        logger.info('⏭️  Ignorando mensaje propio');
         return;
       }
 
-      logger.info('📨 Mensaje recibido:', {
-        from: message.from,
-        body: message.body,
-        type: message.type
+      logger.info('📨 ========== MENSAJE RECIBIDO ==========');
+      logger.info('From:', message.from);
+      logger.info('Body:', message.body);
+      logger.info('Type:', message.type);
+      logger.info('ID:', message.id.id);
+
+      // Obtener información del contacto
+      const contact = await message.getContact();
+      logger.info('Contact:', {
+        name: contact.pushname,
+        number: contact.number
       });
 
-      // Aquí se integrará con el procesador de mensajes existente
-      // Por ahora solo logueamos
-      const { WhatsAppMessageProcessor } = await import('./WhatsAppMessageProcessor');
-      
       // Convertir el mensaje al formato que espera el procesador
+      const phoneNumber = message.from.replace('@c.us', '').replace('@s.whatsapp.net', '');
       const payload = {
-        From: `whatsapp:${message.from.replace('@c.us', '')}`,
-        Body: message.body,
+        From: `whatsapp:+${phoneNumber}`,
+        Body: message.body || '',
         MessageSid: message.id.id,
-        To: 'whatsapp:+tu_numero', // Se puede obtener del cliente
-        ProfileName: (await message.getContact()).pushname || 'Usuario'
+        To: 'whatsapp:+56912345678', // Número de la clínica (no se usa realmente)
+        ProfileName: contact.pushname || 'Usuario',
+        NumMedia: '0'
       };
 
+      logger.info('📤 Enviando a WhatsAppMessageProcessor...');
+      logger.info('Payload:', JSON.stringify(payload, null, 2));
+
+      const { WhatsAppMessageProcessor } = await import('./WhatsAppMessageProcessor');
       const result = await WhatsAppMessageProcessor.processIncomingMessage(payload as any);
+
+      logger.info('📥 Resultado del procesador:', {
+        success: result.success,
+        hasResponse: !!result.response,
+        error: result.error
+      });
 
       if (result.success && result.response) {
         // Enviar respuesta
+        logger.info('💬 Enviando respuesta:', result.response.substring(0, 100) + '...');
         await message.reply(result.response);
         logger.info('✅ Respuesta enviada automáticamente');
+      } else if (result.error) {
+        logger.error('❌ Error en el procesador:', result.error);
+        // Enviar mensaje de error al usuario
+        await message.reply('Lo siento, ha ocurrido un error. Un especialista te contactará pronto.');
+      } else {
+        logger.warn('⚠️  No se generó respuesta');
       }
 
-    } catch (error) {
-      logger.error('❌ Error procesando mensaje:', error);
+      logger.info('========================================');
+
+    } catch (error: any) {
+      logger.error('❌ Error procesando mensaje:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Intentar enviar mensaje de error al usuario
+      try {
+        await message.reply('Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.');
+      } catch (replyError) {
+        logger.error('No se pudo enviar mensaje de error al usuario:', replyError);
+      }
     }
   }
 
