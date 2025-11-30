@@ -589,7 +589,7 @@ export class ChatAuthService {
         };
       }
 
-      // Obtener cliente
+      // Obtener cliente actual
       const client = await ClientModel.findById(clientId);
       if (!client) {
         return {
@@ -598,9 +598,55 @@ export class ChatAuthService {
         };
       }
 
-      // Guardar email en el perfil del cliente
-      await ClientModel.update(clientId, { email: trimmedEmail });
-      logger.info(`Email saved for client ${clientId}: ${this.maskEmail(trimmedEmail)}`);
+      // Verificar si ya existe otro cliente con este email
+      const existingClient = await ClientModel.findByEmail(trimmedEmail);
+      
+      if (existingClient && existingClient.id !== clientId) {
+        // Ya existe otro cliente con este email
+        logger.warn(`Email ${trimmedEmail} already exists for client ${existingClient.id}, current client is ${clientId}`);
+        
+        // Verificar si el cliente existente tiene un teléfono real o es temporal
+        const isExistingClientTemp = existingClient.phone.startsWith('web_');
+        const isCurrentClientTemp = client.phone.startsWith('web_');
+        
+        if (isExistingClientTemp && !isCurrentClientTemp) {
+          // El cliente existente es temporal, el actual es real
+          // Actualizar el email del cliente actual (el real)
+          await ClientModel.update(clientId, { email: trimmedEmail });
+          logger.info(`Email ${this.maskEmail(trimmedEmail)} assigned to real client ${clientId} (existing was temp)`);
+        } else if (!isExistingClientTemp && isCurrentClientTemp) {
+          // El cliente existente es real, el actual es temporal
+          // Usar el cliente existente en lugar del actual
+          logger.info(`Using existing real client ${existingClient.id} instead of temp client ${clientId}`);
+          
+          // Actualizar el contexto para usar el cliente existente
+          await ContextManager.setVariable(conversationId, 'pendingClientId', existingClient.id);
+          
+          // Continuar con el cliente existente
+          clientId = existingClient.id;
+        } else {
+          // Ambos son reales o ambos son temporales
+          // Usar el que tenga más reservas
+          const { BookingModel } = await import('../../models/Booking');
+          const existingBookings = await BookingModel.findAll({ clientId: existingClient.id, limit: 1 });
+          const currentBookings = await BookingModel.findAll({ clientId: clientId, limit: 1 });
+          
+          if (existingBookings.bookings.length > currentBookings.bookings.length) {
+            // El cliente existente tiene más reservas, usarlo
+            logger.info(`Using existing client ${existingClient.id} (has more bookings)`);
+            await ContextManager.setVariable(conversationId, 'pendingClientId', existingClient.id);
+            clientId = existingClient.id;
+          } else {
+            // El cliente actual tiene más reservas o igual, mantenerlo
+            await ClientModel.update(clientId, { email: trimmedEmail });
+            logger.info(`Email ${this.maskEmail(trimmedEmail)} assigned to current client ${clientId}`);
+          }
+        }
+      } else {
+        // No hay conflicto, guardar email normalmente
+        await ClientModel.update(clientId, { email: trimmedEmail });
+        logger.info(`Email saved for client ${clientId}: ${this.maskEmail(trimmedEmail)}`);
+      }
 
       // Limpiar flag de espera de email
       await ContextManager.setVariable(conversationId, 'awaitingEmailInput', false);
@@ -612,10 +658,10 @@ export class ChatAuthService {
       const verificationCode = this.generateVerificationCode();
       const verificationToken = this.generateVerificationToken();
 
-      // Guardar código con expiración de 10 minutos
+      // Guardar código con expiración de 10 minutos (usar el clientId actualizado)
       this.verificationCodes.set(verificationToken, {
         code: verificationCode,
-        clientId: client.id,
+        clientId: clientId,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         attempts: 0
       });

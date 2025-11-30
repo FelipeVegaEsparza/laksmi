@@ -46,10 +46,10 @@ export class KnowledgeService {
    * This method formats knowledge base results for the AI to use
    */
   static async getContextForAI(query: string, conversationId?: string): Promise<string> {
+    let context = '';
+    
+    // 1. Intentar buscar en la base de conocimientos (pero no fallar si hay error)
     try {
-      let context = '';
-      
-      // 1. Buscar en la base de conocimientos
       const searchResults = await this.search({
         query,
         conversationId,
@@ -63,12 +63,16 @@ export class KnowledgeService {
           context += `   ${result.content}\n\n`;
         });
       }
-      
-      // 2. SIEMPRE incluir lista de servicios CON TODA LA INFORMACIÓN
-      try {
-        const { ServiceService } = await import('./ServiceService');
-        const result = await ServiceService.getServices({ isActive: true, limit: 100 });
-        const services = result.services;
+    } catch (error) {
+      logger.warn('Error searching knowledge base, continuing with services:', error);
+      // No fallar, continuar con servicios
+    }
+    
+    // 2. SIEMPRE incluir lista de servicios CON TODA LA INFORMACIÓN
+    try {
+      const { ServiceService } = await import('./ServiceService');
+      const result = await ServiceService.getServices({ isActive: true, limit: 100 });
+      const services = result.services;
         
         if (services && services.length > 0) {
           context += '\n\n═══════════════════════════════════════════════════\n';
@@ -168,15 +172,13 @@ export class KnowledgeService {
         logger.warn('Error fetching products for AI context:', error);
       }
       
+      // Si no hay contexto después de intentar cargar todo, retornar mensaje apropiado
       if (!context) {
+        logger.warn('No context generated for AI - no services or products found');
         return 'No se encontró información específica en la base de conocimientos. Por favor, solicita hablar con un especialista para obtener información precisa.';
       }
       
       return context;
-    } catch (error) {
-      logger.error('Error getting context for AI:', error);
-      return 'Error al buscar información. Por favor, solicita hablar con un especialista.';
-    }
   }
 
   /**

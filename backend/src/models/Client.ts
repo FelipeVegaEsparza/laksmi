@@ -24,6 +24,14 @@ export class ClientModel {
   }
 
   static async create(clientData: CreateClientRequest): Promise<Client> {
+    // Primero verificar si ya existe un cliente con este teléfono
+    const existingClient = await this.findByPhone(clientData.phone);
+    if (existingClient) {
+      // Si ya existe, retornar el cliente existente en lugar de crear uno nuevo
+      // Esto previene duplicados incluso si hay condiciones de carrera
+      return existingClient;
+    }
+
     const insertData = {
       phone: clientData.phone,
       name: clientData.name,
@@ -33,18 +41,30 @@ export class ClientModel {
       loyalty_points: 0
     };
 
-    await db('clients').insert(insertData);
+    try {
+      await db('clients').insert(insertData);
 
-    // Buscar el cliente recién creado
-    const client = await db('clients')
-      .where({ phone: clientData.phone })
-      .first();
-    
-    if (!client) {
-      throw new Error('Error creating client');
+      // Buscar el cliente recién creado
+      const client = await db('clients')
+        .where({ phone: clientData.phone })
+        .first();
+      
+      if (!client) {
+        throw new Error('Error creating client');
+      }
+
+      return this.formatClient(client);
+    } catch (error: any) {
+      // Si hay un error de clave duplicada (código 1062 en MySQL)
+      // intentar obtener el cliente existente
+      if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+        const client = await this.findByPhone(clientData.phone);
+        if (client) {
+          return client;
+        }
+      }
+      throw error;
     }
-
-    return this.formatClient(client);
   }
 
   static async update(id: string, updates: UpdateClientRequest): Promise<Client | null> {

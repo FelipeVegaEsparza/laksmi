@@ -25,7 +25,7 @@ export class BookingManagementService {
 
       // Filtrar solo futuras y con estados activos
       const now = new Date();
-      const activeStatuses = ['confirmed', 'pending', 'pending_payment'];
+      const activeStatuses = ['confirmed', 'pending_payment'];
       
       const bookings = allStatuses.bookings.filter(booking => 
         new Date(booking.dateTime) > now &&
@@ -55,6 +55,7 @@ export class BookingManagementService {
 
   /**
    * Confirmar una reserva
+   * No requiere autenticación (según Requirements 5.2)
    */
   static async confirmBooking(bookingId: string, clientId: string): Promise<BookingManagementResult> {
     try {
@@ -74,6 +75,7 @@ export class BookingManagementService {
         };
       }
 
+      // Validar estado de la reserva antes de confirmar
       if (booking.status === 'confirmed') {
         return {
           success: true,
@@ -96,7 +98,16 @@ export class BookingManagementService {
         };
       }
 
-      // Confirmar la reserva
+      // Solo se pueden confirmar reservas en estado: pending_payment
+      const confirmableStatuses = ['pending_payment'];
+      if (!confirmableStatuses.includes(booking.status)) {
+        return {
+          success: false,
+          message: `No puedo confirmar una reserva con estado "${booking.status}".`
+        };
+      }
+
+      // Confirmar la reserva (sin requerir autenticación)
       const updatedBooking = await BookingService.updateBooking(bookingId, {
         status: 'confirmed'
       });
@@ -132,6 +143,7 @@ export class BookingManagementService {
 
   /**
    * Cancelar una reserva
+   * Requiere autenticación previa (verificada por el caller)
    */
   static async cancelBooking(
     bookingId: string,
@@ -155,6 +167,7 @@ export class BookingManagementService {
         };
       }
 
+      // Validar estado de la reserva antes de cancelar
       if (booking.status === 'cancelled') {
         return {
           success: true,
@@ -167,6 +180,15 @@ export class BookingManagementService {
         return {
           success: false,
           message: 'No puedo cancelar una reserva que ya fue completada.'
+        };
+      }
+
+      // Solo se pueden cancelar reservas en estados: pending_payment, confirmed
+      const cancellableStatuses = ['pending_payment', 'confirmed'];
+      if (!cancellableStatuses.includes(booking.status)) {
+        return {
+          success: false,
+          message: `No puedo cancelar una reserva con estado "${booking.status}".`
         };
       }
 
