@@ -325,7 +325,8 @@ export class MessageRouter {
           // Si hay link de reserva, agregarlo al mensaje
           let finalMessage = aiResult.message;
           if (bookingLink) {
-            finalMessage += `\n\n🔗 **Reserva aquí:** ${bookingLink}`;
+            // Formato simple para que WhatsApp detecte el link automáticamente
+            finalMessage += `\n\n🔗 Reserva aquí:\n${bookingLink}`;
           }
           
           aiResponse = {
