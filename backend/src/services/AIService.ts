@@ -142,10 +142,10 @@ FORMATO GENERAL:
 
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o-mini', // Modelo más rápido, económico y estable
         messages: messages as any,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 800, // Aumentado para respuestas más completas
       });
 
       const aiMessage = completion.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
