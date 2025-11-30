@@ -65,7 +65,10 @@ export class WhatsAppWebService {
 
       // Evento: Cliente listo
       this.client.on('ready', () => {
-        logger.info('✅ WhatsApp Web conectado y listo');
+        logger.info('✅ ========== WHATSAPP WEB READY ==========');
+        logger.info('Client is now ready to send and receive messages');
+        logger.info('Message listener is active and waiting for messages');
+        logger.info('==========================================');
         this.isReady = true;
         this.connectionStatus = 'connected';
         this.statusMessage = 'WhatsApp conectado correctamente';
@@ -97,8 +100,11 @@ export class WhatsAppWebService {
 
       // Evento: Mensaje recibido
       this.client.on('message', async (message: Message) => {
+        logger.info('🔔 EVENT: message listener triggered!');
         await this.handleIncomingMessage(message);
       });
+      
+      logger.info('✅ Message listener registered');
 
       // Inicializar cliente
       logger.info('Calling client.initialize()...');
