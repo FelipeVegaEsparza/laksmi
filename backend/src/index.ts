@@ -132,13 +132,10 @@ async function startServer() {
       logger.info('Initializing WhatsApp Web service...');
       try {
         const { WhatsAppWebService } = await import('./services/WhatsAppWebService');
-        WhatsAppWebService.initialize().catch(error => {
-          logger.error('❌ Error initializing WhatsApp Web:', error);
-          logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
-        });
-        logger.info('✅ WhatsApp Web initialization started');
+        await WhatsAppWebService.initialize();
+        logger.info('✅ WhatsApp Web initialization completed');
       } catch (whatsappError) {
-        logger.error('❌ Error importing WhatsApp Web service:', whatsappError);
+        logger.error('❌ Error initializing WhatsApp Web:', whatsappError);
         logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
       }
       
