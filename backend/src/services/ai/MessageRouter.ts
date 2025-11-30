@@ -326,7 +326,8 @@ export class MessageRouter {
           let finalMessage = aiResult.message;
           if (bookingLink) {
             // Formato simple para que WhatsApp detecte el link automáticamente
-            finalMessage += `\n\n🔗 Reserva aquí:\n${bookingLink}`;
+            // Usar salto de línea doble antes del link para asegurar que WhatsApp lo detecte
+            finalMessage += `\n\n📅 Para reservar tu cita, haz clic aquí:\n\n${bookingLink}`;
           }
           
           aiResponse = {
