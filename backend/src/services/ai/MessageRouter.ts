@@ -345,8 +345,10 @@ export class MessageRouter {
             conversation.context
           );
 
+          // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
+          let finalMessage = aiResult.message.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
+          
           // Si hay link de reserva, agregarlo al mensaje
-          let finalMessage = aiResult.message;
           if (bookingLink) {
             // Formato simple para que WhatsApp detecte el link automáticamente
             // Usar salto de línea doble antes del link para asegurar que WhatsApp lo detecte
@@ -954,10 +956,34 @@ export class MessageRouter {
       let serviceId: string | null = null;
       let serviceName: string | null = null;
 
-      // 1. Buscar en el mensaje actual
       const { ServiceService } = await import('../ServiceService');
       const result = await ServiceService.getServices({ isActive: true, limit: 100 });
       const services = result.services;
+
+      // PRIORIDAD 0: Buscar ID de servicio en formato especial [SERVICE_ID:xxx] en mensajes del AI
+      if (context.lastMessages && context.lastMessages.length > 0) {
+        const recentAIMessages = context.lastMessages
+          .filter((msg: any) => msg.senderType === 'ai')
+          .slice(-3)
+          .reverse();
+
+        for (const aiMsg of recentAIMessages) {
+          const serviceIdMatch = aiMsg.content.match(/\[SERVICE_ID:([^\]]+)\]/);
+          if (serviceIdMatch) {
+            const extractedId = serviceIdMatch[1];
+            const matchingService = services.find((s: any) => s.id === extractedId);
+            
+            if (matchingService) {
+              serviceId = matchingService.id;
+              serviceName = matchingService.name;
+              logger.info('✅ SERVICE_ID found in AI message:', { serviceId, serviceName });
+              break;
+            }
+          }
+        }
+      }
+
+      // 1. Si no se encontró con SERVICE_ID, buscar en el mensaje actual del usuario
 
       // Buscar coincidencia en el mensaje
       for (const service of services) {
