@@ -28,18 +28,25 @@ export class BookingModel {
       throw new Error('El horario seleccionado ya no está disponible');
     }
 
-    const insertData = {
+    const status = bookingData.status || 'pending_payment';
+    
+    const insertData: any = {
       client_id: bookingData.clientId,
       service_id: bookingData.serviceId,
       professional_id: professionalId,
       date_time: bookingData.dateTime,
       duration: service.duration,
-      status: bookingData.status || 'pending_payment', // Todas las reservas inician como pendientes de pago
+      status: status,
       notes: bookingData.notes || null,
       payment_amount: bookingData.paymentAmount || service.price,
       payment_method: bookingData.paymentMethod || null,
       payment_notes: bookingData.paymentNotes || null
     };
+
+    // Si se crea con status confirmed, establecer paid_at
+    if (status === 'confirmed') {
+      insertData.paid_at = new Date();
+    }
 
     console.log('📝 Insertando reserva:', insertData);
 
