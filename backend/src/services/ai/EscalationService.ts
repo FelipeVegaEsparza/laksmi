@@ -17,12 +17,13 @@ import logger from '../../utils/logger';
 export class EscalationService {
   // Configuración de escalación
   private static config = {
-    confidenceThreshold: 0.4,  // Reducido de 0.6 a 0.4 para ser menos sensible
-    maxFailedAttempts: 5,  // Aumentado de 3 a 5
+    confidenceThreshold: 0.3,  // Reducido de 0.4 a 0.3 para ser AÚN menos sensible
+    maxFailedAttempts: 8,  // Aumentado de 5 a 8 para dar más oportunidades
     complexityKeywords: [
-      'problema', 'queja', 'error', 'mal servicio', 'insatisfecho',
-      'reembolso', 'cancelar todo', 'gerente', 'supervisor',
-      'legal', 'demanda', 'abogado', 'denuncia'
+      // ⚠️ REMOVIDAS palabras comunes que causan falsos positivos: 'problema', 'queja', 'error'
+      'mal servicio', 'muy insatisfecho',
+      'quiero reembolso', 'cancelar todo', 'hablar con gerente', 'hablar con supervisor',
+      'demanda legal', 'abogado', 'denuncia formal'
     ],
     // Palabras clave para detectar casos complejos
     complexCaseKeywords: [
@@ -432,10 +433,14 @@ export class EscalationService {
   // Métodos privados de detección
 
   private static detectComplaint(message: string): boolean {
+    // ⚠️ IMPORTANTE: Solo detectar quejas REALES, no palabras comunes
+    // Removidas palabras que se usan en contextos normales: 'problema'
     const complaintKeywords = [
-      'queja', 'problema', 'mal servicio', 'insatisfecho', 'molesto',
-      'terrible', 'horrible', 'pésimo', 'fatal', 'desastre',
-      'reembolso', 'devolver dinero', 'cancelar todo'
+      'queja formal', 'mal servicio', 'muy insatisfecho', 'muy molesto',
+      'terrible servicio', 'horrible servicio', 'pésimo servicio', 
+      'fatal servicio', 'desastre de servicio',
+      'quiero reembolso', 'devolver dinero', 'cancelar todo',
+      'hablar con gerente', 'hablar con supervisor', 'quiero quejarme'
     ];
 
     const lowerMessage = message.toLowerCase();
