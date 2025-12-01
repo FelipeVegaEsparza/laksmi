@@ -30,6 +30,7 @@ import {
   Tooltip,
   Switch,
   FormControlLabel,
+  Autocomplete,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -1032,16 +1033,34 @@ export default function KnowledgeBasePage() {
               error={selectedItem?.answer && selectedItem.answer.length < 20}
             />
             
-            <TextField
-              label="Palabras clave (separadas por coma)"
-              value={selectedItem?.keywords?.join(', ') || ''}
-              onChange={(e) => setSelectedItem({
-                ...selectedItem,
-                keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k)
-              })}
-              fullWidth
-              helperText="Ej: precio, costo, tratamiento facial - Ayuda al chatbot a encontrar esta FAQ"
-              placeholder="palabra1, palabra2, palabra3"
+            <Autocomplete
+              multiple
+              freeSolo
+              options={[]}
+              value={selectedItem?.keywords || []}
+              onChange={(_, newValue) => {
+                setSelectedItem({
+                  ...selectedItem,
+                  keywords: newValue
+                })
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    label={option}
+                    {...getTagProps({ index })}
+                    size="small"
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Palabras clave"
+                  placeholder="Escribe y presiona Enter"
+                  helperText="Ej: precio, costo, tratamiento facial - Ayuda al chatbot a encontrar esta FAQ"
+                />
+              )}
             />
             
             <FormControlLabel
