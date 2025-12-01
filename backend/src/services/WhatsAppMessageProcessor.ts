@@ -31,7 +31,7 @@ export interface ProcessedWhatsAppMessage {
 export class WhatsAppMessageProcessor {
   private static readonly SUPPORTED_MEDIA_TYPES = [
     'image/jpeg',
-    'image/png', 
+    'image/png',
     'image/gif',
     'image/webp',
     'application/pdf',
@@ -57,7 +57,7 @@ export class WhatsAppMessageProcessor {
     try {
       // Extraer información básica del payload
       const messageInfo = this.extractMessageInfo(payload);
-      
+
       // Ignorar mensajes de estado o vacíos
       if (this.shouldIgnoreMessage(payload)) {
         logger.info('Message ignored (status update or empty)', {
@@ -70,7 +70,7 @@ export class WhatsAppMessageProcessor {
 
       // Procesar mensaje y obtener/crear cliente
       const processedMessage = await this.processMessage(payload);
-      
+
       // Descargar y procesar multimedia si existe
       if (payload.MediaUrl0) {
         processedMessage.mediaInfo = await this.processMedia(
@@ -148,9 +148,17 @@ export class WhatsAppMessageProcessor {
       };
 
     } catch (error: any) {
-      logger.error('Error processing WhatsApp message:', {
-        error: error.message,
-        stack: error.stack,
+      logger.error('❌ Message processing error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        messageSid: payload.MessageSid,
+        from: payload.From
+      });
+
+      // LOG DIRECTO A CONSOLA PARA DEBUGGING
+      console.error('🚨 CRITICAL MESSAGE PROCESSOR ERROR:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
         messageSid: payload.MessageSid,
         from: payload.From
       });
@@ -172,23 +180,23 @@ export class WhatsAppMessageProcessor {
     try {
       // Normalizar número de teléfono
       const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-      
+
       // Buscar cliente existente
       let client = await ClientModel.findByPhone(normalizedPhone);
-      
+
       if (client) {
         logger.info('Existing client identified', {
           clientId: client.id,
           phone: normalizedPhone,
           name: client.name
         });
-        
+
         return { client, isNewClient: false };
       }
 
       // Crear nuevo cliente
       const clientName = profileName || `Cliente WhatsApp ${normalizedPhone.slice(-4)}`;
-      
+
       client = await ClientModel.create({
         phone: normalizedPhone,
         name: clientName,
@@ -223,7 +231,7 @@ export class WhatsAppMessageProcessor {
     try {
       // Buscar conversación activa de WhatsApp
       const conversation = await ConversationModel.findByClientAndChannel(clientId, 'whatsapp');
-      
+
       if (!conversation) {
         return {
           hasActiveConversation: false,
@@ -286,7 +294,7 @@ export class WhatsAppMessageProcessor {
 
       // Descargar archivo
       const response = await fetch(mediaUrl);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to download media: ${response.statusText}`);
       }
@@ -395,7 +403,7 @@ export class WhatsAppMessageProcessor {
 
   private static async processMessage(payload: TwilioWebhookPayload): Promise<ProcessedWhatsAppMessage> {
     const messageInfo = this.extractMessageInfo(payload);
-    
+
     // Identificar o crear cliente
     const { client, isNewClient } = await this.identifyOrCreateClient(
       messageInfo.phoneNumber,
@@ -416,10 +424,10 @@ export class WhatsAppMessageProcessor {
   private static normalizePhoneNumber(phoneNumber: string): string {
     // Remover prefijo whatsapp: si existe
     let normalized = phoneNumber.replace('whatsapp:', '');
-    
+
     // Remover espacios y caracteres especiales
     normalized = normalized.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-    
+
     // Asegurar que tenga código de país
     if (!normalized.startsWith('+')) {
       if (normalized.startsWith('1') && normalized.length === 11) {
@@ -430,7 +438,7 @@ export class WhatsAppMessageProcessor {
         normalized = '+' + normalized;
       }
     }
-    
+
     return normalized;
   }
 
@@ -527,10 +535,10 @@ export class WhatsAppMessageProcessor {
     try {
       const stats = await fs.stat(filePath);
       const buffer = await fs.readFile(filePath);
-      
+
       // Generar hash para integridad
       const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-      
+
       // Detectar tipo de contenido por magic bytes
       const contentType = this.detectContentType(buffer);
 
@@ -550,23 +558,23 @@ export class WhatsAppMessageProcessor {
   private static detectContentType(buffer: Buffer): string {
     // Magic bytes para detección de tipo de archivo
     const magicBytes = buffer.subarray(0, 8);
-    
+
     // JPEG
     if (magicBytes[0] === 0xFF && magicBytes[1] === 0xD8) {
       return 'image/jpeg';
     }
-    
+
     // PNG
-    if (magicBytes[0] === 0x89 && magicBytes[1] === 0x50 && 
-        magicBytes[2] === 0x4E && magicBytes[3] === 0x47) {
+    if (magicBytes[0] === 0x89 && magicBytes[1] === 0x50 &&
+      magicBytes[2] === 0x4E && magicBytes[3] === 0x47) {
       return 'image/png';
     }
-    
+
     // PDF
     if (buffer.toString('ascii', 0, 4) === '%PDF') {
       return 'application/pdf';
     }
-    
+
     // GIF
     if (buffer.toString('ascii', 0, 3) === 'GIF') {
       return 'image/gif';
