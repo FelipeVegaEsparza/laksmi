@@ -966,6 +966,7 @@ export default function BookingsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailsOpen(false)}>Cerrar</Button>
+          <Box sx={{ flex: 1 }} />
           {selectedBooking?.status === 'confirmed' && (
             <>
               <Button
@@ -988,6 +989,18 @@ export default function BookingsPage() {
               </Button>
             </>
           )}
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => {
+              if (selectedBooking) {
+                handleDeleteBooking(selectedBooking.id)
+              }
+            }}
+          >
+            Eliminar
+          </Button>
           <Button
             variant="contained"
             onClick={() => {
