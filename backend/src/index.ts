@@ -12,6 +12,8 @@ import { SecurityAuditService } from './services/SecurityAuditService';
 import { ConsentService } from './services/ConsentService';
 import app from './app'; // Importar la aplicación configurada
 
+console.log('🚨🚨🚨 INDEX MODULE LOADED 🚨🚨🚨');
+
 const server = createServer(app);
 
 // Función para inicializar el servidor
@@ -22,7 +24,7 @@ async function startServer() {
     logger.info(`Platform: ${process.platform}`);
     logger.info(`Environment: ${config.nodeEnv}`);
     logger.info(`Port configured: ${config.port}`);
-    
+
     // Redis deshabilitado temporalmente
     logger.info('Redis disabled - running without cache');
 
@@ -60,28 +62,28 @@ async function startServer() {
 
     // Iniciar servidor
     logger.info(`Attempting to start server on port ${config.port}...`);
-    
+
     // Agregar timeout para detectar si el servidor no inicia
     const startTimeout = setTimeout(() => {
       logger.error('❌ Server failed to start within 30 seconds');
       process.exit(1);
     }, 30000);
-    
+
     // Inicializar servicio de Twilio con configuración de BD ANTES de iniciar el servidor
     logger.info('Initializing Twilio service...');
     try {
       logger.info('Importing CompanySettingsModel...');
       const { CompanySettingsModel } = await import('./models/CompanySettings');
-      
+
       logger.info('Fetching Twilio settings from database...');
       const settings = await CompanySettingsModel.getSettings();
-      
+
       logger.info('Settings fetched:', {
         hasSettings: !!settings,
         hasAccountSid: !!settings?.twilioAccountSid,
         hasAuthToken: !!settings?.twilioAuthToken
       });
-      
+
       if (settings && settings.twilioAccountSid && settings.twilioAuthToken) {
         TwilioService.updateConfig({
           accountSid: settings.twilioAccountSid,
@@ -104,7 +106,7 @@ async function startServer() {
       // Inicializar con config por defecto para que no falle
       TwilioService.initialize();
     }
-    
+
     logger.info('Twilio initialization completed, starting HTTP server...');
 
     server.listen(config.port, '0.0.0.0', async () => {
@@ -115,19 +117,19 @@ async function startServer() {
       logger.info(`📦 API Version: ${config.apiVersion}`);
       logger.info(`❤️  Health check: http://localhost:${config.port}/health`);
       logger.info(`📊 API Base: http://localhost:${config.port}/api/${config.apiVersion}`);
-      
+
       // Iniciar servicio de programación de notificaciones
       SchedulerService.start();
       logger.info('Notification scheduler service started');
-      
+
       // Iniciar limpieza automática de contextos de IA
       ContextManager.startCleanupInterval();
       logger.info('AI context cleanup service started');
-      
+
       // Inicializar servicio de alertas
       AlertService.initialize();
       logger.info('Alert service initialized');
-      
+
       // Inicializar WhatsApp Web automáticamente
       logger.info('Initializing WhatsApp Web service...');
       try {
@@ -138,13 +140,13 @@ async function startServer() {
         logger.error('❌ Error initializing WhatsApp Web:', whatsappError);
         logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
       }
-      
+
       // Inicializar limpieza de eventos de seguridad
       setInterval(() => {
         SecurityAuditService.cleanupOldEvents();
       }, 60 * 60 * 1000); // Cleanup every hour
       logger.info('Security audit cleanup service started');
-      
+
       // Inicializar limpieza de consentimientos expirados
       setInterval(() => {
         ConsentService.cleanupExpiredConsents();

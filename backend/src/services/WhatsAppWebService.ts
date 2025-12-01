@@ -2,6 +2,8 @@ import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import logger from '../utils/logger';
 
+console.log('🚨🚨🚨 WhatsAppWebService MODULE LOADED 🚨🚨🚨');
+
 export class WhatsAppWebService {
   private static client: Client | null = null;
   private static isReady: boolean = false;

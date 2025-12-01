@@ -34,19 +34,6 @@ import securityRoutes from './routes/security';
 import gdprRoutes from './routes/gdpr';
 import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
 import categoryRoutes from './routes/categories';
-import knowledgeRoutes from './routes/knowledge';
-import dashboardRoutes from './routes/dashboard';
-import companySettingsRoutes from './routes/companySettings';
-import bannerRoutes from './routes/banners';
-import featuredImagesRoutes from './routes/featuredImages';
-import contactRoutes from './routes/contact';
-import settingsRoutes from './routes/settings';
-
-const app: express.Application = express();
-
-// Trust proxy para Easypanel/reverse proxy
-app.set('trust proxy', true);
-
 logger.info('🔧 Configurando aplicación Express...');
 
 // CONFIGURACIÓN CORS LIMPIA - UNA SOLA VEZ
