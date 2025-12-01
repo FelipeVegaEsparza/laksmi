@@ -496,9 +496,10 @@ export class BookingModel {
   private static async isTimeSlotAvailable(dateTime: Date, duration: number): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
-    // Buscar citas confirmadas que se solapen con este horario
+    // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
+    // No incluimos cancelled, completed o no_show porque esos horarios están liberados
     const conflictingBookings = await db('bookings')
-      .where('status', 'confirmed')
+      .whereIn('status', ['confirmed', 'pending_payment'])
       .where(function() {
         this.where(function() {
           // La cita existente empieza antes y termina después del inicio del slot
