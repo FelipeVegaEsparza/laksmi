@@ -901,17 +901,37 @@ export class MessageRouter {
     context: any
   ): Promise<string | null> {
     try {
-      // Detectar confirmación de reserva
-      const confirmationKeywords = [
-        'sí', 'si', 'claro', 'por supuesto', 'perfecto', 'ok', 'vale',
-        'de acuerdo', 'quiero', 'me gustaría', 'agendar', 'reservar'
+      const messageLower = userMessage.toLowerCase();
+
+      // ⚠️ REGLA CRÍTICA: NO generar link si el usuario está en fase de exploración
+      // Detectar si el usuario está preguntando por opciones o información general
+      const explorationKeywords = [
+        'opciones', 'cuáles', 'que tienen', 'qué tienen', 'información',
+        'cuánto cuesta', 'precio', 'cuánto vale', 'me gustaría saber',
+        'quisiera saber', 'dime', 'cuéntame', 'explícame'
       ];
 
-      const messageLower = userMessage.toLowerCase();
-      const isConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
+      const isExploring = explorationKeywords.some(keyword => messageLower.includes(keyword));
 
-      // Solo generar link si hay confirmación o intención de reserva
-      if (!isConfirmation && intent !== 'booking_request') {
+      if (isExploring) {
+        logger.info('🚫 User is exploring options, NOT generating booking link');
+        return null;
+      }
+
+      // Detectar confirmación EXPLÍCITA de reserva
+      // Solo palabras que indican confirmación clara, NO palabras de consulta inicial
+      const confirmationKeywords = [
+        'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
+        'quiero reservar', 'quiero agendar', 'quiero ese', 'quiero esa',
+        'me interesa ese', 'me interesa esa', 'reservar ese', 'agendar ese',
+        'confirmo', 'adelante', 'proceder', 'continuar con la reserva'
+      ];
+
+      const isExplicitConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
+
+      // Solo generar link si hay confirmación EXPLÍCITA
+      if (!isExplicitConfirmation && intent !== 'booking_request') {
+        logger.info('🚫 No explicit confirmation detected, NOT generating booking link');
         return null;
       }
 
