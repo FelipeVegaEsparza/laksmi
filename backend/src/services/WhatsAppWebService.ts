@@ -203,12 +203,21 @@ export class WhatsAppWebService {
       logger.info('Type:', message.type);
       logger.info('ID:', message.id.id);
 
-      // Obtener información del contacto
-      const contact = await message.getContact();
-      logger.info('Contact:', {
-        name: contact.pushname,
-        number: contact.number
-      });
+      // Obtener información del contacto (con fallback por errores de versión de WA)
+      let contact: any;
+      try {
+        contact = await message.getContact();
+        logger.info('Contact:', {
+          name: contact.pushname,
+          number: contact.number
+        });
+      } catch (contactError) {
+        logger.warn('⚠️ No se pudo obtener info del contacto (usando fallback):', contactError);
+        contact = {
+          pushname: (message as any)._data?.notifyName || 'Usuario WhatsApp',
+          number: message.from.replace(/[^\d]/g, '')
+        };
+      }
 
       // Convertir el mensaje al formato que espera el procesador
       const phoneNumber = message.from.replace('@c.us', '').replace('@s.whatsapp.net', '');
