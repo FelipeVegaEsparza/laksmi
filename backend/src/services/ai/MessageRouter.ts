@@ -22,18 +22,18 @@ export class MessageRouter {
    */
   static async processMessage(request: ProcessMessageRequest): Promise<ProcessMessageResponse> {
     const startTime = Date.now();
-    
+
     logger.info('🔵 Processing message START', {
       clientId: request.clientId,
       channel: request.channel,
       contentLength: request.content?.length,
       hasMedia: !!request.mediaUrl
     });
-    
+
     try {
       // Validar entrada
       this.validateRequest(request);
-      
+
       // Verificar rate limiting
       if (!this.checkRateLimit(request.clientId)) {
         throw new Error('Rate limit exceeded. Please wait before sending another message.');
@@ -46,9 +46,9 @@ export class MessageRouter {
         const phoneToSearch = request.channel === 'whatsapp' && request.metadata?.phone
           ? request.metadata.phone
           : `web_${request.clientId.substring(0, 8)}`;
-        
+
         client = await ClientModel.findByPhone(phoneToSearch);
-        
+
         // Si aún no existe, crear cliente temporal para chat web
         if (!client && request.channel === 'web') {
           try {
@@ -66,7 +66,7 @@ export class MessageRouter {
             if (!client) throw error;
           }
         }
-        
+
         if (client) {
           // Actualizar el clientId del request para usar el ID real de la BD
           request.clientId = client.id;
@@ -99,11 +99,11 @@ export class MessageRouter {
 
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);
-      
+
       // Verificar si está esperando que proporcione su email
       const { ChatAuthService } = await import('./ChatAuthService');
       const awaitingEmailInput = await ChatAuthService.isAwaitingEmailInput(conversation.id);
-      
+
       if (awaitingEmailInput) {
         const captureResult = await ChatAuthService.captureAndSaveEmail(
           conversation.id,
@@ -144,7 +144,7 @@ export class MessageRouter {
 
       // Verificar si está esperando verificación por teléfono
       const awaitingPhoneVerification = await ChatAuthService.isAwaitingPhoneVerification(conversation.id);
-      
+
       if (awaitingPhoneVerification) {
         const validationResult = await ChatAuthService.validatePhoneVerification(
           conversation.id,
@@ -229,7 +229,7 @@ export class MessageRouter {
         conversation.context,
         conversation.id
       );
-      
+
       if (bookingManagement) {
         // Guardar respuesta de gestión de reserva
         const aiMessage = await ConversationModel.addMessage(conversation.id, {
@@ -262,7 +262,7 @@ export class MessageRouter {
           processingTime
         };
       }
-      
+
       // Evaluar necesidad de escalación
       const escalationEvaluation = await EscalationService.evaluateEscalationNeed(
         conversation.id,
@@ -308,43 +308,43 @@ export class MessageRouter {
             conversationId: conversation.id,
             messageContent: request.content.substring(0, 100)
           });
-          
+
           const { AIService } = await import('../AIService');
-          
+
           // Preparar historial de conversación para OpenAI
           const conversationHistory = conversation.context.lastMessages.slice(-5).map((msg: any) => ({
             role: msg.senderType === 'client' ? 'user' as const : 'assistant' as const,
             content: msg.content
           }));
-          
+
           logger.info('📞 Calling AIService.generateResponse', {
             conversationId: conversation.id,
             historyLength: conversationHistory.length
           });
-          
+
           // Generar respuesta con OpenAI
           const aiResult = await AIService.generateResponse(
             request.content,
             conversationHistory,
             conversation.id
           );
-          
+
           logger.info('✅ AIService response received', {
             conversationId: conversation.id,
             messageLength: aiResult.message.length,
             usedKnowledgeBase: aiResult.usedKnowledgeBase
           });
-          
+
           // Detectar y guardar servicio mencionado en la respuesta del AI
           await this.detectAndSaveServiceFromResponse(aiResult.message, conversation.id);
-          
+
           // Detectar si el usuario quiere agendar y hay un servicio en contexto
           const bookingLink = await this.generateBookingLinkIfNeeded(
             request.content,
             nluResult.intent.name,
             conversation.context
           );
-          
+
           // Si hay link de reserva, agregarlo al mensaje
           let finalMessage = aiResult.message;
           if (bookingLink) {
@@ -352,7 +352,7 @@ export class MessageRouter {
             // Usar salto de línea doble antes del link para asegurar que WhatsApp lo detecte
             finalMessage += `\n\n📅 Para reservar tu cita, haz clic aquí:\n\n${bookingLink}`;
           }
-          
+
           aiResponse = {
             message: finalMessage,
             intent: nluResult.intent.name,
@@ -364,29 +364,29 @@ export class MessageRouter {
               bookingLink: bookingLink || undefined
             }
           };
-          
+
           logger.info('OpenAI response generated', {
             conversationId: conversation.id,
             usedKnowledgeBase: aiResult.usedKnowledgeBase,
             confidence: aiResult.confidence,
             hasBookingLink: !!bookingLink
           });
-          
+
         } catch (error) {
           logger.warn('Error generating OpenAI response, using fallback:', error);
-          
+
           // Fallback: Generar respuesta simple
           let responseMessage = this.generateSimpleResponse(nluResult.intent.name, client.name);
-          
+
           // Solo buscar en la base de conocimientos si es una pregunta específica
-          const shouldSearchKnowledge = !['greeting', 'goodbye', 'thanks'].includes(nluResult.intent.name) 
+          const shouldSearchKnowledge = !['greeting', 'goodbye', 'thanks'].includes(nluResult.intent.name)
             && request.content.includes('?');
-          
+
           if (shouldSearchKnowledge) {
             try {
               const { KnowledgeService } = await import('../KnowledgeService');
               const knowledgeAnswer = await KnowledgeService.getFormattedAnswer(request.content, conversation.id);
-              
+
               if (knowledgeAnswer) {
                 responseMessage = knowledgeAnswer;
               }
@@ -394,7 +394,7 @@ export class MessageRouter {
               logger.warn('Error fetching knowledge base:', kbError);
             }
           }
-          
+
           aiResponse = {
             message: responseMessage,
             intent: nluResult.intent.name,
@@ -455,7 +455,7 @@ export class MessageRouter {
         channel: request.channel,
         contentLength: request.content?.length
       });
-      
+
       // Respuesta de fallback
       const fallbackResponse: AIResponse = {
         message: 'Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.',
@@ -483,7 +483,7 @@ export class MessageRouter {
       const phoneNumber = this.extractPhoneNumber(twilioPayload.From);
       const content = twilioPayload.Body || '';
       const mediaUrl = twilioPayload.MediaUrl0;
-      
+
       // Buscar cliente por número de teléfono
       let client = await ClientModel.findByPhone(phoneNumber);
       if (!client) {
@@ -552,9 +552,9 @@ export class MessageRouter {
   private static checkRateLimit(clientId: string): boolean {
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minuto
-    
+
     const clientLimit = this.rateLimitMap.get(clientId);
-    
+
     if (!clientLimit || now > clientLimit.resetTime) {
       // Nueva ventana de tiempo
       this.rateLimitMap.set(clientId, {
@@ -577,7 +577,7 @@ export class MessageRouter {
    */
   private static async executeActions(actions: any[], conversationId: string, clientId: string): Promise<void> {
     // const { BusinessLogicService } = await import('./BusinessLogicService');
-    
+
     for (const action of actions) {
       try {
         switch (action.type) {
@@ -599,7 +599,7 @@ export class MessageRouter {
             break;
           case 'escalate_to_human':
             await ConversationModel.escalateConversation(
-              conversationId, 
+              conversationId,
               action.params.reason || 'AI escalation',
               action.params.humanAgentId
             );
@@ -646,7 +646,7 @@ export class MessageRouter {
   private static async executeSendNotificationAction(params: any, clientId: string): Promise<void> {
     try {
       const { NotificationService } = await import('../NotificationService');
-      
+
       await NotificationService.createNotification({
         clientId,
         type: params.type || 'promotion',
@@ -655,7 +655,7 @@ export class MessageRouter {
         templateName: params.templateName || 'general_message',
         templateData: params.templateData || {}
       });
-      
+
       logger.info(`Notification scheduled for client ${clientId}`);
     } catch (error) {
       logger.error(`Error sending notification to client ${clientId}:`, error);
@@ -743,7 +743,7 @@ export class MessageRouter {
         )
       ) {
         action = 'confirm';
-        
+
         if (intent === 'affirmative' && context.variables?.pendingBookingConfirmation) {
           const bookingId = context.variables.pendingBookingConfirmation;
           result = await BookingManagementService.confirmBooking(bookingId, clientId);
@@ -773,7 +773,7 @@ export class MessageRouter {
       ) {
         action = 'cancel';
         requiresAuth = true;
-        
+
         logger.info('🔍 Cancelación detectada', {
           intent,
           messageLower,
@@ -817,12 +817,12 @@ export class MessageRouter {
         !action && (
           intent === 'reschedule_booking' ||
           ((messageLower.includes('reagendar') || messageLower.includes('reprogramar') || messageLower.includes('cambiar')) &&
-          (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora')))
+            (messageLower.includes('reserva') || messageLower.includes('cita') || messageLower.includes('hora')))
         )
       ) {
         action = 'reschedule';
         requiresAuth = true;
-        
+
         logger.info('🔍 Reagendamiento detectado', {
           intent,
           messageLower,
@@ -906,24 +906,24 @@ export class MessageRouter {
         'sí', 'si', 'claro', 'por supuesto', 'perfecto', 'ok', 'vale',
         'de acuerdo', 'quiero', 'me gustaría', 'agendar', 'reservar'
       ];
-      
+
       const messageLower = userMessage.toLowerCase();
       const isConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
-      
+
       // Solo generar link si hay confirmación o intención de reserva
       if (!isConfirmation && intent !== 'booking_request') {
         return null;
       }
-      
+
       // Buscar servicio mencionado en el mensaje actual o en el contexto
       let serviceId: string | null = null;
       let serviceName: string | null = null;
-      
+
       // 1. Buscar en el mensaje actual
       const { ServiceService } = await import('../ServiceService');
       const result = await ServiceService.getServices({ isActive: true, limit: 100 });
       const services = result.services;
-      
+
       // Buscar coincidencia en el mensaje
       for (const service of services) {
         const serviceNameLower = service.name.toLowerCase();
@@ -932,7 +932,7 @@ export class MessageRouter {
           serviceName = service.name;
           break;
         }
-        
+
         // Buscar por palabras clave del servicio
         const keywords = serviceNameLower.split(' ');
         if (keywords.length > 1 && keywords.every(keyword => messageLower.includes(keyword))) {
@@ -941,7 +941,7 @@ export class MessageRouter {
           break;
         }
       }
-      
+
       // 2. Si no se encontró en el mensaje, buscar en el contexto guardado
       if (!serviceId) {
         try {
@@ -950,7 +950,7 @@ export class MessageRouter {
             context.id || 'unknown',
             'lastMentionedService'
           );
-          
+
           if (lastMentionedService && lastMentionedService.id) {
             serviceId = lastMentionedService.id;
             serviceName = lastMentionedService.name;
@@ -960,34 +960,48 @@ export class MessageRouter {
           logger.warn('Error retrieving service from context:', error);
         }
       }
-      
+
       // 3. Si aún no se encontró, buscar en los últimos mensajes del AI
       if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
         // Revisar los últimos 5 mensajes del AI para encontrar servicios mencionados
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
           .slice(-5);
-        
+
         for (const aiMsg of recentAIMessages) {
           const aiContent = aiMsg.content.toLowerCase();
           for (const service of services) {
             const serviceNameLower = service.name.toLowerCase();
-            // Buscar coincidencias parciales también
-            const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
-            const matchCount = serviceKeywords.filter(keyword => aiContent.includes(keyword)).length;
-            
-            // Si coinciden al menos 2 palabras clave o el nombre completo
-            if (aiContent.includes(serviceNameLower) || matchCount >= 2) {
+
+            // Prioridad 1: Coincidencia exacta del nombre completo
+            if (aiContent.includes(serviceNameLower)) {
               serviceId = service.id;
               serviceName = service.name;
-              logger.info('Found service in AI messages:', { serviceId, serviceName });
+              logger.info('✅ EXACT match found in AI messages:', { serviceId, serviceName });
+              break;
+            }
+
+            // Prioridad 2: Coincidencia parcial con umbral más alto
+            const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
+            const matchCount = serviceKeywords.filter(keyword => aiContent.includes(keyword)).length;
+
+            // Aumentado de 2 a 3 palabras clave mínimas para reducir falsos positivos
+            if (matchCount >= 3) {
+              serviceId = service.id;
+              serviceName = service.name;
+              logger.info('✅ PARTIAL match found in AI messages:', {
+                serviceId,
+                serviceName,
+                matchCount,
+                totalKeywords: serviceKeywords.length
+              });
               break;
             }
           }
           if (serviceId) break;
         }
       }
-      
+
       // 4. Guardar servicio en contexto para futuras referencias
       if (serviceId && serviceName) {
         try {
@@ -1001,13 +1015,13 @@ export class MessageRouter {
           logger.warn('Error saving service to context:', error);
         }
       }
-      
+
       // Generar link si encontramos un servicio
       if (serviceId) {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
         return `${frontendUrl}/reservar?service=${serviceId}`;
       }
-      
+
       return null;
     } catch (error) {
       logger.error('Error generating booking link:', error);
@@ -1020,7 +1034,7 @@ export class MessageRouter {
    */
   private static generateSimpleResponse(intent: string, clientName: string): string {
     const firstName = clientName.split(' ')[0];
-    
+
     switch (intent) {
       case 'greeting':
         return `¡Hola ${firstName}! 👋 Soy tu asistente virtual de la Clínica de Belleza.\n\n¿En qué puedo ayudarte hoy?\n• Ver servicios disponibles\n• Reservar una cita\n• Consultar precios\n• Información sobre tratamientos`;
@@ -1046,22 +1060,22 @@ export class MessageRouter {
     switch (reason) {
       case 'complaint':
         return 'Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...';
-      
+
       case 'failed_attempts':
         return 'Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.';
-      
+
       case 'complex_request':
         return 'Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.';
-      
+
       case 'payment_issue':
         return 'Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.';
-      
+
       case 'client_request':
         return 'Por supuesto, te conecto con un agente humano. Un momento por favor...';
-      
+
       case 'technical_issue':
         return 'Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.';
-      
+
       default:
         return 'Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...';
     }
@@ -1077,20 +1091,20 @@ export class MessageRouter {
     try {
       const { ServiceService } = await import('../ServiceService');
       const { ContextManager } = await import('./ContextManager');
-      
+
       const result = await ServiceService.getServices({ isActive: true, limit: 100 });
       const services = result.services;
-      
+
       const messageLower = aiMessage.toLowerCase();
-      
+
       // Buscar servicios mencionados en la respuesta del AI
       for (const service of services) {
         const serviceNameLower = service.name.toLowerCase();
-        
+
         // Buscar coincidencias exactas o parciales
         const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
         const matchCount = serviceKeywords.filter(keyword => messageLower.includes(keyword)).length;
-        
+
         // Si coinciden al menos 2 palabras clave o el nombre completo
         if (messageLower.includes(serviceNameLower) || matchCount >= 2) {
           await ContextManager.setVariable(conversationId, 'lastMentionedService', {
@@ -1118,7 +1132,7 @@ export class MessageRouter {
     config: MessageRouterConfig;
   } {
     this.cleanupRateLimits();
-    
+
     return {
       activeRateLimits: this.rateLimitMap.size,
       config: this.getConfig()
