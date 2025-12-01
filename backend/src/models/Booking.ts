@@ -85,18 +85,22 @@ export class BookingModel {
     const updateData: any = {};
     
     if (updates.dateTime !== undefined) {
-      // Validar nueva fecha/hora si se está cambiando
-      const validation = await this.validateBooking({
-        clientId: existingBooking.clientId,
-        serviceId: existingBooking.serviceId,
-        professionalId: updates.professionalId || existingBooking.professionalId!,
-        dateTime: updates.dateTime,
-        duration: existingBooking.duration,
-        excludeBookingId: id
-      });
+      // Validar que el nuevo horario esté disponible
+      // Obtener la duración del servicio
+      const service = await ServiceModel.findById(existingBooking.serviceId);
+      if (!service) {
+        throw new Error('Servicio no encontrado');
+      }
 
-      if (!validation.isValid) {
-        throw new Error(`No se puede actualizar la cita: ${validation.conflicts.map(c => c.message).join(', ')}`);
+      // Verificar disponibilidad del horario (excluyendo esta cita)
+      const isAvailable = await this.isTimeSlotAvailableExcluding(
+        updates.dateTime,
+        service.duration,
+        id
+      );
+
+      if (!isAvailable) {
+        throw new Error('El horario seleccionado ya no está disponible');
       }
 
       updateData.date_time = updates.dateTime;
@@ -494,11 +498,21 @@ export class BookingModel {
   }
 
   private static async isTimeSlotAvailable(dateTime: Date, duration: number): Promise<boolean> {
+    return this.isTimeSlotAvailableExcluding(dateTime, duration, null);
+  }
+
+  private static async isTimeSlotAvailableExcluding(
+    dateTime: Date, 
+    duration: number, 
+    excludeBookingId: string | null
+  ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
+    
+    console.log(`🔍 Checking availability for ${dateTime.toISOString()} (duration: ${duration} min)${excludeBookingId ? ` excluding ${excludeBookingId}` : ''}`);
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
     // No incluimos cancelled, completed o no_show porque esos horarios están liberados
-    const conflictingBookings = await db('bookings')
+    let query = db('bookings')
       .whereIn('status', ['confirmed', 'pending_payment'])
       .where(function() {
         this.where(function() {
@@ -514,8 +528,25 @@ export class BookingModel {
           this.where('date_time', '>=', dateTime)
             .where('date_time', '<', endTime);
         });
-      })
-      .first();
+      });
+
+    // Excluir la cita actual si se está editando
+    if (excludeBookingId) {
+      query = query.where('id', '!=', excludeBookingId);
+    }
+
+    const conflictingBookings = await query.first();
+    
+    if (conflictingBookings) {
+      console.log(`❌ Slot NOT available - Conflicting booking found:`, {
+        id: conflictingBookings.id,
+        date_time: conflictingBookings.date_time,
+        duration: conflictingBookings.duration,
+        status: conflictingBookings.status
+      });
+    } else {
+      console.log(`✅ Slot available`);
+    }
     
     return !conflictingBookings;
   }
