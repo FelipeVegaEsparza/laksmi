@@ -998,13 +998,16 @@ export class MessageRouter {
 
       // 3. Si aún no se encontró, buscar en los últimos mensajes del AI
       if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
-        // Revisar los últimos 5 mensajes del AI para encontrar servicios mencionados
+        // Revisar los últimos 3 mensajes del AI (más recientes primero)
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
-          .slice(-5);
+          .slice(-3)
+          .reverse(); // Empezar por el más reciente
 
         for (const aiMsg of recentAIMessages) {
           const aiContent = aiMsg.content.toLowerCase();
+          
+          // Buscar servicios con diferentes estrategias
           for (const service of services) {
             const serviceNameLower = service.name.toLowerCase();
 
@@ -1016,21 +1019,47 @@ export class MessageRouter {
               break;
             }
 
-            // Prioridad 2: Coincidencia parcial con umbral más alto
+            // Prioridad 2: Coincidencia parcial flexible
             const serviceKeywords = serviceNameLower.split(' ').filter(w => w.length > 3);
             const matchCount = serviceKeywords.filter(keyword => aiContent.includes(keyword)).length;
+            
+            // Calcular porcentaje de coincidencia
+            const matchPercentage = serviceKeywords.length > 0 ? matchCount / serviceKeywords.length : 0;
 
-            // Aumentado de 2 a 3 palabras clave mínimas para reducir falsos positivos
-            if (matchCount >= 3) {
+            // Si coincide al menos el 60% de las palabras clave (más flexible)
+            if (matchPercentage >= 0.6 && matchCount >= 2) {
               serviceId = service.id;
               serviceName = service.name;
               logger.info('✅ PARTIAL match found in AI messages:', {
                 serviceId,
                 serviceName,
                 matchCount,
-                totalKeywords: serviceKeywords.length
+                totalKeywords: serviceKeywords.length,
+                matchPercentage: (matchPercentage * 100).toFixed(0) + '%'
               });
               break;
+            }
+
+            // Prioridad 3: Buscar por categoría + palabra clave específica
+            // Ej: "depilación" + "cejas" = "Depilación láser cejas"
+            const categoryWords = ['depilación', 'facial', 'corporal', 'masaje', 'manicure', 'pedicure'];
+            const hasCategory = categoryWords.some(cat => aiContent.includes(cat) && serviceNameLower.includes(cat));
+            
+            if (hasCategory && matchCount >= 1) {
+              // Verificar que al menos una palabra clave específica coincida
+              const specificKeywords = serviceKeywords.filter(kw => !categoryWords.includes(kw));
+              const hasSpecificMatch = specificKeywords.some(kw => aiContent.includes(kw));
+              
+              if (hasSpecificMatch) {
+                serviceId = service.id;
+                serviceName = service.name;
+                logger.info('✅ CATEGORY + KEYWORD match found:', {
+                  serviceId,
+                  serviceName,
+                  matchCount
+                });
+                break;
+              }
             }
           }
           if (serviceId) break;
