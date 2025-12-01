@@ -212,10 +212,18 @@ export class BookingModel {
   }
 
   static async getAvailability(request: AvailabilityRequest): Promise<AvailabilityResponse> {
+    console.log('🎯 getAvailability called with:', {
+      serviceId: request.serviceId,
+      dateFrom: request.dateFrom,
+      dateTo: request.dateTo
+    });
+
     const service = await ServiceModel.findById(request.serviceId);
     if (!service) {
       throw new Error('Servicio no encontrado');
     }
+
+    console.log(`📋 Service found: ${service.name}, duration: ${service.duration} min`);
 
     // Obtener horarios del local desde company_settings
     const companySettings = await db('company_settings').first();
@@ -509,6 +517,7 @@ export class BookingModel {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
     console.log(`🔍 Checking availability for ${dateTime.toISOString()} (duration: ${duration} min)${excludeBookingId ? ` excluding ${excludeBookingId}` : ''}`);
+    console.log(`   Slot range: ${dateTime.toISOString()} to ${endTime.toISOString()}`);
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
     // No incluimos cancelled, completed o no_show porque esos horarios están liberados
@@ -535,6 +544,9 @@ export class BookingModel {
       query = query.where('id', '!=', excludeBookingId);
     }
 
+    // Log the SQL query for debugging
+    console.log('   SQL Query:', query.toSQL().toNative());
+
     const conflictingBookings = await query.first();
     
     if (conflictingBookings) {
@@ -545,7 +557,7 @@ export class BookingModel {
         status: conflictingBookings.status
       });
     } else {
-      console.log(`✅ Slot available`);
+      console.log(`✅ Slot available - No conflicts found`);
     }
     
     return !conflictingBookings;
