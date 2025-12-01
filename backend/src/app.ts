@@ -4,11 +4,11 @@ import morgan from 'morgan';
 import config from './config';
 import path from 'path';
 import logger from './utils/logger';
-import { 
-  securityHeaders, 
-  apiRateLimit, 
-  sanitizeInput, 
-  validateInput, 
+import {
+  securityHeaders,
+  apiRateLimit,
+  sanitizeInput,
+  validateInput,
   securityAuditLog,
   requestSizeLimit
 } from './middleware/security';
@@ -27,7 +27,9 @@ import conversationRoutes from './routes/conversations';
 import escalationRoutes from './routes/escalations';
 import humanTakeoverRoutes from './routes/humanTakeover';
 import twilioRoutes from './routes/twilio';
-import whatsappWebRoutes from './routes/whatsappWeb';
+// // import whatsappWebRoutes from './routes/whatsappWeb';
+// ...
+// app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
 import securityRoutes from './routes/security';
 import gdprRoutes from './routes/gdpr';
 import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
@@ -49,7 +51,7 @@ logger.info('🔧 Configurando aplicación Express...');
 
 // CONFIGURACIÓN CORS LIMPIA - UNA SOLA VEZ
 const corsConfig = {
-  origin: config.nodeEnv === 'development' 
+  origin: config.nodeEnv === 'development'
     ? ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000']
     : config.frontend.corsOrigins,
   credentials: true,
@@ -100,14 +102,14 @@ const staticMiddleware = (req: express.Request, res: express.Response, next: exp
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   // CORREGIR headers de seguridad problemáticos
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  
+
   // Permitir cache para imágenes
   res.header('Cache-Control', 'public, max-age=31536000');
-  
+
   next();
 };
 
@@ -139,7 +141,7 @@ app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
 app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
-app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
+// app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
 app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
 app.use(`/api/${config.apiVersion}/upload`, uploadRoutes); // UNA SOLA RUTA DE UPLOAD
@@ -224,8 +226,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   // Error genérico
   return res.status(err.status || 500).json({
     success: false,
-    error: config.nodeEnv === 'production' 
-      ? 'Error interno del servidor' 
+    error: config.nodeEnv === 'production'
+      ? 'Error interno del servidor'
       : err.message
   });
 });
@@ -233,7 +235,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // 13. Manejo de rutas no encontradas
 app.use('*', (req, res) => {
   logger.warn(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ 
+  res.status(404).json({
     success: false,
     error: 'Ruta no encontrada',
     path: req.originalUrl
