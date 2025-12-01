@@ -265,6 +265,13 @@ export class WhatsAppWebService {
       });
       logger.error('====================================================');
 
+      // LOG CRÍTICO PARA DEBUGGING EN PRODUCCIÓN
+      console.error('🚨 CRITICAL WHATSAPP ERROR:', {
+        message: error.message,
+        stack: error.stack,
+        from: message?.from
+      });
+
       // Intentar enviar mensaje de error al usuario
       try {
         await message.reply('Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.');
