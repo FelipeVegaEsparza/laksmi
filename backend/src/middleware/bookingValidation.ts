@@ -38,6 +38,32 @@ export const createBookingSchema = Joi.object({
     .allow('')
     .messages({
       'string.max': 'Las notas no pueden tener más de 500 caracteres'
+    }),
+  status: Joi.string()
+    .valid('pending_payment', 'confirmed')
+    .optional()
+    .messages({
+      'any.only': 'El estado inicial debe ser: pending_payment o confirmed'
+    }),
+  paymentAmount: Joi.number()
+    .positive()
+    .optional()
+    .messages({
+      'number.positive': 'El monto del pago debe ser positivo'
+    }),
+  paymentMethod: Joi.string()
+    .max(50)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'El método de pago no puede tener más de 50 caracteres'
+    }),
+  paymentNotes: Joi.string()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Las notas de pago no pueden tener más de 500 caracteres'
     })
 });
 
