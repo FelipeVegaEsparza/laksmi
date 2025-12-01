@@ -102,6 +102,15 @@ export default function BookingsPage() {
     paymentMethod: '',
     paymentNotes: '',
   })
+  const [editedBooking, setEditedBooking] = useState<{
+    dateTime: string;
+    status: string;
+    notes: string;
+  }>({
+    dateTime: '',
+    status: '',
+    notes: ''
+  })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
   const [statusChangeDialog, setStatusChangeDialog] = useState(false)
@@ -164,7 +173,33 @@ export default function BookingsPage() {
 
   const handleEditBooking = (booking: Booking) => {
     setSelectedBooking(booking)
+    setEditedBooking({
+      dateTime: format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm"),
+      status: booking.status,
+      notes: booking.notes || ''
+    })
     setEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedBooking) return
+
+    try {
+      const updateData: any = {
+        dateTime: new Date(editedBooking.dateTime).toISOString(),
+        status: editedBooking.status,
+        notes: editedBooking.notes
+      }
+
+      await apiService.updateBooking(selectedBooking.id, updateData)
+      enqueueSnackbar('Cita actualizada correctamente', { variant: 'success' })
+      setEditOpen(false)
+      fetchMonthBookings()
+    } catch (error: any) {
+      console.error('Error updating booking:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error al actualizar la cita'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    }
   }
 
   const handleUpdateStatus = async (bookingId: string, newStatus: Booking['status']) => {
@@ -974,20 +1009,23 @@ export default function BookingsPage() {
               label="Fecha y Hora"
               type="datetime-local"
               fullWidth
-              defaultValue={selectedBooking ? format(new Date(selectedBooking.dateTime), "yyyy-MM-dd'T'HH:mm") : ''}
+              value={editedBooking.dateTime}
+              onChange={(e) => setEditedBooking({ ...editedBooking, dateTime: e.target.value })}
               InputLabelProps={{ shrink: true }}
             />
             
             <FormControl fullWidth>
               <InputLabel>Estado</InputLabel>
               <Select
-                defaultValue={selectedBooking?.status || 'confirmed'}
+                value={editedBooking.status}
                 label="Estado"
+                onChange={(e) => setEditedBooking({ ...editedBooking, status: e.target.value })}
               >
-                <MenuItem value="confirmed">Confirmada</MenuItem>
-                <MenuItem value="completed">Completada</MenuItem>
-                <MenuItem value="cancelled">Cancelada</MenuItem>
-                <MenuItem value="no_show">No asistió</MenuItem>
+                <MenuItem value="pending_payment">⚠️ Pendiente de Pago</MenuItem>
+                <MenuItem value="confirmed">✅ Confirmada</MenuItem>
+                <MenuItem value="completed">🔵 Completada</MenuItem>
+                <MenuItem value="cancelled">❌ Cancelada</MenuItem>
+                <MenuItem value="no_show">👻 No asistió</MenuItem>
               </Select>
             </FormControl>
 
@@ -996,16 +1034,18 @@ export default function BookingsPage() {
               multiline
               rows={3}
               fullWidth
-              defaultValue={selectedBooking?.notes || ''}
+              value={editedBooking.notes}
+              onChange={(e) => setEditedBooking({ ...editedBooking, notes: e.target.value })}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => {
-            enqueueSnackbar('Funcionalidad de edición en desarrollo', { variant: 'info' })
-            setEditOpen(false)
-          }}>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveEdit}
+            disabled={!editedBooking.dateTime}
+          >
             Guardar
           </Button>
         </DialogActions>
