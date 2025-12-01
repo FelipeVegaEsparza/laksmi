@@ -1,7 +1,7 @@
 import db from '../config/database';
 import logger from '../utils/logger';
 
-export type EscalationReason = 
+export type EscalationReason =
   | 'low_confidence'
   | 'failed_attempts'
   | 'complaint'
@@ -68,18 +68,6 @@ export class EscalationModel {
       conversation_id: data.conversationId,
       client_id: data.clientId,
       reason: data.reason,
-      priority: data.priority,
-      summary: data.summary,
-      client_message: data.clientMessage || null,
-      ai_response: data.aiResponse || null,
-      confidence_score: data.confidenceScore || null,
-      metadata: data.metadata ? JSON.stringify(data.metadata) : null
-    });
-
-    logger.info('Escalation created', {
-      escalationId: id,
-      escalationCode: data.escalationCode,
-      reason: data.reason,
       priority: data.priority
     });
 
@@ -114,7 +102,7 @@ export class EscalationModel {
       resolvedAt: row.resolved_at,
       resolutionNotes: row.resolution_notes,
       resolutionTimeMinutes: row.resolution_time_minutes,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      metadata: row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
@@ -148,7 +136,7 @@ export class EscalationModel {
       resolvedAt: row.resolved_at,
       resolutionNotes: row.resolution_notes,
       resolutionTimeMinutes: row.resolution_time_minutes,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      metadata: row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

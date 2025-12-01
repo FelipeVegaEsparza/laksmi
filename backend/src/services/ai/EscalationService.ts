@@ -2,10 +2,10 @@ import { ConversationModel } from '../../models/Conversation';
 import { ContextManager } from './ContextManager';
 import { NotificationService } from '../NotificationService';
 import { ComplexCaseDetector } from './ComplexCaseDetector';
-import { 
-  EscalationRequest, 
-  EscalationReason, 
-  EscalationPriority, 
+import {
+  EscalationRequest,
+  EscalationReason,
+  EscalationPriority,
   ConversationContext,
   ConversationSummary,
   IntentClassificationResult,
@@ -97,39 +97,6 @@ export class EscalationService {
       if (this.detectComplaint(messageContent)) {
         return {
           shouldEscalate: true,
-          reason: 'complaint',
-          priority: 'high',
-          summary: `Posible queja detectada del cliente ${client.name}: "${messageContent.substring(0, 100)}..."`
-        };
-      }
-
-      // 3. Detectar solicitudes complejas usando el detector avanzado
-      const complexityAnalysis = await ComplexCaseDetector.analyzeCase(
-        conversationId,
-        messageContent,
-        nluResult,
-        context,
-        client.id
-      );
-
-      if (complexityAnalysis.isComplex) {
-        const recommendation = ComplexCaseDetector.getEscalationRecommendation(complexityAnalysis);
-        
-        // Actualizar variables de contexto con el análisis
-        await ContextManager.setVariable(conversationId, 'complexityAnalysis', complexityAnalysis);
-        
-        return {
-          shouldEscalate: true,
-          reason: recommendation.reason,
-          priority: complexityAnalysis.priority,
-          summary: `${recommendation.summary}. Acciones recomendadas: ${complexityAnalysis.recommendedActions.slice(0, 2).join(', ')}`
-        };
-      }
-
-      // 4. Verificar solicitud explícita de agente humano
-      if (this.detectHumanAgentRequest(messageContent)) {
-        return {
-          shouldEscalate: true,
           reason: 'client_request',
           priority: 'low',
           summary: `Cliente ${client.name} solicita hablar con un agente humano`
@@ -194,7 +161,7 @@ export class EscalationService {
 
       // 4. Crear escalación en base de datos
       const { EscalationModel } = await import('../../models/Escalation');
-      
+
       const escalation = await EscalationModel.create({
         escalationCode,
         conversationId,
@@ -420,7 +387,7 @@ export class EscalationService {
       const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
       if (priorityDiff !== 0) return priorityDiff;
-      
+
       return b.timestamp.getTime() - a.timestamp.getTime();
     });
   }
@@ -438,7 +405,7 @@ export class EscalationService {
     averageResolutionTime: number;
   } {
     const escalations = Array.from(this.activeEscalations.values());
-    
+
     const stats = {
       totalEscalations: escalations.length,
       pendingEscalations: escalations.filter(e => e.status === 'pending').length,
@@ -494,7 +461,7 @@ export class EscalationService {
     const reasons: string[] = [];
 
     // 1. Verificar palabras clave de complejidad
-    const complexKeywordMatches = this.config.complexCaseKeywords.filter(keyword => 
+    const complexKeywordMatches = this.config.complexCaseKeywords.filter(keyword =>
       lowerMessage.includes(keyword)
     );
     if (complexKeywordMatches.length > 0) {
@@ -670,7 +637,7 @@ Mensajes recientes: ${messages.length}`;
     try {
       // Integrar con AlertService para enviar notificaciones
       const { AlertService } = await import('../AlertService');
-      
+
       await AlertService.sendEscalationAlert(
         escalationId,
         escalationRequest.conversationId,
