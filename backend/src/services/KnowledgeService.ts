@@ -81,6 +81,7 @@ export class KnowledgeService {
           
           services.forEach((service: any, index: number) => {
             context += `${index + 1}. ${service.name.toUpperCase()}\n`;
+            context += `   ID: ${service.id}\n`;  // ⚠️ IMPORTANTE: ID para generar link correcto
             context += `   Categoría: ${service.category}\n`;
             context += `   Precio: $${service.price}\n`;
             context += `   Duración: ${service.duration} minutos\n`;

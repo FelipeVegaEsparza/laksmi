@@ -87,11 +87,21 @@ SOLO cuando el usuario elija UNA opción específica o pregunte por detalles, en
 ⚠️ IMPORTANTE: Si el usuario dice "depilación" o "quiero depilación", NO asumas que quiere un servicio específico. SIEMPRE muestra primero la lista completa de opciones.
 
 FORMATO ESPECIAL PARA SERVICIOS:
-Cuando des detalles de UN servicio específico, incluye su ID en este formato al final de tu respuesta:
+Cuando des detalles de UN servicio específico, DEBES incluir su ID en este formato al final de tu respuesta:
 [SERVICE_ID:ID_DEL_SERVICIO]
 
-Ejemplo:
-"La depilación láser de cejas es un tratamiento eficaz... [detalles]... [SERVICE_ID:abc123]"
+⚠️ MUY IMPORTANTE: 
+- Cada servicio en la lista tiene un campo "ID:" con su identificador único
+- DEBES copiar ese ID EXACTAMENTE como aparece
+- NO uses el precio, nombre o cualquier otro dato como ID
+- El ID es un UUID largo como: "8ddda4c9-c358-11f0-84d2-02420a000390"
+
+Ejemplo CORRECTO:
+"La depilación láser de cejas es un tratamiento eficaz... [detalles]... [SERVICE_ID:8ddda4c9-c358-11f0-84d2-02420a000390]"
+
+Ejemplo INCORRECTO:
+"... [SERVICE_ID:128000]" ❌ (esto es el precio, NO el ID)
+"... [SERVICE_ID:depilacion-cejas]" ❌ (esto es el nombre, NO el ID)
 
 Esto ayuda al sistema a generar el link correcto cuando el usuario confirme que quiere agendar.
 
