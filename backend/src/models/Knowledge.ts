@@ -65,7 +65,11 @@ export class KnowledgeModel {
   }
 
   static async createArticle(data: CreateArticleRequest, userId: string): Promise<KnowledgeArticle> {
-    const [id] = await db('knowledge_articles').insert({
+    // Generar UUID manualmente para poder recuperar el registro
+    const uuid = require('crypto').randomUUID();
+    
+    await db('knowledge_articles').insert({
+      id: uuid,
       category_id: data.categoryId,
       title: data.title,
       content: data.content,
@@ -79,7 +83,7 @@ export class KnowledgeModel {
       created_by: userId,
     });
     
-    const article = await this.getArticleById(String(id));
+    const article = await this.getArticleById(uuid);
     if (!article) throw new Error('Failed to create article');
     return article;
   }
@@ -156,7 +160,11 @@ export class KnowledgeModel {
   }
 
   static async createFAQ(data: CreateFAQRequest): Promise<KnowledgeFAQ> {
-    const [id] = await db('knowledge_faqs').insert({
+    // Generar UUID manualmente para poder recuperar el registro
+    const uuid = require('crypto').randomUUID();
+    
+    await db('knowledge_faqs').insert({
+      id: uuid,
       category_id: data.categoryId,
       question: data.question,
       answer: data.answer,
@@ -164,7 +172,7 @@ export class KnowledgeModel {
       display_order: data.displayOrder || 0,
     });
     
-    const faq = await this.getFAQById(String(id));
+    const faq = await this.getFAQById(uuid);
     if (!faq) throw new Error('Failed to create FAQ');
     return faq;
   }
@@ -224,7 +232,11 @@ export class KnowledgeModel {
   }
 
   static async createTechnology(data: CreateTechnologyRequest): Promise<KnowledgeTechnology> {
-    const [id] = await db('knowledge_technologies').insert({
+    // Generar UUID manualmente para poder recuperar el registro
+    const uuid = require('crypto').randomUUID();
+    
+    await db('knowledge_technologies').insert({
+      id: uuid,
       name: data.name,
       description: data.description,
       benefits: JSON.stringify(data.benefits || []),
@@ -233,7 +245,7 @@ export class KnowledgeModel {
       image_url: data.imageUrl,
     });
     
-    const technology = await this.getTechnologyById(String(id));
+    const technology = await this.getTechnologyById(uuid);
     if (!technology) throw new Error('Failed to create technology');
     return technology;
   }
@@ -292,7 +304,11 @@ export class KnowledgeModel {
   }
 
   static async createIngredient(data: CreateIngredientRequest): Promise<KnowledgeIngredient> {
-    const [id] = await db('knowledge_ingredients').insert({
+    // Generar UUID manualmente para poder recuperar el registro
+    const uuid = require('crypto').randomUUID();
+    
+    await db('knowledge_ingredients').insert({
+      id: uuid,
       name: data.name,
       description: data.description,
       benefits: JSON.stringify(data.benefits || []),
@@ -300,7 +316,7 @@ export class KnowledgeModel {
       related_products: JSON.stringify(data.relatedProducts || []),
     });
     
-    const ingredient = await this.getIngredientById(String(id));
+    const ingredient = await this.getIngredientById(uuid);
     if (!ingredient) throw new Error('Failed to create ingredient');
     return ingredient;
   }
