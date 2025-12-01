@@ -29,7 +29,7 @@ import humanTakeoverRoutes from './routes/humanTakeover';
 import twilioRoutes from './routes/twilio';
 import whatsappWebRoutes from './routes/whatsappWeb';
 // ...
-app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
+
 import securityRoutes from './routes/security';
 import gdprRoutes from './routes/gdpr';
 import uploadRoutes from './routes/upload-working'; // SOLO LA QUE FUNCIONA
