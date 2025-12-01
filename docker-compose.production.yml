@@ -102,6 +102,7 @@ services:
     volumes:
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
+      - backend_whatsapp_session:/app/whatsapp-session
     depends_on:
       mysql:
         condition: service_healthy
@@ -165,6 +166,8 @@ volumes:
   backend_uploads:
     driver: local
   backend_logs:
+    driver: local
+  backend_whatsapp_session:
     driver: local
 
 networks:
