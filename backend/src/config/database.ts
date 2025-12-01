@@ -10,6 +10,7 @@ const knexConfig = {
     password: config.database.password || undefined,
     database: config.database.name,
     charset: 'utf8mb4',
+    timezone: 'America/Santiago', // Zona horaria de Chile
     connectTimeout: 60000,
     // Configuración adicional para producción
     typeCast: function (field: any, next: any) {
