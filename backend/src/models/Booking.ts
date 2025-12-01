@@ -212,18 +212,10 @@ export class BookingModel {
   }
 
   static async getAvailability(request: AvailabilityRequest): Promise<AvailabilityResponse> {
-    console.log('🎯 getAvailability called with:', {
-      serviceId: request.serviceId,
-      dateFrom: request.dateFrom,
-      dateTo: request.dateTo
-    });
-
     const service = await ServiceModel.findById(request.serviceId);
     if (!service) {
       throw new Error('Servicio no encontrado');
     }
-
-    console.log(`📋 Service found: ${service.name}, duration: ${service.duration} min`);
 
     // Obtener horarios del local desde company_settings
     const companySettings = await db('company_settings').first();
@@ -457,11 +449,8 @@ export class BookingModel {
     const dayName = dayNames[date.getDay()];
     const daySchedule = businessHours[dayName];
     
-    console.log('🕐 Generating slots for:', { date: date.toISOString(), dayName, daySchedule });
-    
     // Si el local está cerrado ese día, no hay slots
     if (!daySchedule || !daySchedule.isOpen) {
-      console.log('❌ Local cerrado este día');
       return slots;
     }
     
@@ -501,7 +490,6 @@ export class BookingModel {
       currentTime.setMinutes(currentTime.getMinutes() + slotInterval);
     }
     
-    console.log(`✅ Generated ${slots.length} slots for ${dayName}`);
     return slots;
   }
 
@@ -515,9 +503,6 @@ export class BookingModel {
     excludeBookingId: string | null
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
-    
-    console.log(`🔍 Checking availability for ${dateTime.toISOString()} (duration: ${duration} min)${excludeBookingId ? ` excluding ${excludeBookingId}` : ''}`);
-    console.log(`   Slot range: ${dateTime.toISOString()} to ${endTime.toISOString()}`);
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
     // No incluimos cancelled, completed o no_show porque esos horarios están liberados
@@ -544,21 +529,7 @@ export class BookingModel {
       query = query.where('id', '!=', excludeBookingId);
     }
 
-    // Log the SQL query for debugging
-    console.log('   SQL Query:', query.toSQL().toNative());
-
     const conflictingBookings = await query.first();
-    
-    if (conflictingBookings) {
-      console.log(`❌ Slot NOT available - Conflicting booking found:`, {
-        id: conflictingBookings.id,
-        date_time: conflictingBookings.date_time,
-        duration: conflictingBookings.duration,
-        status: conflictingBookings.status
-      });
-    } else {
-      console.log(`✅ Slot available - No conflicts found`);
-    }
     
     return !conflictingBookings;
   }
