@@ -903,34 +903,49 @@ export class MessageRouter {
     try {
       const messageLower = userMessage.toLowerCase();
 
-      // ⚠️ REGLA CRÍTICA: NO generar link si el usuario está en fase de exploración
-      // Detectar si el usuario está preguntando por opciones o información general
-      const explorationKeywords = [
-        'opciones', 'cuáles', 'que tienen', 'qué tienen', 'información',
-        'cuánto cuesta', 'precio', 'cuánto vale', 'me gustaría saber',
-        'quisiera saber', 'dime', 'cuéntame', 'explícame'
+      // ⚠️ REGLA CRÍTICA 1: NO generar link en consultas iniciales
+      // Detectar si es la primera vez que el usuario pregunta (consulta inicial)
+      const initialQueryKeywords = [
+        'me gustaría', 'quisiera', 'quiero información', 'quiero saber',
+        'cuáles son', 'qué opciones', 'opciones de', 'información sobre',
+        'cuánto cuesta', 'precio de', 'cuánto vale'
       ];
 
-      const isExploring = explorationKeywords.some(keyword => messageLower.includes(keyword));
+      const isInitialQuery = initialQueryKeywords.some(keyword => messageLower.includes(keyword));
 
-      if (isExploring) {
-        logger.info('🚫 User is exploring options, NOT generating booking link');
+      if (isInitialQuery) {
+        logger.info('🚫 Initial query detected, NOT generating booking link');
         return null;
       }
 
-      // Detectar confirmación EXPLÍCITA de reserva
-      // Solo palabras que indican confirmación clara, NO palabras de consulta inicial
+      // ⚠️ REGLA CRÍTICA 2: Verificar que el bot YA mostró opciones
+      // Solo generar link si el bot ya respondió con una lista de opciones
+      const botAlreadyShowedOptions = context.lastMessages && context.lastMessages.length > 0 &&
+        context.lastMessages.some((msg: any) => 
+          msg.senderType === 'ai' && 
+          msg.content.includes('¿De cuál de estos te gustaría conocer más detalles?')
+        );
+
+      if (!botAlreadyShowedOptions) {
+        logger.info('🚫 Bot has not shown options yet, NOT generating booking link');
+        return null;
+      }
+
+      // ⚠️ REGLA CRÍTICA 3: Detectar confirmación EXPLÍCITA de reserva
+      // Solo frases que indican que el usuario YA eligió y quiere reservar
       const confirmationKeywords = [
         'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
-        'quiero reservar', 'quiero agendar', 'quiero ese', 'quiero esa',
-        'me interesa ese', 'me interesa esa', 'reservar ese', 'agendar ese',
-        'confirmo', 'adelante', 'proceder', 'continuar con la reserva'
+        'quiero ese', 'quiero esa', 'quiero el', 'quiero la',
+        'me interesa ese', 'me interesa esa', 
+        'reservar ese', 'agendar ese', 'reservar esa', 'agendar esa',
+        'confirmo', 'adelante', 'proceder', 'sí, reservar', 'si, reservar',
+        'quiero reservar ese', 'quiero agendar ese', 'quiero reservar esa', 'quiero agendar esa'
       ];
 
       const isExplicitConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
 
       // Solo generar link si hay confirmación EXPLÍCITA
-      if (!isExplicitConfirmation && intent !== 'booking_request') {
+      if (!isExplicitConfirmation) {
         logger.info('🚫 No explicit confirmation detected, NOT generating booking link');
         return null;
       }
