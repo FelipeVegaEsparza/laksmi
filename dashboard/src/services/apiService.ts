@@ -185,7 +185,7 @@ class ApiService {
 
   // Specific method for services API
   async getServices(params?: Record<string, any>): Promise<{ services: any[]; pagination: any }> {
-    const response = await this.client.get<ApiResponse<any>>('/services/public', {
+    const response = await this.client.get<ApiResponse<any>>('/services', {
       params,
     })
     if (!response.data.success) {

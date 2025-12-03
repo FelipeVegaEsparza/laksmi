@@ -42,6 +42,7 @@ export default function ServicesPage() {
   const [total, setTotal] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
@@ -83,6 +84,7 @@ export default function ServicesPage() {
         limit: rowsPerPage,
         search: searchTerm,
         category: categoryFilter,
+        isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' ? 'true' : 'false'
       }
       
       const response = await apiService.getServices(params)
@@ -102,7 +104,12 @@ export default function ServicesPage() {
 
   useEffect(() => {
     fetchServices()
-  }, [page, rowsPerPage, searchTerm, categoryFilter])
+  }, [page, rowsPerPage, searchTerm, categoryFilter, statusFilter])
+
+  // Reset page to 0 when filters change
+  useEffect(() => {
+    setPage(0)
+  }, [searchTerm, categoryFilter, statusFilter])
 
   const handleCreateService = () => {
     setEditingService(null)
@@ -237,7 +244,7 @@ export default function ServicesPage() {
 
       {/* Filters */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
             placeholder="Buscar servicios..."
@@ -252,7 +259,7 @@ export default function ServicesPage() {
             }}
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <TextField
             fullWidth
             select
@@ -268,7 +275,20 @@ export default function ServicesPage() {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
+          <TextField
+            fullWidth
+            select
+            label="Estado"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+          >
+            <MenuItem value="all">Todos</MenuItem>
+            <MenuItem value="active">Activos</MenuItem>
+            <MenuItem value="inactive">Inactivos</MenuItem>
+          </TextField>
+        </Grid>
+        <Grid item xs={12} md={4}>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant={viewMode === 'table' ? 'contained' : 'outlined'}
