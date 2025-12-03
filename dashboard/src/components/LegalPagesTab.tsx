@@ -9,7 +9,6 @@ import {
   Tabs,
   Tab,
   Stack,
-  TextField,
 } from '@mui/material';
 import { Save as SaveIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import { apiService } from '@/services/apiService';
@@ -65,12 +64,19 @@ export default function LegalPagesTab() {
   const fetchLegalPages = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get<{ success: boolean; data: LegalPage[] }>('/legal-pages');
-      const pages = response.data || [];
+      const response = await apiService.get<LegalPage[]>('/legal-pages');
+      console.log('Legal pages response:', response);
+      
+      // apiService.get ya extrae la data automáticamente
+      const pages = Array.isArray(response) ? response : [];
 
       setTermsPage(pages.find(p => p.page_type === 'terms') || null);
       setConsentPage(pages.find(p => p.page_type === 'consent') || null);
       setPrivacyPage(pages.find(p => p.page_type === 'privacy') || null);
+      
+      console.log('Terms page:', pages.find(p => p.page_type === 'terms'));
+      console.log('Consent page:', pages.find(p => p.page_type === 'consent'));
+      console.log('Privacy page:', pages.find(p => p.page_type === 'privacy'));
     } catch (error) {
       console.error('Error fetching legal pages:', error);
       enqueueSnackbar('Error al cargar páginas legales', { variant: 'error' });
@@ -79,31 +85,33 @@ export default function LegalPagesTab() {
     }
   };
 
-  const handleSave = async (pageType: 'terms' | 'consent' | 'privacy') => {
+  const handleSave = async (pageType: 'terms' | 'consent' | 'privacy', title: string) => {
     try {
       setSaving(true);
-      let page: LegalPage | null = null;
+      let content: string = '';
       
       switch (pageType) {
         case 'terms':
-          page = termsPage;
+          content = termsPage?.content || '';
           break;
         case 'consent':
-          page = consentPage;
+          content = consentPage?.content || '';
           break;
         case 'privacy':
-          page = privacyPage;
+          content = privacyPage?.content || '';
           break;
       }
 
-      if (!page) {
-        enqueueSnackbar('No hay datos para guardar', { variant: 'warning' });
+      if (!content || content.trim() === '') {
+        enqueueSnackbar('El contenido no puede estar vacío', { variant: 'warning' });
         return;
       }
 
+      console.log('Saving page:', { pageType, title, content: content.substring(0, 100) });
+
       await apiService.put(`/legal-pages/${pageType}`, {
-        title: page.title,
-        content: page.content,
+        title: title,
+        content: content,
       });
 
       enqueueSnackbar('Página guardada exitosamente', { variant: 'success' });
@@ -146,12 +154,9 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={0}>
           <CardContent>
             <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Título"
-                value={termsPage?.title || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTermsPage(prev => prev ? { ...prev, title: e.target.value } : null)}
-              />
+              <Typography variant="h6" gutterBottom>
+                Términos y Condiciones
+              </Typography>
               
               <RichTextEditor
                 label="Contenido"
@@ -165,7 +170,7 @@ export default function LegalPagesTab() {
                 <Button
                   variant="contained"
                   startIcon={<SaveIcon />}
-                  onClick={() => handleSave('terms')}
+                  onClick={() => handleSave('terms', 'Términos y Condiciones')}
                   disabled={saving}
                 >
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
@@ -179,12 +184,9 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={1}>
           <CardContent>
             <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Título"
-                value={consentPage?.title || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConsentPage(prev => prev ? { ...prev, title: e.target.value } : null)}
-              />
+              <Typography variant="h6" gutterBottom>
+                Consentimientos Informados
+              </Typography>
               
               <RichTextEditor
                 label="Contenido"
@@ -198,7 +200,7 @@ export default function LegalPagesTab() {
                 <Button
                   variant="contained"
                   startIcon={<SaveIcon />}
-                  onClick={() => handleSave('consent')}
+                  onClick={() => handleSave('consent', 'Consentimientos Informados')}
                   disabled={saving}
                 >
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
@@ -212,12 +214,9 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={2}>
           <CardContent>
             <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Título"
-                value={privacyPage?.title || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrivacyPage(prev => prev ? { ...prev, title: e.target.value } : null)}
-              />
+              <Typography variant="h6" gutterBottom>
+                Política de Privacidad
+              </Typography>
               
               <RichTextEditor
                 label="Contenido"
@@ -231,7 +230,7 @@ export default function LegalPagesTab() {
                 <Button
                   variant="contained"
                   startIcon={<SaveIcon />}
-                  onClick={() => handleSave('privacy')}
+                  onClick={() => handleSave('privacy', 'Política de Privacidad')}
                   disabled={saving}
                 >
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
