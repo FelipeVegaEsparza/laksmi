@@ -273,7 +273,7 @@ const ServiceDetailPage = () => {
                 Descripción del Tratamiento
               </h2>
               <div 
-                className="prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none text-justify"
                 dangerouslySetInnerHTML={{ __html: service.description }}
               />
             </div>
@@ -287,7 +287,7 @@ const ServiceDetailPage = () => {
                   {service.requirements.map((requirement, index) => (
                     <li key={index} className="flex items-start">
                       <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
-                      <span className="text-gray-600">{requirement}</span>
+                      <span className="text-gray-600 text-justify">{requirement}</span>
                     </li>
                   ))}
                 </ul>
@@ -301,7 +301,7 @@ const ServiceDetailPage = () => {
                   Beneficios del Tratamiento
                 </h2>
                 <div 
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none text-justify"
                   dangerouslySetInnerHTML={{ __html: service.benefits }}
                 />
               </div>
@@ -393,7 +393,7 @@ const ServiceDetailPage = () => {
                     {relatedService.name}
                   </h3>
                   <div 
-                    className="text-gray-600 mb-4 line-clamp-2 prose prose-sm max-w-none"
+                    className="text-gray-600 mb-4 line-clamp-2 prose prose-sm max-w-none text-justify"
                     dangerouslySetInnerHTML={{ __html: relatedService.description }}
                   />
                   <div className="flex items-center justify-between">
