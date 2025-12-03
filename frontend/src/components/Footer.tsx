@@ -42,7 +42,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            {/* Logo con filtro para hacerlo blanco/claro */}
+            {/* Logo */}
             <div className="mb-4">
               {logoUrl ? (
                 <img 
@@ -50,7 +50,6 @@ const Footer = () => {
                   alt={companyName}
                   className="h-16 w-auto object-contain"
                   style={{
-                    filter: 'brightness(0) invert(1)',
                     maxWidth: '180px'
                   }}
                 />
