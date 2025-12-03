@@ -8,17 +8,19 @@ import Card from '@/components/Card';
 import Loading from '@/components/Loading';
 import { Service } from '@/types';
 import { servicesApi } from '@/services/api';
-import { Clock, ArrowLeft, Calendar, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, ArrowLeft, Calendar, Sparkles, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 const ServiceDetailPage = () => {
   const params = useParams();
   const [service, setService] = useState<Service | null>(null);
   const [relatedServices, setRelatedServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const { contactPhone } = useCompanySettings();
 
   useEffect(() => {
     const loadService = async () => {
@@ -212,18 +214,19 @@ const ServiceDetailPage = () => {
                 Nuestro equipo de profesionales está disponible para resolver 
                 todas tus consultas y ayudarte a elegir el mejor tratamiento.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="primary" size="sm">
-                  Chat en Vivo
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open('tel:+34123456789')}
-                >
-                  Llamar Ahora
-                </Button>
-              </div>
+              <Button 
+                variant="primary" 
+                size="sm"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => {
+                  const phone = contactPhone?.replace(/\D/g, '') || '';
+                  const message = encodeURIComponent(`Hola! Tengo dudas sobre el tratamiento: ${service?.name}`);
+                  window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Hablemos por WhatsApp
+              </Button>
             </Card>
           </div>
 
@@ -336,18 +339,19 @@ const ServiceDetailPage = () => {
                 Nuestro equipo de profesionales está disponible para resolver 
                 todas tus consultas y ayudarte a elegir el mejor tratamiento.
               </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="primary" size="sm">
-                  Chat en Vivo
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open('tel:+34123456789')}
-                >
-                  Llamar Ahora
-                </Button>
-              </div>
+              <Button 
+                variant="primary" 
+                size="sm"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => {
+                  const phone = contactPhone?.replace(/\D/g, '') || '';
+                  const message = encodeURIComponent(`Hola! Tengo dudas sobre el tratamiento: ${service?.name}`);
+                  window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Hablemos por WhatsApp
+              </Button>
             </Card>
           </div>
         </div>
