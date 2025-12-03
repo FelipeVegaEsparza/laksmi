@@ -58,7 +58,7 @@ const PrivacyPage = () => {
                 <p className="text-gray-600">Cargando...</p>
               </div>
             ) : (
-              <div className="prose prose-lg max-w-none text-justify">
+              <div className="legal-content">
                 <div dangerouslySetInnerHTML={{ __html: page?.content || '' }} />
               </div>
             )}
