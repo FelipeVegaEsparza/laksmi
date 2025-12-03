@@ -13,6 +13,8 @@ import {
   Divider,
   Stack,
   Paper,
+  Tabs,
+  Tab,
 } from '@mui/material'
 import {
   Save as SaveIcon,
@@ -23,6 +25,7 @@ import {
   Share as ShareIcon,
   ContactMail as ContactIcon,
   Payment as PaymentIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material'
 import { apiService } from '@/services/apiService'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -30,6 +33,7 @@ import { useSnackbar } from 'notistack'
 import { useAppTheme } from '@/contexts/ThemeContext'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import BusinessHoursForm from '@/components/BusinessHoursForm'
+import LegalPagesTab from '@/components/LegalPagesTab'
 
 interface DaySchedule {
   isOpen: boolean
@@ -81,6 +85,7 @@ export default function CompanySettingsPage() {
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [deleteLogoDialogOpen, setDeleteLogoDialogOpen] = useState(false)
+  const [currentTab, setCurrentTab] = useState(0)
   const { enqueueSnackbar } = useSnackbar()
   const { refreshTheme } = useAppTheme()
 
@@ -207,23 +212,38 @@ export default function CompanySettingsPage() {
     return url
   }
 
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setCurrentTab(newValue)
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight="600">
           Configuración de la Empresa
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? 'Guardando...' : 'Guardar Cambios'}
-        </Button>
+        {currentTab === 0 && (
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
+          </Button>
+        )}
       </Box>
 
-      <Grid container spacing={3}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} aria-label="company settings tabs">
+          <Tab label="Configuración General" />
+          <Tab icon={<DescriptionIcon />} label="Páginas Legales" iconPosition="start" />
+        </Tabs>
+      </Box>
+
+      {/* Tab 0: Configuración General */}
+      {currentTab === 0 && (
+        <Grid container spacing={3}>
         {/* Información de la Empresa */}
         <Grid item xs={12} md={6}>
           <Card>
@@ -651,6 +671,12 @@ export default function CompanySettingsPage() {
           {saving ? 'Guardando...' : 'Guardar Todos los Cambios'}
         </Button>
       </Box>
+      )}
+
+      {/* Tab 1: Páginas Legales */}
+      {currentTab === 1 && (
+        <LegalPagesTab />
+      )}
 
       {/* Confirm Delete Logo Dialog */}
       <ConfirmDialog
