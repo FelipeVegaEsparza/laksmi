@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { themeColors } from '@/utils/colors';
+import { useState, useEffect } from 'react';
+import { servicesApi } from '@/services/api';
 
 const Footer = () => {
   const { 
@@ -16,6 +18,23 @@ const Footer = () => {
     tiktokUrl,
     xUrl
   } = useCompanySettings();
+
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await servicesApi.getCategories();
+        // Tomar solo las primeras 4 categorías para el footer
+        setCategories(categoriesData.slice(0, 4));
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Si falla, mantener vacío en lugar de mostrar categorías hardcodeadas
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -157,46 +176,31 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Servicios Populares</h4>
             <ul className="space-y-2">
-              <li>
-                <Link 
-                  href="/servicios/facial" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Tratamientos Faciales
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/servicios/corporal" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Tratamientos Corporales
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/servicios/spa" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Spa y Relajación
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/servicios/estetica" 
-                  className="text-gray-300 transition-colors duration-300"
-                  onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
-                >
-                  Estética Avanzada
-                </Link>
-              </li>
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <li key={category.id}>
+                    <Link 
+                      href={`/servicios?category=${encodeURIComponent(category.name)}`}
+                      className="text-gray-300 transition-colors duration-300"
+                      onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                      onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                    >
+                      {category.name}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li>
+                  <Link 
+                    href="/servicios" 
+                    className="text-gray-300 transition-colors duration-300"
+                    onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
+                  >
+                    Ver todos los servicios
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
