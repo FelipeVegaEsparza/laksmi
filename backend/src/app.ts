@@ -41,6 +41,7 @@ import bannerRoutes from './routes/banners';
 import featuredImagesRoutes from './routes/featuredImages';
 import contactRoutes from './routes/contact';
 import settingsRoutes from './routes/settings';
+import legalPagesRoutes from './routes/legalPages';
 
 console.log('🚨🚨🚨 APP MODULE LOADED 🚨🚨🚨');
 
@@ -155,6 +156,7 @@ app.use(`/api/${config.apiVersion}/banners`, bannerRoutes);
 app.use(`/api/${config.apiVersion}/featured-images`, featuredImagesRoutes);
 app.use(`/api/${config.apiVersion}/contact`, contactRoutes);
 app.use(`/api/${config.apiVersion}/settings`, settingsRoutes);
+app.use(`/api/${config.apiVersion}/legal-pages`, legalPagesRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {
