@@ -243,6 +243,7 @@ export default function CompanySettingsPage() {
 
       {/* Tab 0: Configuración General */}
       {currentTab === 0 && (
+        <>
         <Grid container spacing={3}>
         {/* Información de la Empresa */}
         <Grid item xs={12} md={6}>
@@ -671,6 +672,7 @@ export default function CompanySettingsPage() {
           {saving ? 'Guardando...' : 'Guardar Todos los Cambios'}
         </Button>
       </Box>
+      </>
       )}
 
       {/* Tab 1: Páginas Legales */}
