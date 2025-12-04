@@ -60,15 +60,6 @@ class LegalPageController {
       const { type } = req.params;
       const { title, content } = req.body;
 
-      console.log('📥 Backend recibió solicitud de actualización:');
-      console.log('   Tipo:', type);
-      console.log('   Título:', title);
-      console.log('   Contenido (preview):', content?.substring(0, 200));
-      console.log('   Contenido (longitud):', content?.length);
-      console.log('   Tiene HTML?:', content?.includes('<'));
-      console.log('   Tiene <p>?:', content?.includes('<p>'));
-      console.log('   Tiene <strong>?:', content?.includes('<strong>'));
-
       // Validar tipo
       if (!['terms', 'consent', 'privacy'].includes(type)) {
         return res.status(400).json({
@@ -85,17 +76,11 @@ class LegalPageController {
         });
       }
 
-      console.log('✅ Validación pasada, guardando en BD...');
-
       const updatedPage = await LegalPageModel.upsert({
         pageType: type as 'terms' | 'consent' | 'privacy',
         title,
         content
       });
-
-      console.log('💾 Página guardada en BD');
-      console.log('   Contenido guardado (preview):', updatedPage.content.substring(0, 200));
-      console.log('   Tiene HTML después de guardar?:', updatedPage.content.includes('<'));
 
       res.json({
         success: true,
