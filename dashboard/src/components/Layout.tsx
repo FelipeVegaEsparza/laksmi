@@ -61,6 +61,7 @@ const menuItems = [
   { text: 'Base de Conocimientos', icon: <KnowledgeIcon />, path: '/knowledge' },
   { text: 'Banner Principal', icon: <BusinessIcon />, path: '/banners' },
   { text: 'Imágenes Destacadas', icon: <BusinessIcon />, path: '/featured-images' },
+  { text: 'Popups Promocionales', icon: <BusinessIcon />, path: '/popups' },
   { text: 'Configuración Empresa', icon: <BusinessIcon />, path: '/company-settings' },
   { text: 'Configuración', icon: <SettingsIcon />, path: '/settings' },
 ]

@@ -2,6 +2,7 @@ import Header from './Header';
 import Footer from './Footer';
 import ChatWidget from './ChatWidget';
 import ClientOnly from './ClientOnly';
+import PopupModal from './PopupModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const Layout = ({ children }: LayoutProps) => {
       <Footer />
       <ClientOnly>
         <ChatWidget />
+        <PopupModal />
       </ClientOnly>
     </div>
   );

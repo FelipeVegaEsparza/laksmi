@@ -19,6 +19,7 @@ import CategoriesPage from '@/pages/CategoriesPage'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import BannersPage from '@/pages/BannersPage'
 import FeaturedImagesPage from '@/pages/FeaturedImagesPage'
+import PopupsPage from '@/pages/PopupsPage'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -151,6 +152,14 @@ function App() {
         element={
           <ProtectedRoute>
             <FeaturedImagesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/popups"
+        element={
+          <ProtectedRoute>
+            <PopupsPage />
           </ProtectedRoute>
         }
       />
