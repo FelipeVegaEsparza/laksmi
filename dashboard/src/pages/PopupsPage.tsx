@@ -180,7 +180,7 @@ export default function PopupsPage() {
 
   const getImageUrl = (imageUrl: string) => {
     if (imageUrl.startsWith('http')) return imageUrl
-    const apiUrl = process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'
+    const apiUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'
     return `${apiUrl}${imageUrl}`
   }
 
