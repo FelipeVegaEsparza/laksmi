@@ -19,7 +19,14 @@ export default function PopupModal() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPopups();
+    // Verificar si ya se mostró el popup en esta sesión
+    const popupShown = sessionStorage.getItem('popupShown');
+    
+    if (!popupShown) {
+      fetchPopups();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const fetchPopups = async () => {
@@ -31,6 +38,8 @@ export default function PopupModal() {
       if (data.success && data.data && data.data.length > 0) {
         setPopups(data.data);
         setIsOpen(true);
+        // Marcar que el popup ya se mostró en esta sesión
+        sessionStorage.setItem('popupShown', 'true');
       }
     } catch (error) {
       console.error('Error fetching popups:', error);
@@ -71,24 +80,24 @@ export default function PopupModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30 p-4">
-      <div className="relative bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      <div className="relative w-full h-full max-w-4xl max-h-[95vh] flex items-center justify-center">
         {/* Botón de cerrar */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+          className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
           aria-label="Cerrar"
         >
           <X className="h-6 w-6 text-gray-700" />
         </button>
 
         {/* Imagen del popup */}
-        <div className="relative">
+        <div className="relative w-full h-full flex items-center justify-center">
           <img
             src={getImageUrl(currentPopup.imageUrl)}
             alt={currentPopup.title}
-            className="w-full h-auto cursor-pointer"
+            className="max-w-full max-h-full w-auto h-auto cursor-pointer rounded-lg shadow-2xl"
             onClick={handleImageClick}
-            style={{ maxHeight: '80vh', objectFit: 'contain' }}
+            style={{ objectFit: 'contain' }}
           />
         </div>
 
@@ -98,7 +107,7 @@ export default function PopupModal() {
             {/* Botón anterior */}
             <button
               onClick={handlePrevious}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
               aria-label="Anterior"
             >
               <ChevronLeft className="h-6 w-6 text-gray-700" />
@@ -107,14 +116,14 @@ export default function PopupModal() {
             {/* Botón siguiente */}
             <button
               onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
               aria-label="Siguiente"
             >
               <ChevronRight className="h-6 w-6 text-gray-700" />
             </button>
 
             {/* Indicadores de posición */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-10">
               {popups.map((_, index) => (
                 <button
                   key={index}
