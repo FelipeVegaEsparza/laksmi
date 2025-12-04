@@ -117,12 +117,15 @@ export default function CompanySettingsPage() {
 
     try {
       setSaving(true)
+      console.log('💾 Guardando configuración:', settings)
       await apiService.put('/company-settings', settings)
       await refreshTheme() // Refresh theme with new colors
       enqueueSnackbar('Configuración guardada exitosamente. Los colores se aplicarán en toda la aplicación.', { variant: 'success' })
-    } catch (error) {
-      console.error('Error saving settings:', error)
-      enqueueSnackbar('Error al guardar configuración', { variant: 'error' })
+    } catch (error: any) {
+      console.error('❌ Error saving settings:', error)
+      console.error('Error details:', error.response?.data)
+      const errorMessage = error.response?.data?.error || error.message || 'Error al guardar configuración'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setSaving(false)
     }
