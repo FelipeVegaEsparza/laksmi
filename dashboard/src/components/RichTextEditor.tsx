@@ -67,7 +67,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       console.log('   Preview:', value.substring(0, 200))
       console.log('   Tiene HTML?:', value.includes('<'))
       console.log('   Tiene <p>?:', value.includes('<p>'))
+      console.log('   Tiene <strong>?:', value.includes('<strong>'))
       console.log('   Longitud:', value.length)
+      console.log('   Tipo:', typeof value)
+    } else {
+      console.log('🔍 RichTextEditor - Valor vacío o undefined')
     }
   }, [value])
 
@@ -75,9 +79,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     console.log('📝 RichTextEditor - Contenido cambiado:')
     console.log('   Preview:', content?.substring(0, 200))
     console.log('   Es HTML?:', content?.includes('<'))
+    console.log('   Contenido completo:', content)
     const textLength = getTextLength(content)
     if (textLength <= maxLength) {
       onChange(content)
+    } else {
+      console.warn('⚠️ Contenido excede el límite de caracteres')
     }
   }
 

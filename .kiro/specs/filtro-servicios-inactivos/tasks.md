@@ -66,10 +66,15 @@ Plan de implementación para agregar filtro de estado de servicios en el Dashboa
   - _Requirements: 1.1, 2.2, 2.3, 2.4, 3.1, 3.2, 4.1, 4.2, 4.3_
 
 
+
 - [ ] 6. Desplegar a producción
   - Commit cambios con mensaje descriptivo
   - Push a GitHub
   - Easypanel rebuild automático
+
+
+
+
   - Verificar que no hay errores en logs
   - _Requirements: All_
 

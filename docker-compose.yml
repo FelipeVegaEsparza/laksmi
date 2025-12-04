@@ -72,6 +72,7 @@ services:
       - ./backend:/app
       - /app/node_modules
       - ./backend/uploads:/app/uploads
+      - ./backend/whatsapp-session:/app/whatsapp-session
     depends_on:
       mysql:
         condition: service_healthy

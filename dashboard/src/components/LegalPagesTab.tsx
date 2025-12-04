@@ -65,18 +65,32 @@ export default function LegalPagesTab() {
     try {
       setLoading(true);
       const response = await apiService.get<LegalPage[]>('/legal-pages');
-      console.log('Legal pages response:', response);
+      console.log('📥 Legal pages response:', response);
       
       // apiService.get ya extrae la data automáticamente
       const pages = Array.isArray(response) ? response : [];
 
-      setTermsPage(pages.find(p => p.page_type === 'terms') || null);
-      setConsentPage(pages.find(p => p.page_type === 'consent') || null);
-      setPrivacyPage(pages.find(p => p.page_type === 'privacy') || null);
-      
-      console.log('Terms page:', pages.find(p => p.page_type === 'terms'));
-      console.log('Consent page:', pages.find(p => p.page_type === 'consent'));
-      console.log('Privacy page:', pages.find(p => p.page_type === 'privacy'));
+      const termsPageData = pages.find(p => p.page_type === 'terms') || null;
+      const consentPageData = pages.find(p => p.page_type === 'consent') || null;
+      const privacyPageData = pages.find(p => p.page_type === 'privacy') || null;
+
+      console.log('📄 Terms page:');
+      console.log('   Contenido (preview):', termsPageData?.content?.substring(0, 200));
+      console.log('   Tiene HTML?:', termsPageData?.content?.includes('<'));
+      console.log('   Tiene <p>?:', termsPageData?.content?.includes('<p>'));
+      console.log('   Tiene <strong>?:', termsPageData?.content?.includes('<strong>'));
+
+      console.log('📄 Consent page:');
+      console.log('   Contenido (preview):', consentPageData?.content?.substring(0, 200));
+      console.log('   Tiene HTML?:', consentPageData?.content?.includes('<'));
+
+      console.log('📄 Privacy page:');
+      console.log('   Contenido (preview):', privacyPageData?.content?.substring(0, 200));
+      console.log('   Tiene HTML?:', privacyPageData?.content?.includes('<'));
+
+      setTermsPage(termsPageData);
+      setConsentPage(consentPageData);
+      setPrivacyPage(privacyPageData);
     } catch (error) {
       console.error('Error fetching legal pages:', error);
       enqueueSnackbar('Error al cargar páginas legales', { variant: 'error' });
@@ -107,12 +121,23 @@ export default function LegalPagesTab() {
         return;
       }
 
-      console.log('Saving page:', { pageType, title, content: content.substring(0, 100) });
+      console.log('💾 Guardando página:');
+      console.log('   Tipo:', pageType);
+      console.log('   Título:', title);
+      console.log('   Contenido (preview):', content.substring(0, 200));
+      console.log('   Contenido (completo):', content);
+      console.log('   Tiene HTML?:', content.includes('<'));
+      console.log('   Tiene <p>?:', content.includes('<p>'));
+      console.log('   Tiene <strong>?:', content.includes('<strong>'));
 
-      await apiService.put(`/legal-pages/${pageType}`, {
+      const payload = {
         title: title,
         content: content,
-      });
+      };
+
+      console.log('📤 Payload a enviar:', payload);
+
+      await apiService.put(`/legal-pages/${pageType}`, payload);
 
       enqueueSnackbar('Página guardada exitosamente', { variant: 'success' });
       await fetchLegalPages();
@@ -168,11 +193,14 @@ export default function LegalPagesTab() {
                 label="Contenido"
                 value={termsPage?.content || ''}
                 onChange={(value) => {
-                  console.log('📝 Contenido cambiado - Términos:', value.substring(0, 100));
+                  console.log('📝 Contenido cambiado - Términos:');
+                  console.log('   Preview:', value.substring(0, 100));
+                  console.log('   Longitud:', value.length);
+                  console.log('   Tiene HTML?:', value.includes('<'));
                   setTermsPage(prev => prev ? { ...prev, content: value } : null);
                 }}
                 placeholder="Escribe los términos y condiciones..."
-                maxLength={50000}
+                maxLength={100000}
               />
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -207,11 +235,14 @@ export default function LegalPagesTab() {
                 label="Contenido"
                 value={consentPage?.content || ''}
                 onChange={(value) => {
-                  console.log('📝 Contenido cambiado - Consentimientos:', value.substring(0, 100));
+                  console.log('📝 Contenido cambiado - Consentimientos:');
+                  console.log('   Preview:', value.substring(0, 100));
+                  console.log('   Longitud:', value.length);
+                  console.log('   Tiene HTML?:', value.includes('<'));
                   setConsentPage(prev => prev ? { ...prev, content: value } : null);
                 }}
                 placeholder="Escribe los consentimientos informados..."
-                maxLength={50000}
+                maxLength={100000}
               />
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -246,11 +277,14 @@ export default function LegalPagesTab() {
                 label="Contenido"
                 value={privacyPage?.content || ''}
                 onChange={(value) => {
-                  console.log('📝 Contenido cambiado - Privacidad:', value.substring(0, 100));
+                  console.log('📝 Contenido cambiado - Privacidad:');
+                  console.log('   Preview:', value.substring(0, 100));
+                  console.log('   Longitud:', value.length);
+                  console.log('   Tiene HTML?:', value.includes('<'));
                   setPrivacyPage(prev => prev ? { ...prev, content: value } : null);
                 }}
                 placeholder="Escribe la política de privacidad..."
-                maxLength={50000}
+                maxLength={100000}
               />
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
