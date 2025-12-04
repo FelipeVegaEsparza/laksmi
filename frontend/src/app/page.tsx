@@ -20,7 +20,7 @@ import { useCompanySettings } from '@/hooks/useCompanySettings';
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
-  const { contactWhatsapp } = useCompanySettings();
+  const {contactWhatsapp} = useCompanySettings();
 
   useEffect(() => {
     const loadFeaturedServices = async () => {
@@ -192,6 +192,12 @@ export default function Home() {
                 ? `https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, me gustaría recibir más información sobre sus servicios')}`
                 : '#'
               }
+              onClick={(e) => {
+                if (!contactWhatsapp) {
+                  e.preventDefault();
+                  alert('El número de WhatsApp no está configurado. Por favor, contacta al administrador.');
+                }
+              }}
               target="_blank"
               rel="noopener noreferrer"
               className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold transition-all duration-300 inline-block"

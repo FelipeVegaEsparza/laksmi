@@ -179,6 +179,12 @@ const SKIP_SANITIZE_FIELDS = [
   'description',  // Rich text content from services/products
   'benefits',     // Rich text content from services
   'content',      // Rich text content from legal pages
+  'contactPhone', // Phone numbers with + symbol
+  'contact_phone',
+  'contactWhatsapp', // WhatsApp numbers with + symbol
+  'contact_whatsapp',
+  'phone',        // Generic phone fields
+  'whatsapp',     // Generic WhatsApp fields
   'logoUrl',
   'logo_url',
   'facebookUrl',
