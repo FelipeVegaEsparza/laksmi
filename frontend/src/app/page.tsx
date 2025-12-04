@@ -15,10 +15,12 @@ import { themeColors, hoverEffects } from '@/utils/colors';
 import { formatPrice } from '@/utils/currency';
 import { getPlainTextPreview } from '@/utils/text';
 import ServiceImage from '@/components/ServiceImage';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const { contactWhatsapp } = useCompanySettings();
 
   useEffect(() => {
     const loadFeaturedServices = async () => {
@@ -185,13 +187,19 @@ export default function Home() {
             >
               Reservar Cita Online
             </Button>
-            <button 
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold transition-all duration-300"
+            <a
+              href={contactWhatsapp 
+                ? `https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, me gustaría recibir más información sobre sus servicios')}`
+                : '#'
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold transition-all duration-300 inline-block"
               {...hoverEffects.whiteButton}
               style={{ borderColor: 'white', color: 'white' }}
             >
               Chatear con Nosotros
-            </button>
+            </a>
           </div>
         </div>
       </section>
