@@ -178,6 +178,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 const SKIP_SANITIZE_FIELDS = [
   'description',  // Rich text content from services/products
   'benefits',     // Rich text content from services
+  'content',      // Rich text content from legal pages
   'logoUrl',
   'logo_url',
   'facebookUrl',
