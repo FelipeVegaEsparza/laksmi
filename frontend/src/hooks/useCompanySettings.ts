@@ -10,6 +10,7 @@ interface CompanySettings {
   contactAddress?: string
   contactEmail?: string
   contactPhone?: string
+  contactWhatsapp?: string
   facebookUrl?: string
   instagramUrl?: string
   tiktokUrl?: string
@@ -66,6 +67,7 @@ export function useCompanySettings() {
     contactAddress: settings?.contactAddress,
     contactEmail: settings?.contactEmail,
     contactPhone: settings?.contactPhone,
+    contactWhatsapp: settings?.contactWhatsapp,
     facebookUrl: settings?.facebookUrl,
     instagramUrl: settings?.instagramUrl,
     tiktokUrl: settings?.tiktokUrl,
