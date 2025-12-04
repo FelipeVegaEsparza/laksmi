@@ -154,6 +154,12 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={0}>
           <CardContent>
             <Stack spacing={3}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Usa el editor para dar formato al texto. El contenido se guardará en HTML y se mostrará con el formato en el sitio público.
+                </Typography>
+              </Alert>
+              
               <Typography variant="h6" gutterBottom>
                 Términos y Condiciones
               </Typography>
@@ -161,7 +167,10 @@ export default function LegalPagesTab() {
               <RichTextEditor
                 label="Contenido"
                 value={termsPage?.content || ''}
-                onChange={(value) => setTermsPage(prev => prev ? { ...prev, content: value } : null)}
+                onChange={(value) => {
+                  console.log('📝 Contenido cambiado - Términos:', value.substring(0, 100));
+                  setTermsPage(prev => prev ? { ...prev, content: value } : null);
+                }}
                 placeholder="Escribe los términos y condiciones..."
                 maxLength={50000}
               />
@@ -184,6 +193,12 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={1}>
           <CardContent>
             <Stack spacing={3}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Usa el editor para dar formato al texto. El contenido se guardará en HTML y se mostrará con el formato en el sitio público.
+                </Typography>
+              </Alert>
+              
               <Typography variant="h6" gutterBottom>
                 Consentimientos Informados
               </Typography>
@@ -191,7 +206,10 @@ export default function LegalPagesTab() {
               <RichTextEditor
                 label="Contenido"
                 value={consentPage?.content || ''}
-                onChange={(value) => setConsentPage(prev => prev ? { ...prev, content: value } : null)}
+                onChange={(value) => {
+                  console.log('📝 Contenido cambiado - Consentimientos:', value.substring(0, 100));
+                  setConsentPage(prev => prev ? { ...prev, content: value } : null);
+                }}
                 placeholder="Escribe los consentimientos informados..."
                 maxLength={50000}
               />
@@ -214,6 +232,12 @@ export default function LegalPagesTab() {
         <TabPanel value={currentTab} index={2}>
           <CardContent>
             <Stack spacing={3}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Usa el editor para dar formato al texto. El contenido se guardará en HTML y se mostrará con el formato en el sitio público.
+                </Typography>
+              </Alert>
+              
               <Typography variant="h6" gutterBottom>
                 Política de Privacidad
               </Typography>
@@ -221,7 +245,10 @@ export default function LegalPagesTab() {
               <RichTextEditor
                 label="Contenido"
                 value={privacyPage?.content || ''}
-                onChange={(value) => setPrivacyPage(prev => prev ? { ...prev, content: value } : null)}
+                onChange={(value) => {
+                  console.log('📝 Contenido cambiado - Privacidad:', value.substring(0, 100));
+                  setPrivacyPage(prev => prev ? { ...prev, content: value } : null);
+                }}
                 placeholder="Escribe la política de privacidad..."
                 maxLength={50000}
               />
