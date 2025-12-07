@@ -22,6 +22,7 @@ export function useCompanySettings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
 
   useEffect(() => {
     fetchSettings()
@@ -49,6 +50,7 @@ export function useCompanySettings() {
       
       if (data.success && data.data) {
         setSettings(data.data)
+        setMaintenanceMode(data.data.maintenanceMode || false)
       }
     } catch (err) {
       console.error('Error fetching company settings:', err)
@@ -63,6 +65,7 @@ export function useCompanySettings() {
     loading,
     error,
     logoUrl,
+    maintenanceMode,
     companyName: settings?.companyName || 'Clínica Belleza',
     contactAddress: settings?.contactAddress,
     contactEmail: settings?.contactEmail,
