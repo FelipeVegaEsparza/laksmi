@@ -94,7 +94,14 @@ const ProductsContent = () => {
     }
 
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => {
+        // Check if product has categories array
+        if (product.categories && product.categories.length > 0) {
+          return product.categories.includes(selectedCategory);
+        }
+        // Fallback to primary category for backward compatibility
+        return product.category === selectedCategory;
+      });
     }
 
     setFilteredProducts(filtered);
@@ -206,17 +213,36 @@ const ProductsContent = () => {
                         />
                       </div>
                       <div className="p-4 flex flex-col flex-grow">
-                        <div className="flex items-center justify-between mb-2">
-                          <span 
-                            className="text-xs font-medium px-2 py-1 rounded-full"
-                            style={{ 
-                              color: themeColors.primary,
-                              backgroundColor: themeColors.primaryLight 
-                            }}
-                          >
-                            {categories.find(c => c.id === product.category)?.name || product.category}
-                          </span>
-                          <div className="text-sm text-gray-500">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex flex-wrap gap-1">
+                            {product.categories && product.categories.length > 0 ? (
+                              product.categories.map((cat, index) => (
+                                <span 
+                                  key={index}
+                                  className="text-xs font-medium px-2 py-1 rounded-full"
+                                  style={{ 
+                                    color: index === 0 ? 'white' : themeColors.primary,
+                                    backgroundColor: index === 0 ? themeColors.primary : themeColors.primaryLight,
+                                    fontWeight: index === 0 ? 600 : 500
+                                  }}
+                                  title={index === 0 ? 'Categoría principal' : ''}
+                                >
+                                  {categories.find(c => c.id === cat)?.name || cat}
+                                </span>
+                              ))
+                            ) : (
+                              <span 
+                                className="text-xs font-medium px-2 py-1 rounded-full"
+                                style={{ 
+                                  color: themeColors.primary,
+                                  backgroundColor: themeColors.primaryLight 
+                                }}
+                              >
+                                {categories.find(c => c.id === product.category)?.name || product.category}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 ml-2">
                             Stock: {product.stock}
                           </div>
                         </div>

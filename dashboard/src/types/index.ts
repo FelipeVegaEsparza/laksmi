@@ -38,7 +38,8 @@ export interface Client {
 export interface Service {
   id: string
   name: string
-  category: string
+  category: string // Categoría primaria (backward compatibility)
+  categories: string[] // Todas las categorías asignadas
   price: number
   duration: number
   description: string
@@ -55,7 +56,8 @@ export interface Service {
 export interface Product {
   id: string
   name: string
-  category: string
+  category: string // Categoría primaria (backward compatibility)
+  categories: string[] // Todas las categorías asignadas
   price: number
   stock: number
   minStock: number
@@ -166,7 +168,8 @@ export interface ProductsPaginatedResponse {
 // Form types
 export interface ServiceFormData {
   name: string
-  category: string
+  category: string // Categoría primaria
+  categories?: string[] // Todas las categorías (opcional para backward compatibility)
   price: number
   duration: number
   description: string
@@ -180,7 +183,8 @@ export interface ServiceFormData {
 
 export interface ProductFormData {
   name: string
-  category: string
+  category: string // Categoría primaria
+  categories?: string[] // Todas las categorías (opcional para backward compatibility)
   price: number
   stock: number
   minStock: number

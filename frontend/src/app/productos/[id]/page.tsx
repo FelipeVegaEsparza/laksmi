@@ -159,10 +159,59 @@ const ProductDetailPage = () => {
           {/* Product Details */}
           <div className="space-y-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-sm font-medium text-rose-600 bg-rose-100 px-3 py-1 rounded-full">
-                  {product.category}
-                </span>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {product.categories && product.categories.length > 0 ? (
+                  product.categories.map((cat, index) => (
+                    <Link
+                      key={index}
+                      href={`/productos?category=${cat}`}
+                      className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
+                      style={{ 
+                        color: index === 0 ? 'white' : '#e11d48',
+                        backgroundColor: index === 0 ? '#e11d48' : '#ffe4e6',
+                        fontWeight: index === 0 ? 600 : 500
+                      }}
+                      title={index === 0 ? 'Categoría principal - Click para ver más productos' : 'Click para ver más productos'}
+                      onMouseEnter={(e) => {
+                        if (index === 0) {
+                          e.currentTarget.style.backgroundColor = '#be123c';
+                        } else {
+                          e.currentTarget.style.backgroundColor = '#e11d48';
+                          e.currentTarget.style.color = 'white';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index === 0) {
+                          e.currentTarget.style.backgroundColor = '#e11d48';
+                        } else {
+                          e.currentTarget.style.backgroundColor = '#ffe4e6';
+                          e.currentTarget.style.color = '#e11d48';
+                        }
+                      }}
+                    >
+                      {cat}
+                    </Link>
+                  ))
+                ) : (
+                  <Link
+                    href={`/productos?category=${product.category}`}
+                    className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
+                    style={{ 
+                      color: '#e11d48',
+                      backgroundColor: '#ffe4e6'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#e11d48';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffe4e6';
+                      e.currentTarget.style.color = '#e11d48';
+                    }}
+                  >
+                    {product.category}
+                  </Link>
+                )}
                 {product.stock > 0 ? (
                   <span className="text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full flex items-center">
                     <CheckCircle className="h-4 w-4 mr-1" />

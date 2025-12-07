@@ -1,7 +1,8 @@
 export interface Service {
   id: string;
   name: string;
-  category: string;
+  category: string; // Categoría primaria (backward compatibility)
+  categories: string[]; // Todas las categorías asignadas
   price: number;
   duration: number; // en minutos
   description?: string;
@@ -17,7 +18,8 @@ export interface Service {
 
 export interface CreateServiceRequest {
   name: string;
-  category: string;
+  category: string; // Categoría primaria
+  categories?: string[]; // Categorías adicionales (opcional)
   price: number;
   duration: number;
   description?: string;
@@ -31,7 +33,8 @@ export interface CreateServiceRequest {
 
 export interface UpdateServiceRequest {
   name?: string;
-  category?: string;
+  category?: string; // Actualizar categoría primaria
+  categories?: string[]; // Actualizar todas las categorías
   price?: number;
   duration?: number;
   description?: string;

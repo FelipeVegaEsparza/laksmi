@@ -3,7 +3,8 @@
 export interface Service {
   id: string;
   name: string;
-  category: string;
+  category: string; // Primary category (backward compatibility)
+  categories?: string[]; // NEW: All assigned categories
   price: number;
   duration: number;
   description: string;
@@ -18,7 +19,8 @@ export interface Service {
 export interface Product {
   id: string;
   name: string;
-  category: string;
+  category: string; // Primary category (backward compatibility)
+  categories?: string[]; // NEW: All assigned categories
   price: number;
   stock: number;
   ingredients: string[];

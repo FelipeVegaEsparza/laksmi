@@ -37,12 +37,24 @@ const ServiceDetailPage = () => {
             // Filtrar el servicio actual
             const otherServices = allServices.filter(s => s.id !== params.id);
             
-            // Intentar obtener servicios de la misma categoría
-            let related = otherServices.filter(s => s.category === serviceData.category);
+            // Intentar obtener servicios que comparten alguna categoría
+            let related = otherServices.filter(s => {
+              // Check if service has categories array
+              if (serviceData.categories && serviceData.categories.length > 0) {
+                if (s.categories && s.categories.length > 0) {
+                  // Check if any category matches
+                  return s.categories.some(cat => serviceData.categories!.includes(cat));
+                }
+                // Fallback to primary category
+                return serviceData.categories.includes(s.category);
+              }
+              // Fallback to primary category comparison
+              return s.category === serviceData.category;
+            });
             
             // Si no hay suficientes de la misma categoría, agregar otros aleatorios
             if (related.length < 3) {
-              const remaining = otherServices.filter(s => s.category !== serviceData.category);
+              const remaining = otherServices.filter(s => !related.includes(s));
               related = [...related, ...remaining];
             }
             
@@ -233,16 +245,59 @@ const ServiceDetailPage = () => {
           {/* Service Details */}
           <div className="space-y-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span 
-                  className="text-sm font-medium px-3 py-1 rounded-full"
-                  style={{ 
-                    color: themeColors.primary,
-                    backgroundColor: themeColors.primaryLight 
-                  }}
-                >
-                  {categoryNames[service.category] || service.category}
-                </span>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {service.categories && service.categories.length > 0 ? (
+                  service.categories.map((cat, index) => (
+                    <Link
+                      key={index}
+                      href={`/servicios?category=${cat}`}
+                      className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
+                      style={{ 
+                        color: index === 0 ? 'white' : themeColors.primary,
+                        backgroundColor: index === 0 ? themeColors.primary : themeColors.primaryLight,
+                        fontWeight: index === 0 ? 600 : 500
+                      }}
+                      title={index === 0 ? 'Categoría principal - Click para ver más servicios' : 'Click para ver más servicios'}
+                      onMouseEnter={(e) => {
+                        if (index === 0) {
+                          e.currentTarget.style.backgroundColor = themeColors.primaryHover;
+                        } else {
+                          e.currentTarget.style.backgroundColor = themeColors.primary;
+                          e.currentTarget.style.color = 'white';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index === 0) {
+                          e.currentTarget.style.backgroundColor = themeColors.primary;
+                        } else {
+                          e.currentTarget.style.backgroundColor = themeColors.primaryLight;
+                          e.currentTarget.style.color = themeColors.primary;
+                        }
+                      }}
+                    >
+                      {categoryNames[cat] || cat}
+                    </Link>
+                  ))
+                ) : (
+                  <Link
+                    href={`/servicios?category=${service.category}`}
+                    className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
+                    style={{ 
+                      color: themeColors.primary,
+                      backgroundColor: themeColors.primaryLight 
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = themeColors.primary;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = themeColors.primaryLight;
+                      e.currentTarget.style.color = themeColors.primary;
+                    }}
+                  >
+                    {categoryNames[service.category] || service.category}
+                  </Link>
+                )}
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                 {service.name}

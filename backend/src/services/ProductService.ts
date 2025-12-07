@@ -182,9 +182,13 @@ export class ProductService {
     const products = await ProductModel.findAll();
     const categoryMap = new Map<string, number>();
 
+    // Contar productos en cada categoría (un producto puede estar en múltiples categorías)
     products.products.forEach(product => {
-      const count = categoryMap.get(product.category) || 0;
-      categoryMap.set(product.category, count + 1);
+      // Iterar sobre todas las categorías del producto
+      product.categories.forEach(category => {
+        const count = categoryMap.get(category) || 0;
+        categoryMap.set(category, count + 1);
+      });
     });
 
     return Array.from(categoryMap.entries()).map(([category, count]) => ({

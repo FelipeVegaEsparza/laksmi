@@ -6,14 +6,14 @@ export class ServiceModel {
     const service = await db('services').where({ id }).first();
     if (!service) return null;
     
-    return this.formatService(service);
+    return await this.formatService(service);
   }
 
   static async findByName(name: string): Promise<Service | null> {
     const service = await db('services').where({ name }).first();
     if (!service) return null;
     
-    return this.formatService(service);
+    return await this.formatService(service);
   }
 
   static async create(serviceData: CreateServiceRequest): Promise<Service> {
@@ -49,7 +49,21 @@ export class ServiceModel {
       throw new Error('Error creating service');
     }
 
-    return this.formatService(service);
+    // Insertar categorías en la tabla de unión
+    const categories = serviceData.categories || [serviceData.category];
+    const uniqueCategories = Array.from(new Set(categories)); // Eliminar duplicados
+
+    const categoryInserts = uniqueCategories.map((categoryName, index) => ({
+      id: db.raw('UUID()'),
+      service_id: service.id,
+      category_name: categoryName,
+      is_primary: index === 0, // La primera es la primaria
+      display_order: index
+    }));
+
+    await db('service_categories').insert(categoryInserts);
+
+    return await this.formatService(service);
   }
 
   static async update(id: string, updates: UpdateServiceRequest): Promise<Service | null> {
@@ -75,6 +89,14 @@ export class ServiceModel {
       return null;
     }
 
+    // Si se proporcionan categorías, actualizarlas
+    if (updates.categories !== undefined) {
+      await this.updateCategories(id, updates.categories);
+    } else if (updates.category !== undefined) {
+      // Si solo se actualiza la categoría primaria, actualizar en la tabla de unión
+      await this.setPrimaryCategory(id, updates.category);
+    }
+
     return this.findById(id);
   }
 
@@ -95,7 +117,18 @@ export class ServiceModel {
 
     // Aplicar filtros
     if (category) {
-      query = query.where('category', category);
+      // Buscar servicios que tengan esta categoría (primaria o secundaria)
+      const serviceIds = await db('service_categories')
+        .where({ category_name: category })
+        .select('service_id');
+      
+      if (serviceIds.length > 0) {
+        const ids = serviceIds.map(s => s.service_id);
+        query = query.whereIn('id', ids);
+      } else {
+        // Si no hay servicios con esta categoría, retornar vacío
+        query = query.where('id', null);
+      }
     }
 
     if (minPrice !== undefined) {
@@ -137,8 +170,13 @@ export class ServiceModel {
 
     const services = await query;
     
+    // Formatear servicios con sus categorías
+    const formattedServices = await Promise.all(
+      services.map(service => this.formatService(service))
+    );
+    
     return {
-      services: services.map(service => this.formatService(service)),
+      services: formattedServices,
       total
     };
   }
@@ -155,25 +193,40 @@ export class ServiceModel {
   }
 
   static async getCategories(): Promise<ServiceCategory[]> {
-    const categories = await db('services')
-      .select('category')
-      .count('* as serviceCount')
-      .groupBy('category')
+    // Contar servicios por categoría desde la tabla de unión
+    // Un servicio puede aparecer en múltiples categorías
+    const categories = await db('service_categories')
+      .join('services', 'service_categories.service_id', 'services.id')
+      .where('services.is_active', true)
+      .select('service_categories.category_name')
+      .count('DISTINCT service_categories.service_id as serviceCount')
+      .groupBy('service_categories.category_name')
       .orderBy('serviceCount', 'desc');
 
     return categories.map(cat => ({
-      name: String(cat.category),
-      description: `Servicios de ${String(cat.category).toLowerCase()}`,
+      name: String(cat.category_name),
+      description: `Servicios de ${String(cat.category_name).toLowerCase()}`,
       serviceCount: parseInt(cat.serviceCount as string)
     }));
   }
 
   static async getServicesByCategory(category: string): Promise<Service[]> {
+    // Buscar servicios que tengan esta categoría (primaria o secundaria)
+    const serviceIds = await db('service_categories')
+      .where({ category_name: category })
+      .select('service_id');
+
+    if (serviceIds.length === 0) {
+      return [];
+    }
+
+    const ids = serviceIds.map(s => s.service_id);
     const services = await db('services')
-      .where({ category, is_active: true })
+      .whereIn('id', ids)
+      .where({ is_active: true })
       .orderBy('name');
 
-    return services.map(service => this.formatService(service));
+    return await Promise.all(services.map(service => this.formatService(service)));
   }
 
   static async getPopularServices(limit: number = 10): Promise<Service[]> {
@@ -183,7 +236,7 @@ export class ServiceModel {
       .orderBy('created_at', 'desc')
       .limit(limit);
 
-    return services.map(service => this.formatService(service));
+    return await Promise.all(services.map(service => this.formatService(service)));
   }
 
   static async getServiceStats(): Promise<{
@@ -242,11 +295,213 @@ export class ServiceModel {
     return this.findById(id);
   }
 
-  private static formatService(dbService: any): Service {
+  // ============================================
+  // MÉTODOS DE GESTIÓN DE CATEGORÍAS MÚLTIPLES
+  // ============================================
+
+  /**
+   * Agregar una categoría a un servicio
+   * @param serviceId ID del servicio
+   * @param categoryName Nombre de la categoría
+   * @param isPrimary Si es la categoría primaria
+   */
+  static async addCategory(serviceId: string, categoryName: string, isPrimary: boolean = false): Promise<void> {
+    // Verificar que el servicio existe
+    const service = await this.findById(serviceId);
+    if (!service) {
+      throw new Error('Service not found');
+    }
+
+    // Verificar si la categoría ya está asignada
+    const existing = await db('service_categories')
+      .where({ service_id: serviceId, category_name: categoryName })
+      .first();
+
+    if (existing) {
+      throw new Error(`Category '${categoryName}' is already assigned to this service`);
+    }
+
+    // Si es primaria, desmarcar otras categorías primarias
+    if (isPrimary) {
+      await db('service_categories')
+        .where({ service_id: serviceId, is_primary: true })
+        .update({ is_primary: false });
+    }
+
+    // Obtener el siguiente display_order
+    const [maxOrder] = await db('service_categories')
+      .where({ service_id: serviceId })
+      .max('display_order as max');
+    const displayOrder = (maxOrder.max || -1) + 1;
+
+    // Insertar la nueva categoría
+    await db('service_categories').insert({
+      id: db.raw('UUID()'),
+      service_id: serviceId,
+      category_name: categoryName,
+      is_primary: isPrimary,
+      display_order: displayOrder
+    });
+
+    // Si es primaria, actualizar la columna category en services (el trigger lo hace automáticamente)
+  }
+
+  /**
+   * Remover una categoría de un servicio
+   * @param serviceId ID del servicio
+   * @param categoryName Nombre de la categoría a remover
+   */
+  static async removeCategory(serviceId: string, categoryName: string): Promise<void> {
+    // Verificar que el servicio existe
+    const service = await this.findById(serviceId);
+    if (!service) {
+      throw new Error('Service not found');
+    }
+
+    // Verificar que la categoría está asignada
+    const category = await db('service_categories')
+      .where({ service_id: serviceId, category_name: categoryName })
+      .first();
+
+    if (!category) {
+      throw new Error(`Category '${categoryName}' is not assigned to this service`);
+    }
+
+    // Verificar que no es la última categoría
+    const [count] = await db('service_categories')
+      .where({ service_id: serviceId })
+      .count('* as count');
+
+    if (parseInt(count.count as string) <= 1) {
+      throw new Error('Cannot remove the last category. Service must have at least one category.');
+    }
+
+    const wasPrimary = category.is_primary;
+
+    // Eliminar la categoría
+    await db('service_categories')
+      .where({ service_id: serviceId, category_name: categoryName })
+      .del();
+
+    // Si era primaria, asignar otra categoría como primaria
+    if (wasPrimary) {
+      const [firstCategory] = await db('service_categories')
+        .where({ service_id: serviceId })
+        .orderBy('display_order', 'asc')
+        .limit(1);
+
+      if (firstCategory) {
+        await db('service_categories')
+          .where({ id: firstCategory.id })
+          .update({ is_primary: true });
+      }
+    }
+  }
+
+  /**
+   * Obtener todas las categorías de un servicio
+   * @param serviceId ID del servicio
+   * @returns Array de nombres de categorías ordenadas por display_order
+   */
+  static async getCategoriesForService(serviceId: string): Promise<string[]> {
+    const categories = await db('service_categories')
+      .where({ service_id: serviceId })
+      .orderBy('display_order', 'asc')
+      .select('category_name');
+
+    return categories.map(cat => cat.category_name);
+  }
+
+  /**
+   * Actualizar todas las categorías de un servicio
+   * @param serviceId ID del servicio
+   * @param categories Array de nombres de categorías (la primera será la primaria)
+   */
+  static async updateCategories(serviceId: string, categories: string[]): Promise<void> {
+    // Validar que hay al menos una categoría
+    if (!categories || categories.length === 0) {
+      throw new Error('At least one category must be provided');
+    }
+
+    // Verificar que el servicio existe
+    const service = await this.findById(serviceId);
+    if (!service) {
+      throw new Error('Service not found');
+    }
+
+    // Eliminar categorías duplicadas
+    const uniqueCategories = Array.from(new Set(categories));
+
+    // Eliminar todas las categorías existentes
+    await db('service_categories')
+      .where({ service_id: serviceId })
+      .del();
+
+    // Insertar las nuevas categorías
+    const insertData = uniqueCategories.map((categoryName, index) => ({
+      id: db.raw('UUID()'),
+      service_id: serviceId,
+      category_name: categoryName,
+      is_primary: index === 0, // La primera es la primaria
+      display_order: index
+    }));
+
+    await db('service_categories').insert(insertData);
+
+    // Actualizar la columna category en services con la categoría primaria
+    await db('services')
+      .where({ id: serviceId })
+      .update({ category: uniqueCategories[0] });
+  }
+
+  /**
+   * Establecer una categoría como primaria
+   * @param serviceId ID del servicio
+   * @param categoryName Nombre de la categoría a establecer como primaria
+   */
+  static async setPrimaryCategory(serviceId: string, categoryName: string): Promise<void> {
+    // Verificar que el servicio existe
+    const service = await this.findById(serviceId);
+    if (!service) {
+      throw new Error('Service not found');
+    }
+
+    // Verificar que la categoría está asignada
+    const category = await db('service_categories')
+      .where({ service_id: serviceId, category_name: categoryName })
+      .first();
+
+    if (!category) {
+      throw new Error(`Category '${categoryName}' is not assigned to this service`);
+    }
+
+    // Desmarcar todas las categorías primarias
+    await db('service_categories')
+      .where({ service_id: serviceId })
+      .update({ is_primary: false });
+
+    // Marcar la nueva categoría como primaria
+    await db('service_categories')
+      .where({ service_id: serviceId, category_name: categoryName })
+      .update({ is_primary: true });
+
+    // Actualizar la columna category en services (el trigger lo hace automáticamente)
+  }
+
+  private static async formatService(dbService: any): Promise<Service> {
+    // Obtener todas las categorías del servicio desde la tabla de unión
+    const categories = await db('service_categories')
+      .where({ service_id: dbService.id })
+      .orderBy('display_order', 'asc')
+      .select('category_name');
+
+    const categoryNames = categories.map(c => c.category_name);
+
     return {
       id: dbService.id,
       name: dbService.name,
-      category: dbService.category,
+      category: dbService.category, // Categoría primaria para backward compatibility
+      categories: categoryNames.length > 0 ? categoryNames : [dbService.category], // Usar categorías de la tabla de unión o fallback
       price: parseFloat(dbService.price),
       duration: dbService.duration,
       description: dbService.description,

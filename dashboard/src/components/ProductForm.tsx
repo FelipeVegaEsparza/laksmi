@@ -9,17 +9,26 @@ import {
   Typography,
   InputAdornment,
   Autocomplete,
+  FormHelperText,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon, Delete as DeleteIcon, Star as StarIcon, ArrowUpward, ArrowDownward } from '@mui/icons-material'
 import { Product, ProductFormData, Service } from '@/types'
 import { apiService } from '@/services/apiService'
 import ImageUpload from './ImageUpload'
+import Select, { MultiValue, StylesConfig } from 'react-select'
 
 interface Category {
   id: string
   name: string
   type: 'service' | 'product'
   isActive: boolean
+}
+
+interface CategoryOption {
+  value: string
+  label: string
 }
 
 interface ProductFormProps {
@@ -32,6 +41,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     category: '',
+    categories: [],
     price: 0,
     stock: 0,
     minStock: 5,
@@ -48,9 +58,15 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
 
   useEffect(() => {
     if (product) {
+      // Use categories array if available, otherwise fall back to single category
+      const productCategories = product.categories && product.categories.length > 0 
+        ? product.categories 
+        : [product.category]
+      
       setFormData({
         name: product.name,
         category: product.category,
+        categories: productCategories,
         price: product.price,
         stock: product.stock,
         minStock: product.minStock,
@@ -69,7 +85,18 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         setLoadingCategories(true)
         const response = await apiService.get<any>('/categories?type=product&isActive=true')
         const categoriesData = response.data || response
-        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+        let cats = Array.isArray(categoriesData) ? categoriesData : []
+        
+        // Si estamos editando y la categoría del producto no está en la lista, agregarla
+        if (product && product.category) {
+          const categoryExists = cats.some(c => c.name === product.category)
+          if (!categoryExists) {
+            console.warn(`⚠️ Categoría "${product.category}" no encontrada en la lista, agregándola temporalmente`)
+            cats = [...cats, { id: product.category, name: product.category, type: 'product', isActive: true }]
+          }
+        }
+        
+        setCategories(cats)
       } catch (error) {
         console.error('Error cargando categorías:', error)
         setCategories([])
@@ -103,8 +130,8 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
       newErrors.name = 'El nombre es requerido'
     }
 
-    if (!formData.category) {
-      newErrors.category = 'La categoría es requerida'
+    if (!formData.categories || formData.categories.length === 0) {
+      newErrors.categories = 'Debe seleccionar al menos una categoría'
     }
 
     if (formData.price <= 0) {
@@ -126,7 +153,21 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      onSave(formData)
+      // Prepare data with categories array
+      const cleanedData: any = {
+        name: formData.name.trim(),
+        category: formData.categories && formData.categories.length > 0 ? formData.categories[0] : '',
+        categories: formData.categories || [],
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        minStock: Number(formData.minStock),
+        description: formData.description || '',
+        images: Array.isArray(formData.images) ? formData.images : [],
+        ingredients: Array.isArray(formData.ingredients) ? formData.ingredients : [],
+        compatibleServices: Array.isArray(formData.compatibleServices) ? formData.compatibleServices : [],
+      }
+      
+      onSave(cleanedData)
     }
   }
 
@@ -177,6 +218,93 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     }
   }
 
+  const handleCategoriesChange = (selectedOptions: MultiValue<CategoryOption>) => {
+    const selectedCategories = selectedOptions.map(option => option.value)
+    setFormData(prev => ({
+      ...prev,
+      categories: selectedCategories,
+      category: selectedCategories.length > 0 ? selectedCategories[0] : ''
+    }))
+    
+    // Clear error when user selects categories
+    if (errors.categories) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.categories
+        return newErrors
+      })
+    }
+  }
+
+  const moveCategoryUp = (index: number) => {
+    if (index === 0) return
+    const newCategories = [...(formData.categories || [])]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index - 1]
+    newCategories[index - 1] = temp
+    setFormData(prev => ({
+      ...prev,
+      categories: newCategories,
+      category: newCategories[0]
+    }))
+  }
+
+  const moveCategoryDown = (index: number) => {
+    const cats = formData.categories || []
+    if (index === cats.length - 1) return
+    const newCategories = [...cats]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index + 1]
+    newCategories[index + 1] = temp
+    setFormData(prev => ({
+      ...prev,
+      categories: newCategories,
+      category: newCategories[0]
+    }))
+  }
+
+  // Convert categories to options for react-select
+  const categoryOptions: CategoryOption[] = categories.map(cat => ({
+    value: cat.name,
+    label: cat.name
+  }))
+
+  const selectedCategoryOptions: CategoryOption[] = (formData.categories || []).map(cat => ({
+    value: cat,
+    label: cat
+  }))
+
+  // Custom styles for react-select to match MUI theme
+  const selectStyles: StylesConfig<CategoryOption, true> = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: '56px',
+      borderColor: errors.categories ? '#d32f2f' : (state.isFocused ? '#1976d2' : 'rgba(0, 0, 0, 0.23)'),
+      borderWidth: errors.categories ? '2px' : '1px',
+      boxShadow: state.isFocused ? '0 0 0 1px #1976d2' : 'none',
+      '&:hover': {
+        borderColor: errors.categories ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)'
+      }
+    }),
+    multiValue: (base) => ({
+      ...base,
+      backgroundColor: '#e3f2fd',
+    }),
+    multiValueLabel: (base) => ({
+      ...base,
+      color: '#1976d2',
+      fontWeight: 500,
+    }),
+    multiValueRemove: (base) => ({
+      ...base,
+      color: '#1976d2',
+      ':hover': {
+        backgroundColor: '#1976d2',
+        color: 'white',
+      },
+    }),
+  }
+
   const selectedServices = Array.isArray(services) 
     ? services.filter(service => formData.compatibleServices.includes(service.id))
     : []
@@ -196,31 +324,84 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
           />
         </Grid>
         
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            select
-            label="Categoría"
-            value={formData.category}
-            onChange={handleInputChange('category')}
-            error={!!errors.category}
-            helperText={errors.category}
-            disabled={loadingCategories}
-            required
-          >
-            {loadingCategories ? (
-              <MenuItem value="">Cargando categorías...</MenuItem>
-            ) : categories.length === 0 ? (
-              <MenuItem value="">No hay categorías disponibles</MenuItem>
-            ) : (
-              categories.map((category) => (
-                <MenuItem key={category.id} value={category.name}>
-                  {category.name}
-                </MenuItem>
-              ))
+        <Grid item xs={12}>
+          <FormControl fullWidth error={!!errors.categories}>
+            <InputLabel shrink sx={{ backgroundColor: 'white', px: 0.5, ml: -0.5 }}>
+              Categorías *
+            </InputLabel>
+            <Box sx={{ mt: 2 }}>
+              <Select
+                isMulti
+                options={categoryOptions}
+                value={selectedCategoryOptions}
+                onChange={handleCategoriesChange}
+                isDisabled={loadingCategories}
+                placeholder={loadingCategories ? "Cargando categorías..." : "Selecciona una o más categorías"}
+                styles={selectStyles}
+                noOptionsMessage={() => "No hay categorías disponibles"}
+              />
+            </Box>
+            {errors.categories && (
+              <FormHelperText error>{errors.categories}</FormHelperText>
             )}
-          </TextField>
+            {!errors.categories && (
+              <FormHelperText>
+                Selecciona una o más categorías. La primera será la categoría principal.
+              </FormHelperText>
+            )}
+          </FormControl>
         </Grid>
+
+        {/* Category badges with reordering */}
+        {formData.categories && formData.categories.length > 0 && (
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" gutterBottom>
+              Orden de Categorías
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+              {formData.categories.map((category, index) => (
+                <Box key={category} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Chip
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {index === 0 && <StarIcon sx={{ fontSize: 16 }} />}
+                        {category}
+                        {index === 0 && (
+                          <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 'bold' }}>
+                            (Principal)
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    color={index === 0 ? 'primary' : 'default'}
+                    variant={index === 0 ? 'filled' : 'outlined'}
+                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Button
+                      size="small"
+                      onClick={() => moveCategoryUp(index)}
+                      disabled={index === 0}
+                      sx={{ minWidth: 'auto', p: 0.25, height: '20px' }}
+                    >
+                      <ArrowUpward sx={{ fontSize: 16 }} />
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => moveCategoryDown(index)}
+                      disabled={index === formData.categories!.length - 1}
+                      sx={{ minWidth: 'auto', p: 0.25, height: '20px' }}
+                    >
+                      <ArrowDownward sx={{ fontSize: 16 }} />
+                    </Button>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <FormHelperText>
+              Usa las flechas para reordenar. La primera categoría es la principal y se usa para compatibilidad.
+            </FormHelperText>
+          </Grid>
+        )}
 
         <Grid item xs={12} md={4}>
           <TextField

@@ -187,12 +187,41 @@ export default function ServicesPage() {
       minWidth: 200,
     },
     {
-      id: 'category',
-      label: 'Categoría',
-      minWidth: 120,
-      format: (value: string) => (
-        <Chip label={value} size="small" variant="outlined" />
-      ),
+      id: 'categories',
+      label: 'Categorías',
+      minWidth: 200,
+      format: (value: string[], service?: Service) => {
+        if (!service || !service.categories || service.categories.length === 0) {
+          return <Chip label={service?.category || 'Sin categoría'} size="small" variant="outlined" />
+        }
+        
+        const maxVisible = 2
+        const visibleCategories = service.categories.slice(0, maxVisible)
+        const remainingCount = service.categories.length - maxVisible
+        
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {visibleCategories.map((cat, index) => (
+              <Chip
+                key={index}
+                label={cat}
+                size="small"
+                variant={index === 0 ? 'filled' : 'outlined'}
+                color={index === 0 ? 'primary' : 'default'}
+                sx={index === 0 ? { fontWeight: 'bold' } : {}}
+              />
+            ))}
+            {remainingCount > 0 && (
+              <Chip
+                label={`+${remainingCount} más`}
+                size="small"
+                variant="outlined"
+                color="default"
+              />
+            )}
+          </Box>
+        )
+      },
     },
     {
       id: 'price',
@@ -266,6 +295,7 @@ export default function ServicesPage() {
             label="Categoría"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            helperText="Busca en todas las categorías asignadas"
           >
             <MenuItem value="">Todas las categorías</MenuItem>
             {categories.map((category) => (
@@ -357,8 +387,31 @@ export default function ServicesPage() {
                     </Box>
                   </Box>
                   
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Chip label={service.category} size="small" variant="outlined" />
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                    {service.categories && service.categories.length > 0 ? (
+                      <>
+                        {service.categories.slice(0, 3).map((cat, index) => (
+                          <Chip
+                            key={index}
+                            label={cat}
+                            size="small"
+                            variant={index === 0 ? 'filled' : 'outlined'}
+                            color={index === 0 ? 'primary' : 'default'}
+                            sx={index === 0 ? { fontWeight: 'bold' } : {}}
+                          />
+                        ))}
+                        {service.categories.length > 3 && (
+                          <Chip
+                            label={`+${service.categories.length - 3} más`}
+                            size="small"
+                            variant="outlined"
+                            color="default"
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <Chip label={service.category} size="small" variant="outlined" />
+                    )}
                     <Chip
                       label={service.isActive ? 'Activo' : 'Inactivo'}
                       color={service.isActive ? 'success' : 'default'}

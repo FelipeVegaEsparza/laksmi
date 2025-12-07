@@ -10,18 +10,27 @@ import {
   Chip,
   Typography,
   InputAdornment,
+  FormHelperText,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon, Delete as DeleteIcon, Star as StarIcon, ArrowUpward, ArrowDownward } from '@mui/icons-material'
 import { Service, ServiceFormData } from '@/types'
 import { apiService } from '@/services/apiService'
 import ImageUpload from './ImageUpload'
 import RichTextEditor from './RichTextEditor'
+import Select, { MultiValue, StylesConfig } from 'react-select'
 
 interface Category {
   id: string
   name: string
   type: 'service' | 'product'
   isActive: boolean
+}
+
+interface CategoryOption {
+  value: string
+  label: string
 }
 
 interface ServiceFormProps {
@@ -34,6 +43,7 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
   const [formData, setFormData] = useState<ServiceFormData>({
     name: '',
     category: '',
+    categories: [],
     price: 0,
     duration: 60,
     description: '',
@@ -82,15 +92,22 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
     if (service) {
       console.log('📝 Cargando servicio en formulario:')
       console.log('   Categoría del servicio:', `"${service.category}"`)
+      console.log('   Categorías del servicio:', service.categories)
       console.log('   Categorías disponibles:', categories.map(c => `"${c.name}"`))
       console.log('   Description:', service.description?.substring(0, 200))
       console.log('   Benefits:', service.benefits?.substring(0, 200))
       console.log('   Description tiene HTML?:', service.description?.includes('<'))
       console.log('   Benefits tiene HTML?:', service.benefits?.includes('<'))
       
+      // Use categories array if available, otherwise fall back to single category
+      const serviceCategories = service.categories && service.categories.length > 0 
+        ? service.categories 
+        : [service.category]
+      
       setFormData({
         name: service.name,
         category: service.category,
+        categories: serviceCategories,
         price: service.price,
         duration: service.duration,
         description: service.description || '',
@@ -111,8 +128,8 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       newErrors.name = 'El nombre es requerido'
     }
 
-    if (!formData.category) {
-      newErrors.category = 'La categoría es requerida'
+    if (!formData.categories || formData.categories.length === 0) {
+      newErrors.categories = 'Debe seleccionar al menos una categoría'
     }
 
     if (formData.price <= 0) {
@@ -143,7 +160,8 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       // Limpiar datos antes de enviar - NO hacer trim en HTML (description y benefits)
       const cleanedData: any = {
         name: formData.name.trim(),
-        category: formData.category,
+        category: formData.categories && formData.categories.length > 0 ? formData.categories[0] : '',
+        categories: formData.categories || [],
         price: Number(formData.price),
         duration: Number(formData.duration),
         description: formData.description || '',
@@ -160,6 +178,8 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
       }
       
       console.log('📤 ServiceForm - Datos a enviar:')
+      console.log('   Primary category:', cleanedData.category)
+      console.log('   All categories:', cleanedData.categories)
       console.log('   Description preview:', cleanedData.description?.substring(0, 200))
       console.log('   Benefits preview:', cleanedData.benefits?.substring(0, 200))
       console.log('   Description es HTML?:', cleanedData.description?.includes('<'))
@@ -217,6 +237,93 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
     }
   }
 
+  const handleCategoriesChange = (selectedOptions: MultiValue<CategoryOption>) => {
+    const selectedCategories = selectedOptions.map(option => option.value)
+    setFormData(prev => ({
+      ...prev,
+      categories: selectedCategories,
+      category: selectedCategories.length > 0 ? selectedCategories[0] : ''
+    }))
+    
+    // Clear error when user selects categories
+    if (errors.categories) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.categories
+        return newErrors
+      })
+    }
+  }
+
+  const moveCategoryUp = (index: number) => {
+    if (index === 0) return
+    const newCategories = [...(formData.categories || [])]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index - 1]
+    newCategories[index - 1] = temp
+    setFormData(prev => ({
+      ...prev,
+      categories: newCategories,
+      category: newCategories[0]
+    }))
+  }
+
+  const moveCategoryDown = (index: number) => {
+    const cats = formData.categories || []
+    if (index === cats.length - 1) return
+    const newCategories = [...cats]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index + 1]
+    newCategories[index + 1] = temp
+    setFormData(prev => ({
+      ...prev,
+      categories: newCategories,
+      category: newCategories[0]
+    }))
+  }
+
+  // Convert categories to options for react-select
+  const categoryOptions: CategoryOption[] = categories.map(cat => ({
+    value: cat.name,
+    label: cat.name
+  }))
+
+  const selectedCategoryOptions: CategoryOption[] = (formData.categories || []).map(cat => ({
+    value: cat,
+    label: cat
+  }))
+
+  // Custom styles for react-select to match MUI theme
+  const selectStyles: StylesConfig<CategoryOption, true> = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: '56px',
+      borderColor: errors.categories ? '#d32f2f' : (state.isFocused ? '#1976d2' : 'rgba(0, 0, 0, 0.23)'),
+      borderWidth: errors.categories ? '2px' : '1px',
+      boxShadow: state.isFocused ? '0 0 0 1px #1976d2' : 'none',
+      '&:hover': {
+        borderColor: errors.categories ? '#d32f2f' : 'rgba(0, 0, 0, 0.87)'
+      }
+    }),
+    multiValue: (base) => ({
+      ...base,
+      backgroundColor: '#e3f2fd',
+    }),
+    multiValueLabel: (base) => ({
+      ...base,
+      color: '#1976d2',
+      fontWeight: 500,
+    }),
+    multiValueRemove: (base) => ({
+      ...base,
+      color: '#1976d2',
+      ':hover': {
+        backgroundColor: '#1976d2',
+        color: 'white',
+      },
+    }),
+  }
+
   return (
     <Box component="form" onSubmit={handleSubmit}>
       <Grid container spacing={3}>
@@ -232,31 +339,84 @@ export default function ServiceForm({ service, onSave, onCancel }: ServiceFormPr
           />
         </Grid>
         
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            select
-            label="Categoría"
-            value={formData.category}
-            onChange={handleInputChange('category')}
-            error={!!errors.category}
-            helperText={errors.category}
-            disabled={loadingCategories}
-            required
-          >
-            {loadingCategories ? (
-              <MenuItem value="">Cargando categorías...</MenuItem>
-            ) : categories.length === 0 ? (
-              <MenuItem value="">No hay categorías disponibles</MenuItem>
-            ) : (
-              categories.map((category) => (
-                <MenuItem key={category.id} value={category.name}>
-                  {category.name}
-                </MenuItem>
-              ))
+        <Grid item xs={12}>
+          <FormControl fullWidth error={!!errors.categories}>
+            <InputLabel shrink sx={{ backgroundColor: 'white', px: 0.5, ml: -0.5 }}>
+              Categorías *
+            </InputLabel>
+            <Box sx={{ mt: 2 }}>
+              <Select
+                isMulti
+                options={categoryOptions}
+                value={selectedCategoryOptions}
+                onChange={handleCategoriesChange}
+                isDisabled={loadingCategories}
+                placeholder={loadingCategories ? "Cargando categorías..." : "Selecciona una o más categorías"}
+                styles={selectStyles}
+                noOptionsMessage={() => "No hay categorías disponibles"}
+              />
+            </Box>
+            {errors.categories && (
+              <FormHelperText error>{errors.categories}</FormHelperText>
             )}
-          </TextField>
+            {!errors.categories && (
+              <FormHelperText>
+                Selecciona una o más categorías. La primera será la categoría principal.
+              </FormHelperText>
+            )}
+          </FormControl>
         </Grid>
+
+        {/* Category badges with reordering */}
+        {formData.categories && formData.categories.length > 0 && (
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" gutterBottom>
+              Orden de Categorías
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+              {formData.categories.map((category, index) => (
+                <Box key={category} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Chip
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {index === 0 && <StarIcon sx={{ fontSize: 16 }} />}
+                        {category}
+                        {index === 0 && (
+                          <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 'bold' }}>
+                            (Principal)
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                    color={index === 0 ? 'primary' : 'default'}
+                    variant={index === 0 ? 'filled' : 'outlined'}
+                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Button
+                      size="small"
+                      onClick={() => moveCategoryUp(index)}
+                      disabled={index === 0}
+                      sx={{ minWidth: 'auto', p: 0.25, height: '20px' }}
+                    >
+                      <ArrowUpward sx={{ fontSize: 16 }} />
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => moveCategoryDown(index)}
+                      disabled={index === formData.categories!.length - 1}
+                      sx={{ minWidth: 'auto', p: 0.25, height: '20px' }}
+                    >
+                      <ArrowDownward sx={{ fontSize: 16 }} />
+                    </Button>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <FormHelperText>
+              Usa las flechas para reordenar. La primera categoría es la principal y se usa para compatibilidad.
+            </FormHelperText>
+          </Grid>
+        )}
 
         <Grid item xs={12} md={6}>
           <TextField

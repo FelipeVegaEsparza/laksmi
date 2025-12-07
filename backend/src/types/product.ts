@@ -1,7 +1,8 @@
 export interface Product {
   id: string;
   name: string;
-  category: string;
+  category: string; // Categoría primaria (backward compatibility)
+  categories: string[]; // Todas las categorías asignadas
   price: number;
   stock: number;
   minStock: number;
@@ -15,7 +16,8 @@ export interface Product {
 
 export interface CreateProductRequest {
   name: string;
-  category: string;
+  category: string; // Categoría primaria
+  categories?: string[]; // Categorías adicionales (opcional)
   price: number;
   stock: number;
   minStock?: number;
@@ -27,7 +29,8 @@ export interface CreateProductRequest {
 
 export interface UpdateProductRequest {
   name?: string;
-  category?: string;
+  category?: string; // Actualizar categoría primaria
+  categories?: string[]; // Actualizar todas las categorías
   price?: number;
   stock?: number;
   minStock?: number;

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { ProductController } from '../controllers/ProductController';
 import { authenticateToken, requireAnyRole, requireManagerOrAdmin } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
+import { createProductSchema, updateProductSchema } from '../middleware/productValidation';
 
 const router = Router();
 
@@ -37,7 +39,7 @@ router.use(authenticateToken);
 router.use(requireAnyRole);
 
 // Rutas principales de productos
-router.post('/', ProductController.createProduct);
+router.post('/', validateRequest(createProductSchema), ProductController.createProduct);
 router.get('/', ProductController.getProducts);
 router.get('/stats', ProductController.getProductStats);
 router.get('/categories', ProductController.getProductCategories);
@@ -45,7 +47,7 @@ router.get('/low-stock-alerts', ProductController.getLowStockAlerts);
 router.get('/category/:category', ProductController.getProductsByCategory);
 router.get('/compatible/:serviceId', ProductController.getCompatibleProducts);
 router.get('/:id', ProductController.getProduct);
-router.put('/:id', ProductController.updateProduct);
+router.put('/:id', validateRequest(updateProductSchema), ProductController.updateProduct);
 router.delete('/:id', ProductController.deleteProduct);
 
 // Rutas de gestión de stock

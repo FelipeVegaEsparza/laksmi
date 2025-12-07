@@ -6,14 +6,14 @@ export class ProductModel {
     const product = await db('products').where({ id }).first();
     if (!product) return null;
     
-    return this.formatProduct(product);
+    return await this.formatProduct(product);
   }
 
   static async findByName(name: string): Promise<Product | null> {
     const product = await db('products').where({ name }).first();
     if (!product) return null;
     
-    return this.formatProduct(product);
+    return await this.formatProduct(product);
   }
 
   static async create(productData: CreateProductRequest): Promise<Product> {
@@ -43,7 +43,21 @@ export class ProductModel {
     // Registrar movimiento inicial de stock
     await this.recordStockMovement(product.id, 'in', productData.stock, 'Stock inicial');
 
-    return this.formatProduct(product);
+    // Insertar categorías en la tabla de unión
+    const categories = productData.categories || [productData.category];
+    const uniqueCategories = Array.from(new Set(categories)); // Eliminar duplicados
+
+    const categoryInserts = uniqueCategories.map((categoryName, index) => ({
+      id: db.raw('UUID()'),
+      product_id: product.id,
+      category_name: categoryName,
+      is_primary: index === 0, // La primera es la primaria
+      display_order: index
+    }));
+
+    await db('product_categories').insert(categoryInserts);
+
+    return await this.formatProduct(product);
   }
 
   static async update(id: string, updates: UpdateProductRequest): Promise<Product | null> {
@@ -67,6 +81,14 @@ export class ProductModel {
       return null;
     }
 
+    // Si se proporcionan categorías, actualizarlas
+    if (updates.categories !== undefined) {
+      await this.updateCategories(id, updates.categories);
+    } else if (updates.category !== undefined) {
+      // Si solo se actualiza la categoría primaria, actualizar en la tabla de unión
+      await this.setPrimaryCategory(id, updates.category);
+    }
+
     return this.findById(id);
   }
 
@@ -86,7 +108,18 @@ export class ProductModel {
 
     // Aplicar filtros
     if (category) {
-      query = query.where('category', category);
+      // Buscar productos que tengan esta categoría (primaria o secundaria)
+      const productIds = await db('product_categories')
+        .where({ category_name: category })
+        .select('product_id');
+      
+      if (productIds.length > 0) {
+        const ids = productIds.map(p => p.product_id);
+        query = query.whereIn('id', ids);
+      } else {
+        // Si no hay productos con esta categoría, retornar vacío
+        query = query.where('id', null);
+      }
     }
 
     if (minPrice !== undefined) {
@@ -127,8 +160,13 @@ export class ProductModel {
 
     const products = await query;
     
+    // Formatear productos con sus categorías
+    const formattedProducts = await Promise.all(
+      products.map(product => this.formatProduct(product))
+    );
+    
     return {
-      products: products.map(product => this.formatProduct(product)),
+      products: formattedProducts,
       total
     };
   }
@@ -203,12 +241,16 @@ export class ProductModel {
       .whereRaw('stock <= min_stock')
       .where('stock', '>=', 0);
 
-    return products.map(product => ({
-      product: this.formatProduct(product),
-      currentStock: product.stock,
-      minStock: product.min_stock,
-      difference: product.min_stock - product.stock
-    }));
+    const alerts = await Promise.all(
+      products.map(async product => ({
+        product: await this.formatProduct(product),
+        currentStock: product.stock,
+        minStock: product.min_stock,
+        difference: product.min_stock - product.stock
+      }))
+    );
+
+    return alerts;
   }
 
   static async getProductStats(): Promise<ProductStats> {
@@ -254,12 +296,39 @@ export class ProductModel {
   }
 
   static async getProductsByCategory(category: string): Promise<Product[]> {
+    // Buscar productos que tengan esta categoría (primaria o secundaria)
+    const productIds = await db('product_categories')
+      .where({ category_name: category })
+      .select('product_id');
+
+    if (productIds.length === 0) {
+      return [];
+    }
+
+    const ids = productIds.map(p => p.product_id);
     const products = await db('products')
-      .where({ category })
+      .whereIn('id', ids)
       .where('stock', '>', 0)
       .orderBy('name');
 
-    return products.map(product => this.formatProduct(product));
+    return await Promise.all(products.map(product => this.formatProduct(product)));
+  }
+
+  static async getProductCategories(): Promise<Array<{ name: string; description: string; productCount: number }>> {
+    // Contar productos por categoría desde la tabla de unión
+    // Un producto puede aparecer en múltiples categorías
+    const categories = await db('product_categories')
+      .join('products', 'product_categories.product_id', 'products.id')
+      .select('product_categories.category_name')
+      .count('DISTINCT product_categories.product_id as productCount')
+      .groupBy('product_categories.category_name')
+      .orderBy('productCount', 'desc');
+
+    return categories.map(cat => ({
+      name: String(cat.category_name),
+      description: `Productos de ${String(cat.category_name).toLowerCase()}`,
+      productCount: parseInt(cat.productCount as string)
+    }));
   }
 
   static async getCompatibleProducts(serviceId: string): Promise<Product[]> {
@@ -267,7 +336,7 @@ export class ProductModel {
       .whereRaw('JSON_CONTAINS(compatible_services, ?)', [`"${serviceId}"`])
       .where('stock', '>', 0);
 
-    return products.map(product => this.formatProduct(product));
+    return await Promise.all(products.map(product => this.formatProduct(product)));
   }
 
   static async checkAvailability(productId: string, requiredQuantity: number): Promise<boolean> {
@@ -290,11 +359,209 @@ export class ProductModel {
     return true;
   }
 
-  private static formatProduct(dbProduct: any): Product {
+  // ============================================
+  // MÉTODOS DE GESTIÓN DE CATEGORÍAS MÚLTIPLES
+  // ============================================
+
+  /**
+   * Agregar una categoría a un producto
+   * @param productId ID del producto
+   * @param categoryName Nombre de la categoría
+   * @param isPrimary Si es la categoría primaria
+   */
+  static async addCategory(productId: string, categoryName: string, isPrimary: boolean = false): Promise<void> {
+    // Verificar que el producto existe
+    const product = await this.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Verificar si la categoría ya está asignada
+    const existing = await db('product_categories')
+      .where({ product_id: productId, category_name: categoryName })
+      .first();
+
+    if (existing) {
+      throw new Error(`Category '${categoryName}' is already assigned to this product`);
+    }
+
+    // Si es primaria, desmarcar otras categorías primarias
+    if (isPrimary) {
+      await db('product_categories')
+        .where({ product_id: productId, is_primary: true })
+        .update({ is_primary: false });
+    }
+
+    // Obtener el siguiente display_order
+    const [maxOrder] = await db('product_categories')
+      .where({ product_id: productId })
+      .max('display_order as max');
+    const displayOrder = (maxOrder.max || -1) + 1;
+
+    // Insertar la nueva categoría
+    await db('product_categories').insert({
+      id: db.raw('UUID()'),
+      product_id: productId,
+      category_name: categoryName,
+      is_primary: isPrimary,
+      display_order: displayOrder
+    });
+  }
+
+  /**
+   * Remover una categoría de un producto
+   * @param productId ID del producto
+   * @param categoryName Nombre de la categoría a remover
+   */
+  static async removeCategory(productId: string, categoryName: string): Promise<void> {
+    // Verificar que el producto existe
+    const product = await this.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Verificar que la categoría está asignada
+    const category = await db('product_categories')
+      .where({ product_id: productId, category_name: categoryName })
+      .first();
+
+    if (!category) {
+      throw new Error(`Category '${categoryName}' is not assigned to this product`);
+    }
+
+    // Verificar que no es la última categoría
+    const [count] = await db('product_categories')
+      .where({ product_id: productId })
+      .count('* as count');
+
+    if (parseInt(count.count as string) <= 1) {
+      throw new Error('Cannot remove the last category. Product must have at least one category.');
+    }
+
+    const wasPrimary = category.is_primary;
+
+    // Eliminar la categoría
+    await db('product_categories')
+      .where({ product_id: productId, category_name: categoryName })
+      .del();
+
+    // Si era primaria, asignar otra categoría como primaria
+    if (wasPrimary) {
+      const [firstCategory] = await db('product_categories')
+        .where({ product_id: productId })
+        .orderBy('display_order', 'asc')
+        .limit(1);
+
+      if (firstCategory) {
+        await db('product_categories')
+          .where({ id: firstCategory.id })
+          .update({ is_primary: true });
+      }
+    }
+  }
+
+  /**
+   * Obtener todas las categorías de un producto
+   * @param productId ID del producto
+   * @returns Array de nombres de categorías ordenadas por display_order
+   */
+  static async getCategoriesForProduct(productId: string): Promise<string[]> {
+    const categories = await db('product_categories')
+      .where({ product_id: productId })
+      .orderBy('display_order', 'asc')
+      .select('category_name');
+
+    return categories.map(cat => cat.category_name);
+  }
+
+  /**
+   * Actualizar todas las categorías de un producto
+   * @param productId ID del producto
+   * @param categories Array de nombres de categorías (la primera será la primaria)
+   */
+  static async updateCategories(productId: string, categories: string[]): Promise<void> {
+    // Validar que hay al menos una categoría
+    if (!categories || categories.length === 0) {
+      throw new Error('At least one category must be provided');
+    }
+
+    // Verificar que el producto existe
+    const product = await this.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Eliminar categorías duplicadas
+    const uniqueCategories = Array.from(new Set(categories));
+
+    // Eliminar todas las categorías existentes
+    await db('product_categories')
+      .where({ product_id: productId })
+      .del();
+
+    // Insertar las nuevas categorías
+    const insertData = uniqueCategories.map((categoryName, index) => ({
+      id: db.raw('UUID()'),
+      product_id: productId,
+      category_name: categoryName,
+      is_primary: index === 0, // La primera es la primaria
+      display_order: index
+    }));
+
+    await db('product_categories').insert(insertData);
+
+    // Actualizar la columna category en products con la categoría primaria
+    await db('products')
+      .where({ id: productId })
+      .update({ category: uniqueCategories[0] });
+  }
+
+  /**
+   * Establecer una categoría como primaria
+   * @param productId ID del producto
+   * @param categoryName Nombre de la categoría a establecer como primaria
+   */
+  static async setPrimaryCategory(productId: string, categoryName: string): Promise<void> {
+    // Verificar que el producto existe
+    const product = await this.findById(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Verificar que la categoría está asignada
+    const category = await db('product_categories')
+      .where({ product_id: productId, category_name: categoryName })
+      .first();
+
+    if (!category) {
+      throw new Error(`Category '${categoryName}' is not assigned to this product`);
+    }
+
+    // Desmarcar todas las categorías primarias
+    await db('product_categories')
+      .where({ product_id: productId })
+      .update({ is_primary: false });
+
+    // Marcar la nueva categoría como primaria
+    await db('product_categories')
+      .where({ product_id: productId, category_name: categoryName })
+      .update({ is_primary: true });
+  }
+
+  private static async formatProduct(dbProduct: any): Promise<Product> {
+    // Obtener todas las categorías del producto desde la tabla de unión
+    const categories = await db('product_categories')
+      .where({ product_id: dbProduct.id })
+      .orderBy('display_order', 'asc')
+      .select('category_name');
+
+    const categoryNames = categories.map(c => c.category_name);
+
     return {
       id: dbProduct.id,
       name: dbProduct.name,
-      category: dbProduct.category,
+      category: dbProduct.category, // Categoría primaria para backward compatibility
+      categories: categoryNames.length > 0 ? categoryNames : [dbProduct.category], // Usar categorías de la tabla de unión o fallback
       price: parseFloat(dbProduct.price),
       stock: dbProduct.stock,
       minStock: dbProduct.min_stock,

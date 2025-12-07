@@ -167,12 +167,41 @@ export default function ProductsPage() {
       minWidth: 200,
     },
     {
-      id: 'category',
-      label: 'Categoría',
-      minWidth: 120,
-      format: (value: string) => (
-        <Chip label={value} size="small" variant="outlined" />
-      ),
+      id: 'categories',
+      label: 'Categorías',
+      minWidth: 200,
+      format: (value: string[], product?: Product) => {
+        if (!product || !product.categories || product.categories.length === 0) {
+          return <Chip label={product?.category || 'Sin categoría'} size="small" variant="outlined" />
+        }
+        
+        const maxVisible = 2
+        const visibleCategories = product.categories.slice(0, maxVisible)
+        const remainingCount = product.categories.length - maxVisible
+        
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {visibleCategories.map((cat, index) => (
+              <Chip
+                key={index}
+                label={cat}
+                size="small"
+                variant={index === 0 ? 'filled' : 'outlined'}
+                color={index === 0 ? 'primary' : 'default'}
+                sx={index === 0 ? { fontWeight: 'bold' } : {}}
+              />
+            ))}
+            {remainingCount > 0 && (
+              <Chip
+                label={`+${remainingCount} más`}
+                size="small"
+                variant="outlined"
+                color="default"
+              />
+            )}
+          </Box>
+        )
+      },
     },
     {
       id: 'price',
@@ -273,6 +302,7 @@ export default function ProductsPage() {
             label="Categoría"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            helperText="Busca en todas las categorías asignadas"
           >
             <MenuItem value="">Todas las categorías</MenuItem>
             {categories.map((category) => (

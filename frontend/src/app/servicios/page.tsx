@@ -87,9 +87,16 @@ const ServicesContent = () => {
       );
     }
 
-    // Filter by category
+    // Filter by category - check both primary category and categories array
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(service => service.category === selectedCategory);
+      filtered = filtered.filter(service => {
+        // Check if service has categories array
+        if (service.categories && service.categories.length > 0) {
+          return service.categories.includes(selectedCategory);
+        }
+        // Fallback to primary category for backward compatibility
+        return service.category === selectedCategory;
+      });
     }
 
     setFilteredServices(filtered);
@@ -251,17 +258,36 @@ const ServicesContent = () => {
                       </div>
                       <div className="p-4 flex flex-col flex-grow">
                         <div className="flex items-start justify-between mb-2">
-                          <span 
-                            className="text-xs font-medium px-2 py-1 rounded-full"
-                            style={{ 
-                              color: themeColors.primary,
-                              backgroundColor: themeColors.primaryLight 
-                            }}
-                          >
-                            {categories.find(c => c.id === service.category)?.name || service.category}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {service.categories && service.categories.length > 0 ? (
+                              service.categories.map((cat, index) => (
+                                <span 
+                                  key={index}
+                                  className="text-xs font-medium px-2 py-1 rounded-full"
+                                  style={{ 
+                                    color: index === 0 ? 'white' : themeColors.primary,
+                                    backgroundColor: index === 0 ? themeColors.primary : themeColors.primaryLight,
+                                    fontWeight: index === 0 ? 600 : 500
+                                  }}
+                                  title={index === 0 ? 'Categoría principal' : ''}
+                                >
+                                  {categories.find(c => c.id === cat)?.name || cat}
+                                </span>
+                              ))
+                            ) : (
+                              <span 
+                                className="text-xs font-medium px-2 py-1 rounded-full"
+                                style={{ 
+                                  color: themeColors.primary,
+                                  backgroundColor: themeColors.primaryLight 
+                                }}
+                              >
+                                {categories.find(c => c.id === service.category)?.name || service.category}
+                              </span>
+                            )}
+                          </div>
                           <div 
-                            className="text-xl font-bold"
+                            className="text-xl font-bold ml-2"
                             style={{ color: themeColors.primary }}
                           >
                             {formatPrice(service.price)}

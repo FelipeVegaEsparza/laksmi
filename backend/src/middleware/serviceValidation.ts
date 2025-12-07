@@ -34,6 +34,17 @@ export const createServiceSchema = Joi.object({
       'string.max': 'La categoría no puede tener más de 50 caracteres',
       'any.required': 'La categoría es requerida'
     }),
+  categories: Joi.array()
+    .items(Joi.string().min(2).max(50))
+    .min(1)
+    .max(10)
+    .optional()
+    .messages({
+      'array.min': 'Debe haber al menos una categoría',
+      'array.max': 'No se pueden agregar más de 10 categorías',
+      'string.min': 'Cada categoría debe tener al menos 2 caracteres',
+      'string.max': 'Cada categoría no puede tener más de 50 caracteres'
+    }),
   price: Joi.number()
     .min(0)
     .max(10000000)
@@ -130,6 +141,17 @@ export const updateServiceSchema = Joi.object({
     .messages({
       'string.min': 'La categoría debe tener al menos 2 caracteres',
       'string.max': 'La categoría no puede tener más de 50 caracteres'
+    }),
+  categories: Joi.array()
+    .items(Joi.string().min(2).max(50))
+    .min(1)
+    .max(10)
+    .optional()
+    .messages({
+      'array.min': 'Debe haber al menos una categoría',
+      'array.max': 'No se pueden agregar más de 10 categorías',
+      'string.min': 'Cada categoría debe tener al menos 2 caracteres',
+      'string.max': 'Cada categoría no puede tener más de 50 caracteres'
     }),
   price: Joi.number()
     .min(0)
