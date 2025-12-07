@@ -4,11 +4,15 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Settings, Clock, MessageCircle } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
-import Image from 'next/image';
 
 export default function MaintenancePage() {
   const router = useRouter();
   const { logoUrl, companyName, contactWhatsapp } = useCompanySettings();
+
+  useEffect(() => {
+    console.log('🖼️ Maintenance - Logo URL:', logoUrl);
+    console.log('🏢 Maintenance - Company Name:', companyName);
+  }, [logoUrl, companyName]);
 
   useEffect(() => {
     // Verificar cada 30 segundos si el sitio sigue en mantenimiento
@@ -49,13 +53,15 @@ export default function MaintenancePage() {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             {logoUrl ? (
-              <div className="relative w-32 h-32 md:w-40 md:h-40">
-                <Image
+              <div className="w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
+                <img
                   src={logoUrl}
                   alt={companyName}
-                  fill
-                  className="object-contain"
-                  priority
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    console.error('Error loading logo:', logoUrl);
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               </div>
             ) : (
