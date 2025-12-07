@@ -20,7 +20,6 @@ import {
   useTheme,
   useMediaQuery,
   Switch,
-  FormControlLabel,
   Tooltip,
 } from '@mui/material'
 import {
@@ -263,14 +262,37 @@ export default function Layout({ children }: LayoutProps) {
           </Typography>
           
           {/* Maintenance Mode Toggle */}
-          <Tooltip title={maintenanceMode ? "Sitio en mantenimiento - Click para activar" : "Sitio activo - Click para poner en mantenimiento"}>
-            <FormControlLabel
-              control={
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              backgroundColor: maintenanceMode ? 'rgba(255, 152, 0, 0.15)' : 'rgba(76, 175, 80, 0.15)',
+              borderRadius: 2,
+              px: 2,
+              py: 0.5,
+              mr: 2,
+              border: maintenanceMode ? '1px solid rgba(255, 152, 0, 0.3)' : '1px solid rgba(76, 175, 80, 0.3)',
+            }}
+          >
+            <Tooltip title={maintenanceMode ? "El sitio está en mantenimiento. Click para activar" : "El sitio está activo. Click para poner en mantenimiento"}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    display: { xs: 'none', md: 'block' }
+                  }}
+                >
+                  Sitio:
+                </Typography>
                 <Switch
                   checked={maintenanceMode}
                   onChange={handleMaintenanceModeToggle}
                   disabled={loadingMaintenance}
-                  color="warning"
+                  size="small"
                   sx={{
                     '& .MuiSwitch-switchBase.Mui-checked': {
                       color: '#ff9800',
@@ -278,17 +300,26 @@ export default function Layout({ children }: LayoutProps) {
                     '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
                       backgroundColor: '#ff9800',
                     },
+                    '& .MuiSwitch-track': {
+                      backgroundColor: '#4caf50',
+                    },
                   }}
                 />
-              }
-              label={
-                <Typography variant="body2" sx={{ color: 'white', display: { xs: 'none', sm: 'block' } }}>
-                  {maintenanceMode ? 'Mantenimiento' : 'Activo'}
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    minWidth: '100px',
+                    textAlign: 'left'
+                  }}
+                >
+                  {maintenanceMode ? '🔧 Mantenimiento' : '✅ Activo'}
                 </Typography>
-              }
-              sx={{ mr: 2 }}
-            />
-          </Tooltip>
+              </Box>
+            </Tooltip>
+          </Box>
           
           {/* Connection Status */}
           <ConnectionStatus />
