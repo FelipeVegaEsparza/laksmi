@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Settings, Clock, MessageCircle } from 'lucide-react';
+import { Settings, MessageCircle } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export default function MaintenancePage() {
@@ -90,61 +90,47 @@ export default function MaintenancePage() {
             Estamos realizando mejoras para brindarte una mejor experiencia.
           </p>
 
-          {/* Info Cards */}
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <div 
-              className="rounded-lg p-6 border-2 transition-all duration-300 hover:shadow-lg"
-              style={{ 
-                backgroundColor: 'var(--color-primary-light, #f0f9ff)',
-                borderColor: 'var(--color-primary, #0370dd)'
-              }}
-            >
-              <Clock 
-                className="h-8 w-8 mx-auto mb-3" 
-                style={{ color: 'var(--color-primary, #0370dd)' }}
-              />
-              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-text, #000000)' }}>
-                Tiempo Estimado
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
-                Estaremos de vuelta pronto
-              </p>
-            </div>
-
-            <div 
-              className="rounded-lg p-6 border-2 transition-all duration-300 hover:shadow-lg cursor-pointer"
-              style={{ 
-                backgroundColor: 'var(--color-secondary-light, #fdf2f8)',
-                borderColor: 'var(--color-secondary, #dc004e)'
-              }}
-              onClick={handleWhatsAppClick}
-            >
-              <MessageCircle 
-                className="h-8 w-8 mx-auto mb-3" 
-                style={{ color: 'var(--color-secondary, #dc004e)' }}
-              />
-              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-text, #000000)' }}>
-                ¿Necesitas Ayuda?
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
-                Contáctanos por WhatsApp
-              </p>
-            </div>
-          </div>
-
           {/* Message */}
           <div 
-            className="rounded-lg p-6 border"
+            className="rounded-xl p-8 mb-8 border-2"
             style={{ 
               backgroundColor: 'var(--color-background, #f9fafb)',
               borderColor: 'var(--color-border, #e5e7eb)'
             }}
           >
-            <p style={{ color: 'var(--color-text, #000000)' }}>
-              Estamos trabajando para mejorar nuestros servicios. 
-              <br />
-              <span className="font-semibold">¡Gracias por tu paciencia!</span>
+            <p className="text-lg mb-2" style={{ color: 'var(--color-text, #000000)' }}>
+              Estamos trabajando para mejorar nuestros servicios.
             </p>
+            <p className="text-2xl font-bold" style={{ color: 'var(--color-primary, #0370dd)' }}>
+              ¡Gracias por tu paciencia!
+            </p>
+          </div>
+
+          {/* WhatsApp CTA */}
+          <div 
+            className="rounded-2xl p-8 border-2 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer group"
+            style={{ 
+              background: `linear-gradient(135deg, var(--color-primary, #0370dd) 0%, var(--color-secondary, #dc004e) 100%)`,
+              borderColor: 'transparent'
+            }}
+            onClick={handleWhatsAppClick}
+          >
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform duration-300">
+                <MessageCircle className="h-10 w-10" style={{ color: 'var(--color-primary, #0370dd)' }} />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">
+              ¿Necesitas Ayuda?
+            </h3>
+            <p className="text-white text-opacity-90 mb-4">
+              Nuestro equipo está disponible para atenderte
+            </p>
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-6 py-3 inline-block">
+              <p className="text-white font-semibold">
+                Contáctanos por WhatsApp →
+              </p>
+            </div>
           </div>
 
           {/* Auto-refresh notice */}
