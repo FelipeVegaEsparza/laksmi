@@ -14,7 +14,8 @@ export default function MaintenanceCheck() {
         console.log('🔍 MaintenanceCheck - API URL:', apiUrl);
         console.log('🔍 MaintenanceCheck - Current pathname:', pathname);
         
-        const response = await fetch(`${apiUrl}/api/v1/company-settings`, {
+        // La URL ya incluye /api/v1, solo agregar el endpoint
+        const response = await fetch(`${apiUrl}/company-settings`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
