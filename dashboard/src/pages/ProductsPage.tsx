@@ -135,6 +135,13 @@ export default function ProductsPage() {
 
   const handleSaveProduct = async (formData: ProductFormData) => {
     try {
+      console.log('🔍 Dashboard - Enviando datos del producto:', {
+        name: formData.name,
+        category: formData.category,
+        categories: formData.categories,
+        isEditing: !!editingProduct
+      })
+      
       if (editingProduct) {
         await apiService.put(`/products/${editingProduct.id}`, formData)
         showNotification('Producto actualizado correctamente', 'success')
