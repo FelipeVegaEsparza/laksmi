@@ -20,6 +20,7 @@ const ServiceDetailPage = () => {
   const [service, setService] = useState<Service | null>(null);
   const [relatedServices, setRelatedServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { contactPhone } = useCompanySettings();
 
   useEffect(() => {
@@ -170,7 +171,7 @@ const ServiceDetailPage = () => {
           <div className="space-y-4">
             <div className="relative aspect-square rounded-lg overflow-hidden">
               <ServiceImage
-                src={service.images?.[0] || ''}
+                src={service.images?.[selectedImageIndex] || ''}
                 alt={service.name}
                 className="w-full h-full object-cover"
                 fallbackClassName="w-full h-full"
@@ -201,12 +202,24 @@ const ServiceDetailPage = () => {
             </div>
             {service.images && service.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {service.images.slice(1).map((image, index) => (
-                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                {service.images.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-300 ${
+                      selectedImageIndex === index 
+                        ? 'ring-2 ring-offset-2 opacity-100' 
+                        : 'hover:opacity-80 opacity-70'
+                    }`}
+                    style={selectedImageIndex === index ? { 
+                      borderColor: themeColors.primary,
+                      boxShadow: `0 0 0 2px ${themeColors.primary}`
+                    } : {}}
+                    onClick={() => setSelectedImageIndex(index)}
+                  >
                     <ServiceImage
                       src={image}
-                      alt={`${service.name} - imagen ${index + 2}`}
-                      className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      alt={`${service.name} - imagen ${index + 1}`}
+                      className="w-full h-full object-cover"
                       fallbackClassName="w-full h-full"
                     />
                   </div>

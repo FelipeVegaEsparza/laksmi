@@ -15,6 +15,7 @@ const ProductDetailPage = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -112,7 +113,7 @@ const ProductDetailPage = () => {
           <div className="space-y-4">
             <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-4">
               <ServiceImage
-                src={product.images?.[0] || ''}
+                src={product.images?.[selectedImageIndex] || ''}
                 alt={product.name}
                 className="max-w-full max-h-full object-contain"
                 fallbackClassName="w-full h-full"
@@ -120,12 +121,20 @@ const ProductDetailPage = () => {
             </div>
             {product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {product.images.slice(1).map((image, index) => (
-                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-2">
+                {product.images.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className={`relative aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-2 cursor-pointer transition-all duration-300 ${
+                      selectedImageIndex === index 
+                        ? 'ring-2 ring-rose-600 ring-offset-2' 
+                        : 'hover:opacity-80'
+                    }`}
+                    onClick={() => setSelectedImageIndex(index)}
+                  >
                     <ServiceImage
                       src={image}
-                      alt={`${product.name} - imagen ${index + 2}`}
-                      className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                      alt={`${product.name} - imagen ${index + 1}`}
+                      className="max-w-full max-h-full object-contain"
                       fallbackClassName="w-full h-full"
                     />
                   </div>
