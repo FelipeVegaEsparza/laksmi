@@ -86,52 +86,41 @@ export default function MaintenancePage() {
           </h1>
 
           {/* Description */}
-          <p className="text-xl mb-8" style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
+          <p className="text-lg mb-10 leading-relaxed" style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
             Estamos realizando mejoras para brindarte una mejor experiencia.
+            <br />
+            <span className="font-semibold" style={{ color: 'var(--color-text, #000000)' }}>
+              Volveremos pronto.
+            </span>
           </p>
 
-          {/* Message */}
-          <div 
-            className="rounded-xl p-8 mb-8 border-2"
-            style={{ 
-              backgroundColor: 'var(--color-background, #f9fafb)',
-              borderColor: 'var(--color-border, #e5e7eb)'
-            }}
-          >
-            <p className="text-lg mb-2" style={{ color: 'var(--color-text, #000000)' }}>
-              Estamos trabajando para mejorar nuestros servicios.
+          {/* Divider */}
+          <div className="w-24 h-1 mx-auto mb-10 rounded-full" style={{ backgroundColor: 'var(--color-primary, #0370dd)' }}></div>
+
+          {/* WhatsApp Section */}
+          <div className="space-y-4">
+            <p className="text-base" style={{ color: 'var(--color-text-secondary, #6b7280)' }}>
+              ¿Necesitas hacer una consulta o agendar una cita?
             </p>
-            <p className="text-2xl font-bold" style={{ color: 'var(--color-primary, #0370dd)' }}>
-              ¡Gracias por tu paciencia!
+            
+            <button
+              onClick={handleWhatsAppClick}
+              className="w-full max-w-md mx-auto flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-semibold text-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              style={{ 
+                backgroundColor: '#25D366',
+              }}
+            >
+              <MessageCircle className="h-6 w-6" />
+              <span>Contáctanos por WhatsApp</span>
+            </button>
+
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary, #9ca3af)' }}>
+              Nuestro equipo está disponible para atenderte
             </p>
           </div>
 
-          {/* WhatsApp CTA */}
-          <div 
-            className="rounded-2xl p-8 border-2 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer group"
-            style={{ 
-              background: `linear-gradient(135deg, var(--color-primary, #0370dd) 0%, var(--color-secondary, #dc004e) 100%)`,
-              borderColor: 'transparent'
-            }}
-            onClick={handleWhatsAppClick}
-          >
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform duration-300">
-                <MessageCircle className="h-10 w-10" style={{ color: 'var(--color-primary, #0370dd)' }} />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              ¿Necesitas Ayuda?
-            </h3>
-            <p className="text-white text-opacity-90 mb-4">
-              Nuestro equipo está disponible para atenderte
-            </p>
-            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-6 py-3 inline-block">
-              <p className="text-white font-semibold">
-                Contáctanos por WhatsApp →
-              </p>
-            </div>
-          </div>
+          {/* Spacer */}
+          <div className="mt-12"></div>
 
           {/* Auto-refresh notice */}
           <p className="text-sm mt-6" style={{ color: 'var(--color-text-secondary, #9ca3af)' }}>
