@@ -418,6 +418,8 @@ export class ServiceModel {
    * @param categories Array de nombres de categorías (la primera será la primaria)
    */
   static async updateCategories(serviceId: string, categories: string[]): Promise<void> {
+    console.log('🔍 ServiceModel.updateCategories - Iniciando:', { serviceId, categories });
+
     // Validar que hay al menos una categoría
     if (!categories || categories.length === 0) {
       throw new Error('At least one category must be provided');
@@ -431,11 +433,13 @@ export class ServiceModel {
 
     // Eliminar categorías duplicadas
     const uniqueCategories = Array.from(new Set(categories));
+    console.log('✅ Categorías únicas:', uniqueCategories);
 
     // Eliminar todas las categorías existentes
-    await db('service_categories')
+    const deleted = await db('service_categories')
       .where({ service_id: serviceId })
       .del();
+    console.log(`🗑️ Categorías eliminadas: ${deleted}`);
 
     // Insertar las nuevas categorías
     const insertData = uniqueCategories.map((categoryName, index) => ({
@@ -446,12 +450,15 @@ export class ServiceModel {
       display_order: index
     }));
 
+    console.log('📝 Datos a insertar:', insertData);
     await db('service_categories').insert(insertData);
+    console.log('✅ Categorías insertadas exitosamente');
 
     // Actualizar la columna category en services con la categoría primaria
     await db('services')
       .where({ id: serviceId })
       .update({ category: uniqueCategories[0] });
+    console.log('✅ Categoría primaria actualizada en services');
   }
 
   /**
@@ -496,6 +503,13 @@ export class ServiceModel {
       .select('category_name');
 
     const categoryNames = categories.map(c => c.category_name);
+    
+    console.log('🔍 formatService - Categorías encontradas:', {
+      serviceId: dbService.id,
+      serviceName: dbService.name,
+      categoriesFromJunction: categoryNames,
+      primaryCategory: dbService.category
+    });
 
     return {
       id: dbService.id,
