@@ -84,6 +84,13 @@ export class ProductController {
       const { id } = req.params;
       const updates: UpdateProductRequest = req.body;
       
+      console.log('🔍 ProductController.updateProduct - Body recibido:', {
+        id,
+        categories: updates.categories,
+        category: updates.category,
+        name: updates.name
+      });
+      
       // Clean image URLs before saving
       if (updates.images) {
         updates.images = decodeImageUrls(updates.images);

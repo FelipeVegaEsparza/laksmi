@@ -61,6 +61,12 @@ export class ProductModel {
   }
 
   static async update(id: string, updates: UpdateProductRequest): Promise<Product | null> {
+    console.log('🔍 ProductModel.update - Datos recibidos:', {
+      id,
+      categories: updates.categories,
+      category: updates.category
+    });
+
     const updateData: any = {};
     
     if (updates.name !== undefined) updateData.name = updates.name;
@@ -82,11 +88,15 @@ export class ProductModel {
     }
 
     // Si se proporcionan categorías, actualizarlas
-    if (updates.categories !== undefined) {
+    if (updates.categories !== undefined && updates.categories.length > 0) {
+      console.log('✅ Actualizando categorías:', updates.categories);
       await this.updateCategories(id, updates.categories);
     } else if (updates.category !== undefined) {
+      console.log('✅ Actualizando solo categoría primaria:', updates.category);
       // Si solo se actualiza la categoría primaria, actualizar en la tabla de unión
       await this.setPrimaryCategory(id, updates.category);
+    } else {
+      console.log('⚠️ No se recibieron categorías para actualizar');
     }
 
     return this.findById(id);
