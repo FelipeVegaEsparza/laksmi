@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ClientProvider from "@/components/ClientProvider";
+import MaintenanceCheck from "@/components/MaintenanceCheck";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -208,6 +209,7 @@ export default function RootLayout({
         </div>
 
         <ClientProvider>
+          <MaintenanceCheck />
           {children}
         </ClientProvider>
 
