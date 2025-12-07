@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   AppBar,
   Box,
@@ -19,6 +19,9 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  Switch,
+  FormControlLabel,
+  Tooltip,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -73,6 +76,8 @@ export default function Layout({ children }: LayoutProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null)
   const [logoError, setLogoError] = useState(false)
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false)
   
   const navigate = useNavigate()
   const location = useLocation()
@@ -82,8 +87,53 @@ export default function Layout({ children }: LayoutProps) {
   
   console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError)
 
+  // Cargar estado inicial del modo mantenimiento
+  useEffect(() => {
+    const fetchMaintenanceMode = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/company-settings`)
+        const data = await response.json()
+        if (data.success && data.data) {
+          setMaintenanceMode(data.data.maintenanceMode || false)
+        }
+      } catch (error) {
+        console.error('Error fetching maintenance mode:', error)
+      }
+    }
+    fetchMaintenanceMode()
+  }, [])
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleMaintenanceModeToggle = async () => {
+    setLoadingMaintenance(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/company-settings/maintenance-mode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ maintenanceMode: !maintenanceMode })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setMaintenanceMode(!maintenanceMode)
+      } else {
+        console.error('Error toggling maintenance mode:', data.error)
+        alert('Error al cambiar el modo mantenimiento')
+      }
+    } catch (error) {
+      console.error('Error toggling maintenance mode:', error)
+      alert('Error al cambiar el modo mantenimiento')
+    } finally {
+      setLoadingMaintenance(false)
+    }
   }
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -211,6 +261,34 @@ export default function Layout({ children }: LayoutProps) {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Dashboard Administrativo
           </Typography>
+          
+          {/* Maintenance Mode Toggle */}
+          <Tooltip title={maintenanceMode ? "Sitio en mantenimiento - Click para activar" : "Sitio activo - Click para poner en mantenimiento"}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={maintenanceMode}
+                  onChange={handleMaintenanceModeToggle}
+                  disabled={loadingMaintenance}
+                  color="warning"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#ff9800',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#ff9800',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ color: 'white', display: { xs: 'none', sm: 'block' } }}>
+                  {maintenanceMode ? 'Mantenimiento' : 'Activo'}
+                </Typography>
+              }
+              sx={{ mr: 2 }}
+            />
+          </Tooltip>
           
           {/* Connection Status */}
           <ConnectionStatus />

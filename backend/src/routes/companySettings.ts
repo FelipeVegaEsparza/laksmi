@@ -39,4 +39,11 @@ router.delete('/logo', authenticateToken, requireAdmin, CompanySettingsControlle
  */
 router.post('/init-business-hours', authenticateToken, requireAdmin, CompanySettingsController.initBusinessHours);
 
+/**
+ * @route POST /api/v1/company-settings/maintenance-mode
+ * @desc Toggle modo mantenimiento del frontend
+ * @access Private (Admin only)
+ */
+router.post('/maintenance-mode', authenticateToken, requireAdmin, CompanySettingsController.toggleMaintenanceMode);
+
 export default router;

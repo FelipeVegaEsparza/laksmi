@@ -50,6 +50,9 @@ export interface CompanySettings {
   // Horarios del local
   businessHours?: BusinessHours;
   
+  // Modo mantenimiento
+  maintenanceMode: boolean;
+  
   // Colores del Dashboard
   dashboardPrimaryColor: string;
   dashboardSecondaryColor: string;
@@ -86,6 +89,7 @@ export interface UpdateCompanySettingsRequest {
   tiktokUrl?: string;
   xUrl?: string;
   businessHours?: BusinessHours;
+  maintenanceMode?: boolean;
   dashboardPrimaryColor?: string;
   dashboardSecondaryColor?: string;
   dashboardBackgroundColor?: string;
@@ -138,6 +142,7 @@ export class CompanySettingsModel {
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
     if (updates.xUrl !== undefined) updateData.x_url = updates.xUrl;
     if (updates.businessHours !== undefined) updateData.business_hours = JSON.stringify(updates.businessHours);
+    if (updates.maintenanceMode !== undefined) updateData.maintenance_mode = updates.maintenanceMode;
     if (updates.dashboardPrimaryColor !== undefined) updateData.dashboard_primary_color = updates.dashboardPrimaryColor;
     if (updates.dashboardSecondaryColor !== undefined) updateData.dashboard_secondary_color = updates.dashboardSecondaryColor;
     if (updates.dashboardBackgroundColor !== undefined) updateData.dashboard_background_color = updates.dashboardBackgroundColor;
@@ -186,6 +191,7 @@ export class CompanySettingsModel {
       businessHours: dbSettings.business_hours ? 
         (typeof dbSettings.business_hours === 'string' ? JSON.parse(dbSettings.business_hours) : dbSettings.business_hours) 
         : undefined,
+      maintenanceMode: dbSettings.maintenance_mode || false,
       dashboardPrimaryColor: dbSettings.dashboard_primary_color,
       dashboardSecondaryColor: dbSettings.dashboard_secondary_color,
       dashboardBackgroundColor: dbSettings.dashboard_background_color,

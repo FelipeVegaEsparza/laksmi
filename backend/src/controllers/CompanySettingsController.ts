@@ -297,4 +297,48 @@ export class CompanySettingsController {
       });
     }
   }
+
+  /**
+   * Toggle modo mantenimiento
+   */
+  static async toggleMaintenanceMode(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      // Solo admin puede cambiar el modo mantenimiento
+      if (req.user?.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: 'No tienes permisos para cambiar el modo mantenimiento'
+        });
+        return;
+      }
+
+      const { maintenanceMode } = req.body;
+
+      if (typeof maintenanceMode !== 'boolean') {
+        res.status(400).json({
+          success: false,
+          error: 'El campo maintenanceMode debe ser un booleano'
+        });
+        return;
+      }
+
+      const updatedSettings = await CompanySettingsModel.updateSettings({ 
+        maintenanceMode 
+      });
+
+      logger.info(`Maintenance mode ${maintenanceMode ? 'enabled' : 'disabled'} by admin ${req.user?.email}`);
+
+      res.json({
+        success: true,
+        message: `Modo mantenimiento ${maintenanceMode ? 'activado' : 'desactivado'} exitosamente`,
+        data: updatedSettings
+      });
+    } catch (error: any) {
+      logger.error('Toggle maintenance mode error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al cambiar modo mantenimiento'
+      });
+    }
+  }
 }
