@@ -220,7 +220,17 @@ const ContactPage = () => {
                   Nuestro asistente virtual está disponible 24/7 para ayudarte con 
                   reservas, consultas y información sobre servicios.
                 </p>
-                <Button variant="primary" size="sm">
+                <Button 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => {
+                    if (companySettings?.contactWhatsapp) {
+                      const phone = companySettings.contactWhatsapp.replace(/[^0-9]/g, '');
+                      const message = encodeURIComponent('Hola! Necesito ayuda con información sobre sus servicios.');
+                      window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+                    }
+                  }}
+                >
                   Iniciar Chat
                 </Button>
               </Card>
