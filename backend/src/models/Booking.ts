@@ -2,6 +2,7 @@ import db from '../config/database';
 import { Booking, CreateBookingRequest, UpdateBookingRequest, BookingFilters, AvailabilityRequest, AvailabilitySlot, AvailabilityResponse, BookingConflict, BookingValidationResult, BookingStats } from '../types/booking';
 import { ProfessionalModel } from './Professional';
 import { ServiceModel } from './Service';
+import { parseChileDateTime } from '../utils/timezone';
 
 export class BookingModel {
   static async findById(id: string): Promise<Booking | null> {
@@ -444,24 +445,6 @@ export class BookingModel {
   ): Promise<AvailabilitySlot[]> {
     const slots: AvailabilitySlot[] = [];
     
-    // Log temporal: verificar bloques para este día
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-    
-    const blocksForDay = await db('blocked_time_slots')
-      .where('start_time', '>=', dayStart)
-      .where('start_time', '<=', dayEnd);
-    
-    if (blocksForDay.length > 0) {
-      console.log('📅 Bloques encontrados para', date.toISOString().split('T')[0], ':', blocksForDay.map(b => ({
-        start: b.start_time,
-        end: b.end_time,
-        reason: b.reason
-      })));
-    }
-    
     // Obtener el día de la semana
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayName = dayNames[date.getDay()];
@@ -549,15 +532,7 @@ export class BookingModel {
       })
       .first();
 
-    // Log temporal para debugging
     if (blockedSlot) {
-      console.log('🚫 Slot bloqueado encontrado:', {
-        slotTime: dateTime.toISOString(),
-        slotEnd: endTime.toISOString(),
-        blockStart: blockedSlot.start_time,
-        blockEnd: blockedSlot.end_time,
-        reason: blockedSlot.reason
-      });
       return false;
     }
     
@@ -634,7 +609,10 @@ export class BookingModel {
   private static parseTimeString(date: Date, timeString: string): Date {
     const [hours, minutes] = timeString.split(':').map(Number);
     const result = new Date(date);
-    result.setHours(hours, minutes, 0, 0);
+    // Usar UTC para evitar problemas de zona horaria
+    // Los horarios de negocio están en hora de Chile (UTC-3)
+    // Entonces 09:00 Chile = 12:00 UTC
+    result.setUTCHours(hours + 3, minutes, 0, 0); // +3 porque Chile es UTC-3
     return result;
   }
 

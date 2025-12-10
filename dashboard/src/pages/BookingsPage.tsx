@@ -234,19 +234,12 @@ export default function BookingsPage() {
       const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
       const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
       
-      // Crear objetos Date en hora local
+      // Crear objetos Date en hora local del navegador
       const startDate = new Date(selectedDate)
       startDate.setHours(startHour, startMinute, 0, 0)
       
       const endDate = new Date(selectedDate)
       endDate.setHours(endHour, endMinute, 0, 0)
-
-      console.log('Bloqueando horario:', {
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        startLocal: startDate.toLocaleString('es-CL'),
-        endLocal: endDate.toLocaleString('es-CL')
-      })
 
       await apiService.post('/blocked-time-slots', {
         startTime: startDate.toISOString(),

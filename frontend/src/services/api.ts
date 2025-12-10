@@ -100,17 +100,6 @@ export const bookingsApi = {
       
       // Si la respuesta tiene slots, devolverlos directamente
       if (availability && availability.slots) {
-        const availableCount = availability.slots.filter((s: AvailabilitySlot) => s.available).length;
-        const blockedCount = availability.slots.filter((s: AvailabilitySlot) => !s.available).length;
-        console.log('✅ Slots recibidos del backend:', {
-          total: availability.slots.length,
-          available: availableCount,
-          blocked: blockedCount
-        });
-        console.log('📋 Todos los slots:', availability.slots.map((s: AvailabilitySlot) => ({
-          time: new Date(s.dateTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
-          available: s.available
-        })));
         return availability.slots;
       }
       
