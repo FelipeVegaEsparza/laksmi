@@ -20,7 +20,6 @@ import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import BannersPage from '@/pages/BannersPage'
 import FeaturedImagesPage from '@/pages/FeaturedImagesPage'
 import PopupsPage from '@/pages/PopupsPage'
-import BlockedTimeSlotsPage from '@/pages/BlockedTimeSlots'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -89,14 +88,6 @@ function App() {
         element={
           <ProtectedRoute>
             <BookingsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/blocked-time-slots"
-        element={
-          <ProtectedRoute>
-            <BlockedTimeSlotsPage />
           </ProtectedRoute>
         }
       />
