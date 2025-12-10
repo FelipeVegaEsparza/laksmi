@@ -1,4 +1,5 @@
 import db from '../config/database';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface BlockedTimeSlot {
   id: string;
@@ -19,20 +20,19 @@ export interface CreateBlockedTimeSlotRequest {
 
 export class BlockedTimeSlotModel {
   static async create(data: CreateBlockedTimeSlotRequest): Promise<BlockedTimeSlot> {
+    const id = uuidv4();
+    
     await db('blocked_time_slots').insert({
+      id,
       start_time: data.startTime,
       end_time: data.endTime,
       reason: data.reason,
       created_by: data.createdBy
     });
 
-    // Buscar el registro recién insertado por tiempo y usuario
+    // Buscar el registro recién insertado por ID
     const slot = await db('blocked_time_slots')
-      .where({ 
-        start_time: data.startTime,
-        end_time: data.endTime
-      })
-      .orderBy('created_at', 'desc')
+      .where({ id })
       .first();
     
     if (!slot) throw new Error('Error creating blocked time slot');
