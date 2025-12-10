@@ -229,16 +229,22 @@ export default function BookingsPage() {
     }
 
     try {
-      // Crear fechas en formato que el backend interprete como hora de Chile
-      // Enviamos en formato YYYY-MM-DDTHH:mm:ss sin zona horaria
-      // El backend lo interpretará como hora local (Chile)
-      const dateStr = format(selectedDate, 'yyyy-MM-dd')
-      const startDateTime = `${dateStr}T${blockData.startTime}:00`
-      const endDateTime = `${dateStr}T${blockData.endTime}:00`
+      // Crear fechas en UTC para que coincidan con cómo el backend genera los slots
+      // Parseamos las horas como si fueran UTC
+      const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
+      const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
+      
+      // Crear fechas en UTC usando Date.UTC
+      const year = selectedDate.getFullYear()
+      const month = selectedDate.getMonth()
+      const day = selectedDate.getDate()
+      
+      const startDate = new Date(Date.UTC(year, month, day, startHour, startMinute, 0, 0))
+      const endDate = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0))
 
       await apiService.post('/blocked-time-slots', {
-        startTime: startDateTime,
-        endTime: endDateTime,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
         reason: blockData.reason
       })
 

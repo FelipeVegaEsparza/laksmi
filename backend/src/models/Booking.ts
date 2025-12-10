@@ -609,7 +609,8 @@ export class BookingModel {
   private static parseTimeString(date: Date, timeString: string): Date {
     const [hours, minutes] = timeString.split(':').map(Number);
     const result = new Date(date);
-    result.setHours(hours, minutes, 0, 0);
+    // Usar setUTCHours para trabajar en UTC puro
+    result.setUTCHours(hours, minutes, 0, 0);
     return result;
   }
 
