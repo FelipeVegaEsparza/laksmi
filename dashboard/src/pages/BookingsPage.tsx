@@ -80,6 +80,7 @@ const statusIcons: Record<string, string> = {
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [blockedSlots, setBlockedSlots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -141,12 +142,16 @@ export default function BookingsPage() {
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd')
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd')
       
-      const response = await apiService.getBookings({
-        dateFrom: start,
-        dateTo: end,
-      })
+      const [bookingsRes, blockedRes] = await Promise.all([
+        apiService.getBookings({
+          dateFrom: start,
+          dateTo: end,
+        }),
+        apiService.get(`/blocked-time-slots/range?startDate=${start}&endDate=${end}`) as any
+      ])
       
-      setBookings(response.bookings || [])
+      setBookings(bookingsRes.bookings || [])
+      setBlockedSlots(blockedRes.data || [])
     } catch (error) {
       console.error('Error fetching bookings:', error)
       enqueueSnackbar('Error al cargar citas', { variant: 'error' })
@@ -506,6 +511,26 @@ export default function BookingsPage() {
     )
   }
 
+  const getBlockedSlotsForDate = (date: Date) => {
+    return blockedSlots.filter(slot => {
+      const slotStart = new Date(slot.startTime)
+      return isSameDay(slotStart, date)
+    })
+  }
+
+  const handleDeleteBlockedSlot = async (slotId: string) => {
+    if (!confirm('¿Desbloquear este horario?')) return
+    
+    try {
+      await apiService.delete(`/blocked-time-slots/${slotId}`)
+      enqueueSnackbar('Horario desbloqueado correctamente', { variant: 'success' })
+      fetchMonthBookings()
+    } catch (error) {
+      console.error('Error deleting blocked slot:', error)
+      enqueueSnackbar('Error al desbloquear horario', { variant: 'error' })
+    }
+  }
+
   const renderDayDetails = () => {
     if (!selectedDate) {
       return (
@@ -526,6 +551,8 @@ export default function BookingsPage() {
     const dayBookings = getBookingsForDate(selectedDate).sort((a, b) => 
       new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
     )
+    
+    const dayBlocked = getBlockedSlotsForDate(selectedDate)
 
     return (
       <Paper sx={{ p: 3, height: '100%', maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
@@ -536,6 +563,7 @@ export default function BookingsPage() {
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {dayBookings.length} {dayBookings.length === 1 ? 'cita' : 'citas'}
+              {dayBlocked.length > 0 && ` • ${dayBlocked.length} bloqueado${dayBlocked.length === 1 ? '' : 's'}`}
             </Typography>
           </Box>
           <Button 
@@ -568,7 +596,7 @@ export default function BookingsPage() {
           </Menu>
         </Box>
         
-        {dayBookings.length === 0 ? (
+        {dayBookings.length === 0 && dayBlocked.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <Event sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
             <Typography color="text.secondary">
@@ -577,6 +605,50 @@ export default function BookingsPage() {
           </Box>
         ) : (
           <Stack spacing={1.5}>
+            {dayBlocked.map(slot => (
+              <Card
+                key={slot.id}
+                variant="outlined"
+                sx={{
+                  borderLeft: 4,
+                  borderLeftColor: 'error.main',
+                  bgcolor: 'error.50',
+                }}
+              >
+                <Box sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BlockIcon sx={{ fontSize: 20, color: 'error.main' }} />
+                      <Typography variant="h6" fontWeight="600" color="error.main">
+                        {format(new Date(slot.startTime), 'HH:mm')} - {format(new Date(slot.endTime), 'HH:mm')}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label="Bloqueado"
+                      size="small"
+                      color="error"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </Box>
+                  
+                  {slot.reason && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {slot.reason}
+                    </Typography>
+                  )}
+                  
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDeleteBlockedSlot(slot.id)}
+                  >
+                    Desbloquear
+                  </Button>
+                </Box>
+              </Card>
+            ))}
+            
             {dayBookings.map(booking => (
               <Card
                 key={booking.id}
