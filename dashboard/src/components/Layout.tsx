@@ -55,6 +55,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Clientes', icon: <PeopleIcon />, path: '/clients' },
   { text: 'Citas', icon: <EventNoteIcon />, path: '/bookings' },
+  { text: 'Bloques Bloqueados', icon: <EventNoteIcon />, path: '/blocked-time-slots' },
   { text: 'Servicios', icon: <InventoryIcon />, path: '/services' },
   { text: 'Productos', icon: <InventoryIcon />, path: '/products' },
   { text: 'Categorías', icon: <CategoryIcon />, path: '/categories' },

@@ -112,8 +112,11 @@ export class WhatsAppMessageProcessor {
         }
       );
 
-      // Registrar respuesta saliente si existe
-      if (aiResponse.response.message) {
+      // Verificar si la conversación está bajo control humano
+      const isHumanControlActive = aiResponse.response.metadata?.humanControlActive === true;
+
+      // Registrar respuesta saliente solo si hay mensaje (no hay control humano)
+      if (aiResponse.response.message && !isHumanControlActive) {
         await WhatsAppConversationLogger.logOutgoingMessage(
           aiResponse.conversationId,
           processedMessage.clientId,
@@ -137,12 +140,13 @@ export class WhatsAppMessageProcessor {
         conversationId: aiResponse.conversationId,
         responseLength: aiResponse.response.message?.length || 0,
         processingTime: aiResponse.processingTime,
-        escalated: aiResponse.response.needsHumanEscalation
+        escalated: aiResponse.response.needsHumanEscalation,
+        humanControlActive: isHumanControlActive
       });
 
       return {
         success: true,
-        response: aiResponse.response.message,
+        response: aiResponse.response.message || undefined, // No enviar respuesta si está bajo control humano
         clientId: processedMessage.clientId,
         conversationId: aiResponse.conversationId
       };

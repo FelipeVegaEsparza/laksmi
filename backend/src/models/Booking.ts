@@ -474,7 +474,7 @@ export class BookingModel {
         currentTime.getTime() < lunchEnd.getTime();
       
       if (!isInLunchTime) {
-        // Verificar si hay conflicto con citas existentes
+        // Verificar si hay conflicto con citas existentes o bloques bloqueados
         const isAvailable = await this.isTimeSlotAvailable(currentTime, serviceDuration);
         
         slots.push({
@@ -503,6 +503,26 @@ export class BookingModel {
     excludeBookingId: string | null
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
+    
+    // Verificar bloques bloqueados
+    const blockedSlot = await db('blocked_time_slots')
+      .where(function() {
+        this.where(function() {
+          this.where('start_time', '<=', dateTime)
+            .where('end_time', '>', dateTime);
+        }).orWhere(function() {
+          this.where('start_time', '<', endTime)
+            .where('end_time', '>=', endTime);
+        }).orWhere(function() {
+          this.where('start_time', '>=', dateTime)
+            .where('end_time', '<=', endTime);
+        });
+      })
+      .first();
+
+    if (blockedSlot) {
+      return false;
+    }
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
     // No incluimos cancelled, completed o no_show porque esos horarios están liberados

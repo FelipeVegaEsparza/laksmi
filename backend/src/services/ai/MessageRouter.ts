@@ -97,6 +97,44 @@ export class MessageRouter {
       await ContextManager.addMessageToContext(conversation.id, clientMessage);
       logger.info('Context updated');
 
+      // ============================================
+      // VERIFICAR SI HAY CONTROL HUMANO ACTIVO
+      // ============================================
+      const { HumanTakeoverService } = await import('./HumanTakeoverService');
+      const isUnderHumanControl = HumanTakeoverService.isUnderHumanControl(conversation.id);
+
+      if (isUnderHumanControl) {
+        const session = HumanTakeoverService.getActiveSession(conversation.id);
+        
+        logger.info('🙋 Message received but conversation is under human control - Bot will NOT respond', {
+          conversationId: conversation.id,
+          clientId: client.id,
+          humanAgentId: session?.humanAgentId,
+          channel: request.channel
+        });
+
+        // Solo retornar confirmación de que el mensaje fue recibido
+        // El agente humano verá el mensaje en el dashboard
+        const processingTime = Date.now() - startTime;
+
+        return {
+          response: {
+            message: '', // No enviar respuesta automática
+            intent: 'human_takeover_active',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              humanControlActive: true,
+              humanAgentId: session?.humanAgentId,
+              messageReceived: true
+            }
+          },
+          conversationId: conversation.id,
+          messageId: clientMessage.id,
+          processingTime
+        };
+      }
+
       // Procesar mensaje con NLU
       const nluResult = await NLUService.processMessage(request.content, conversation.context);
 
