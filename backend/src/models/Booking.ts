@@ -505,6 +505,19 @@ export class BookingModel {
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
+    // Log temporal para debugging
+    const allBlocks = await db('blocked_time_slots').select('*');
+    console.log('🔍 Todos los bloques en BD:', allBlocks.map(b => ({
+      id: b.id,
+      start: b.start_time,
+      end: b.end_time,
+      reason: b.reason
+    })));
+    console.log('🔍 Verificando slot:', {
+      slotStart: dateTime.toISOString(),
+      slotEnd: endTime.toISOString()
+    });
+    
     // Verificar bloques bloqueados
     // Un slot NO está disponible si hay algún bloque que se solape con él
     // Si bloqueo de 11:00-12:00, tanto el slot 11:00 como el 12:00 deben estar bloqueados
@@ -534,7 +547,14 @@ export class BookingModel {
       .first();
 
     if (blockedSlot) {
+      console.log('🚫 Slot bloqueado por:', {
+        blockStart: blockedSlot.start_time,
+        blockEnd: blockedSlot.end_time,
+        reason: blockedSlot.reason
+      });
       return false;
+    } else {
+      console.log('✅ Slot disponible (no hay bloques que lo afecten)');
     }
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
