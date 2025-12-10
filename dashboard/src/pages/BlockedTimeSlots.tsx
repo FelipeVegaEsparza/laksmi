@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, Clock } from 'lucide-react';
-import api from '../services/api';
+import { apiService } from '@/services/apiService';
 
 interface BlockedTimeSlot {
   id: string;
@@ -26,7 +26,7 @@ export default function BlockedTimeSlots() {
 
   const loadSlots = async () => {
     try {
-      const response = await api.get('/blocked-time-slots');
+      const response = await apiService.get('/blocked-time-slots') as any;
       setSlots(response.data.data || []);
     } catch (error) {
       console.error('Error loading blocked slots:', error);
@@ -39,7 +39,7 @@ export default function BlockedTimeSlots() {
     e.preventDefault();
     
     try {
-      await api.post('/blocked-time-slots', formData);
+      await apiService.post('/blocked-time-slots', formData);
       setFormData({ startTime: '', endTime: '', reason: '' });
       setShowForm(false);
       loadSlots();
@@ -52,7 +52,7 @@ export default function BlockedTimeSlots() {
     if (!confirm('¿Desbloquear este horario?')) return;
     
     try {
-      await api.delete(`/blocked-time-slots/${id}`);
+      await apiService.delete(`/blocked-time-slots/${id}`);
       loadSlots();
     } catch (error) {
       alert('Error al desbloquear horario');
