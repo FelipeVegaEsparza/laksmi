@@ -229,22 +229,21 @@ export default function BookingsPage() {
     }
 
     try {
-      // Crear fechas en UTC para que coincidan con cómo el backend genera los slots
-      // Parseamos las horas como si fueran UTC
+      // Crear fechas en hora de Chile y convertir a UTC
+      // Cuando bloqueo "16:00" en el dashboard, quiero decir "16:00 hora de Chile"
+      // Que es "19:00 UTC" (16:00 + 3 horas)
       const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
       const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
       
-      // Crear fechas en UTC usando Date.UTC
-      const year = selectedDate.getFullYear()
-      const month = selectedDate.getMonth()
-      const day = selectedDate.getDate()
+      const dateStr = format(selectedDate, 'yyyy-MM-dd')
       
-      const startDate = new Date(Date.UTC(year, month, day, startHour, startMinute, 0, 0))
-      const endDate = new Date(Date.UTC(year, month, day, endHour, endMinute, 0, 0))
+      // Crear fechas en UTC sumando 3 horas (offset de Chile)
+      const startDateTime = `${dateStr}T${String(startHour + 3).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}:00Z`
+      const endDateTime = `${dateStr}T${String(endHour + 3).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00Z`
 
       await apiService.post('/blocked-time-slots', {
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
+        startTime: startDateTime,
+        endTime: endDateTime,
         reason: blockData.reason
       })
 

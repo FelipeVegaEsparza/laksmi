@@ -628,10 +628,13 @@ export class BookingModel {
   }
 
   private static parseTimeString(date: Date, timeString: string): Date {
+    // Los horarios de negocio están en hora de Chile (UTC-3)
+    // Cuando el horario dice "09:00", significa 09:00 hora de Chile
+    // Que es 12:00 UTC (09:00 + 3 horas)
     const [hours, minutes] = timeString.split(':').map(Number);
     const result = new Date(date);
-    // Usar setUTCHours para trabajar en UTC puro
-    result.setUTCHours(hours, minutes, 0, 0);
+    // Sumar 3 horas para convertir de Chile a UTC
+    result.setUTCHours(hours + 3, minutes, 0, 0);
     return result;
   }
 
