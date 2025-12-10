@@ -142,16 +142,21 @@ export default function BookingsPage() {
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd')
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd')
       
-      const [bookingsRes, blockedRes] = await Promise.all([
-        apiService.getBookings({
-          dateFrom: start,
-          dateTo: end,
-        }),
-        apiService.get(`/blocked-time-slots/range?startDate=${start}&endDate=${end}`) as any
-      ])
-      
+      // Cargar citas
+      const bookingsRes = await apiService.getBookings({
+        dateFrom: start,
+        dateTo: end,
+      })
       setBookings(bookingsRes.bookings || [])
-      setBlockedSlots(blockedRes.data || [])
+      
+      // Cargar bloques bloqueados (con manejo de error independiente)
+      try {
+        const blockedRes = await apiService.get(`/blocked-time-slots/range?startDate=${start}&endDate=${end}`) as any
+        setBlockedSlots(blockedRes.data || [])
+      } catch (blockedError) {
+        console.error('Error fetching blocked slots:', blockedError)
+        setBlockedSlots([])
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error)
       enqueueSnackbar('Error al cargar citas', { variant: 'error' })
