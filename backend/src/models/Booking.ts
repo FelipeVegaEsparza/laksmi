@@ -505,43 +505,21 @@ export class BookingModel {
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
-    // Log para debugging
-    console.log('🔍 Verificando slot:', {
-      slotStart: dateTime.toISOString(),
-      slotEnd: endTime.toISOString(),
-      slotStartUTC: dateTime.getUTCHours() + ':' + dateTime.getUTCMinutes().toString().padStart(2, '0'),
-      slotEndUTC: endTime.getUTCHours() + ':' + endTime.getUTCMinutes().toString().padStart(2, '0')
-    });
-    
     // Verificar bloques bloqueados
-    const allBlocks = await db('blocked_time_slots').select('*');
-    console.log('📋 Todos los bloques en BD:', allBlocks.map(b => ({
-      id: b.id,
-      start: b.start_time,
-      end: b.end_time,
-      startUTC: new Date(b.start_time).toISOString(),
-      endUTC: new Date(b.end_time).toISOString()
-    })));
-    
-    // Un slot NO está disponible si hay algún bloque que se solape con él
     const blockedSlot = await db('blocked_time_slots')
       .where(function() {
-        // Caso 1: Bloque empieza antes y termina durante el slot
         this.where(function() {
           this.where('start_time', '<', dateTime)
             .where('end_time', '>', dateTime);
         })
-        // Caso 2: Bloque empieza durante el slot y termina después
         .orWhere(function() {
           this.where('start_time', '>=', dateTime)
             .where('start_time', '<', endTime);
         })
-        // Caso 3: Bloque termina durante el slot
         .orWhere(function() {
           this.where('end_time', '>', dateTime)
             .where('end_time', '<=', endTime);
         })
-        // Caso 4: Slot está completamente dentro del bloque
         .orWhere(function() {
           this.where('start_time', '<=', dateTime)
             .where('end_time', '>=', endTime);
@@ -550,12 +528,8 @@ export class BookingModel {
       .first();
 
     if (blockedSlot) {
-      console.log('🚫 SLOT BLOQUEADO');
       return false;
     }
-    
-    console.log('✅ Slot disponible');
-    return true;
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
     // No incluimos cancelled, completed o no_show porque esos horarios están liberados
@@ -583,6 +557,25 @@ export class BookingModel {
     }
 
     const conflictingBookings = await query.first();
+    
+    // Log temporal
+    if (dateTime.getHours() === 16 && dateTime.getMinutes() === 0) {
+      console.log('🔍 Verificando slot 16:00:', {
+        slotStart: dateTime.toISOString(),
+        slotEnd: endTime.toISOString(),
+        conflictingBooking: conflictingBookings ? {
+          id: conflictingBookings.id,
+          dateTime: conflictingBookings.date_time,
+          duration: conflictingBookings.duration
+        } : null
+      });
+      
+      // Mostrar todas las citas del día
+      const allBookings = await db('bookings')
+        .whereRaw('DATE(date_time) = DATE(?)', [dateTime])
+        .select('id', 'date_time', 'duration', 'status');
+      console.log('📋 Todas las citas del día:', allBookings);
+    }
     
     return !conflictingBookings;
   }
