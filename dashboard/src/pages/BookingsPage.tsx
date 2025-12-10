@@ -229,14 +229,28 @@ export default function BookingsPage() {
     }
 
     try {
-      // Construir fechas en formato ISO pero forzando la zona horaria de Chile (UTC-3)
-      // Esto asegura que 12:00 en el dashboard sea 12:00 en Chile, no 12:00 UTC
-      const startDateTime = `${format(selectedDate, 'yyyy-MM-dd')}T${blockData.startTime}:00-03:00`
-      const endDateTime = `${format(selectedDate, 'yyyy-MM-dd')}T${blockData.endTime}:00-03:00`
+      // Crear fechas en hora local de Chile
+      // Parseamos la fecha seleccionada y las horas ingresadas
+      const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
+      const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
+      
+      // Crear objetos Date en hora local
+      const startDate = new Date(selectedDate)
+      startDate.setHours(startHour, startMinute, 0, 0)
+      
+      const endDate = new Date(selectedDate)
+      endDate.setHours(endHour, endMinute, 0, 0)
+
+      console.log('Bloqueando horario:', {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        startLocal: startDate.toLocaleString('es-CL'),
+        endLocal: endDate.toLocaleString('es-CL')
+      })
 
       await apiService.post('/blocked-time-slots', {
-        startTime: new Date(startDateTime).toISOString(),
-        endTime: new Date(endDateTime).toISOString(),
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
         reason: blockData.reason
       })
 
