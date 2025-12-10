@@ -82,6 +82,9 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [blockedSlots, setBlockedSlots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Log para debugging
+  console.log('🔍 BookingsPage - blockedSlots state:', blockedSlots)
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -142,19 +145,28 @@ export default function BookingsPage() {
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd')
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd')
       
+      console.log('🔄 Cargando datos del mes:', start, 'al', end)
+      
       // Cargar citas
       const bookingsRes = await apiService.getBookings({
         dateFrom: start,
         dateTo: end,
       })
+      console.log('✅ Citas cargadas:', bookingsRes.bookings?.length || 0)
       setBookings(bookingsRes.bookings || [])
       
       // Cargar bloques bloqueados (con manejo de error independiente)
       try {
+        console.log('🔄 Intentando cargar bloques bloqueados...')
         const blockedRes = await apiService.get(`/blocked-time-slots/range?startDate=${start}&endDate=${end}`) as any
-        setBlockedSlots(blockedRes.data || [])
+        console.log('📅 Bloques bloqueados recibidos:', blockedRes)
+        console.log('📅 Tipo de blockedRes:', typeof blockedRes, 'Es array?', Array.isArray(blockedRes))
+        // apiService.get() ya extrae el campo 'data', así que blockedRes es directamente el array
+        const slots = Array.isArray(blockedRes) ? blockedRes : []
+        console.log('📅 Bloques a guardar en state:', slots)
+        setBlockedSlots(slots)
       } catch (blockedError) {
-        console.error('Error fetching blocked slots:', blockedError)
+        console.error('❌ Error fetching blocked slots:', blockedError)
         setBlockedSlots([])
       }
     } catch (error) {
@@ -517,10 +529,12 @@ export default function BookingsPage() {
   }
 
   const getBlockedSlotsForDate = (date: Date) => {
-    return blockedSlots.filter(slot => {
+    const filtered = blockedSlots.filter(slot => {
       const slotStart = new Date(slot.startTime)
       return isSameDay(slotStart, date)
     })
+    console.log(`📅 Bloques para ${format(date, 'yyyy-MM-dd')}:`, filtered)
+    return filtered
   }
 
   const handleDeleteBlockedSlot = async (slotId: string) => {
@@ -553,11 +567,15 @@ export default function BookingsPage() {
       )
     }
 
+    console.log('🎨 Renderizando detalles del día:', format(selectedDate, 'yyyy-MM-dd'))
+    console.log('🎨 Total blockedSlots en state:', blockedSlots.length)
+
     const dayBookings = getBookingsForDate(selectedDate).sort((a, b) => 
       new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
     )
     
     const dayBlocked = getBlockedSlotsForDate(selectedDate)
+    console.log('🎨 Bloques para este día:', dayBlocked.length)
 
     return (
       <Paper sx={{ p: 3, height: '100%', maxHeight: 'calc(100vh - 300px)', overflow: 'auto' }}>
