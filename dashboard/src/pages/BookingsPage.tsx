@@ -229,20 +229,16 @@ export default function BookingsPage() {
     }
 
     try {
-      // Crear fechas en hora de Chile y convertir a UTC
-      // Cuando bloqueo "16:00" en el dashboard, quiero decir "16:00 hora de Chile"
-      // Que es "19:00 UTC" (16:00 + 3 horas)
+      // Usar la misma lógica que las citas: crear Date en hora local y convertir a ISO
+      // El navegador hace la conversión automáticamente
       const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
       const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
       
-      // Crear objetos Date y sumar 3 horas para convertir de Chile a UTC
       const startDate = new Date(selectedDate)
       startDate.setHours(startHour, startMinute, 0, 0)
-      startDate.setHours(startDate.getHours() + 3) // Sumar 3 horas
       
       const endDate = new Date(selectedDate)
       endDate.setHours(endHour, endMinute, 0, 0)
-      endDate.setHours(endDate.getHours() + 3) // Sumar 3 horas
 
       await apiService.post('/blocked-time-slots', {
         startTime: startDate.toISOString(),
@@ -639,8 +635,7 @@ export default function BookingsPage() {
                       <Typography variant="h6" fontWeight="600" color="error.main">
                         {format(new Date(slot.startTime), 'HH:mm')} - {format(new Date(slot.endTime), 'HH:mm')}
                       </Typography>
-                    </Box>
-                    <Chip
+                    </Box>                    <Chip
                       label="Bloqueado"
                       size="small"
                       color="error"
