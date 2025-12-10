@@ -153,6 +153,16 @@ export class BookingController {
 
       const availability = await BookingService.getAvailability(availabilityRequest);
       
+      // Log temporal: mostrar cuántos slots disponibles vs bloqueados
+      const availableCount = availability.slots.filter(s => s.available).length;
+      const blockedCount = availability.slots.filter(s => !s.available).length;
+      console.log(`📊 Disponibilidad para ${availabilityRequest.serviceId}:`, {
+        total: availability.slots.length,
+        available: availableCount,
+        blocked: blockedCount,
+        date: availabilityRequest.dateFrom.toISOString().split('T')[0]
+      });
+      
       res.json({
         success: true,
         message: 'Disponibilidad obtenida exitosamente',
