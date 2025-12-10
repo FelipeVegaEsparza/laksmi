@@ -235,15 +235,18 @@ export default function BookingsPage() {
       const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
       const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
       
-      const dateStr = format(selectedDate, 'yyyy-MM-dd')
+      // Crear objetos Date y sumar 3 horas para convertir de Chile a UTC
+      const startDate = new Date(selectedDate)
+      startDate.setHours(startHour, startMinute, 0, 0)
+      startDate.setHours(startDate.getHours() + 3) // Sumar 3 horas
       
-      // Crear fechas en UTC sumando 3 horas (offset de Chile)
-      const startDateTime = `${dateStr}T${String(startHour + 3).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}:00Z`
-      const endDateTime = `${dateStr}T${String(endHour + 3).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00Z`
+      const endDate = new Date(selectedDate)
+      endDate.setHours(endHour, endMinute, 0, 0)
+      endDate.setHours(endDate.getHours() + 3) // Sumar 3 horas
 
       await apiService.post('/blocked-time-slots', {
-        startTime: startDateTime,
-        endTime: endDateTime,
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
         reason: blockData.reason
       })
 
