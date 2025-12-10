@@ -506,23 +506,29 @@ export class BookingModel {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
     // Verificar bloques bloqueados
+    // Un slot NO está disponible si hay algún bloque que se solape con él
+    // Si bloqueo de 11:00-12:00, tanto el slot 11:00 como el 12:00 deben estar bloqueados
     const blockedSlot = await db('blocked_time_slots')
       .where(function() {
         this.where(function() {
-          this.where('start_time', '<', dateTime)
+          // Bloque empieza antes o igual y termina después del inicio del slot
+          this.where('start_time', '<=', dateTime)
             .where('end_time', '>', dateTime);
         })
         .orWhere(function() {
-          this.where('start_time', '>=', dateTime)
+          // Bloque empieza durante el slot (después del inicio, antes del fin)
+          this.where('start_time', '>', dateTime)
             .where('start_time', '<', endTime);
         })
         .orWhere(function() {
+          // Bloque termina durante el slot (después del inicio, antes o igual al fin)
           this.where('end_time', '>', dateTime)
             .where('end_time', '<=', endTime);
         })
         .orWhere(function() {
-          this.where('start_time', '<=', dateTime)
-            .where('end_time', '>=', endTime);
+          // El slot empieza exactamente cuando termina el bloque
+          // Si bloqueo hasta 12:00, el slot 12:00 también debe estar bloqueado
+          this.where('end_time', '=', dateTime);
         });
       })
       .first();
@@ -557,25 +563,6 @@ export class BookingModel {
     }
 
     const conflictingBookings = await query.first();
-    
-    // Log temporal
-    if (dateTime.getHours() === 16 && dateTime.getMinutes() === 0) {
-      console.log('🔍 Verificando slot 16:00:', {
-        slotStart: dateTime.toISOString(),
-        slotEnd: endTime.toISOString(),
-        conflictingBooking: conflictingBookings ? {
-          id: conflictingBookings.id,
-          dateTime: conflictingBookings.date_time,
-          duration: conflictingBookings.duration
-        } : null
-      });
-      
-      // Mostrar todas las citas del día
-      const allBookings = await db('bookings')
-        .whereRaw('DATE(date_time) = DATE(?)', [dateTime])
-        .select('id', 'date_time', 'duration', 'status');
-      console.log('📋 Todas las citas del día:', allBookings);
-    }
     
     return !conflictingBookings;
   }

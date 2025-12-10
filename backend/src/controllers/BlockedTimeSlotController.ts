@@ -18,14 +18,6 @@ export class BlockedTimeSlotController {
 
       const start = new Date(startTime);
       const end = new Date(endTime);
-      
-      // Log temporal
-      console.log('📝 Creando bloque:', {
-        startTimeRecibido: startTime,
-        endTimeRecibido: endTime,
-        startParsed: start.toISOString(),
-        endParsed: end.toISOString()
-      });
 
       if (start >= end) {
         res.status(400).json({
