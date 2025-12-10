@@ -19,16 +19,19 @@ export interface CreateBlockedTimeSlotRequest {
 
 export class BlockedTimeSlotModel {
   static async create(data: CreateBlockedTimeSlotRequest): Promise<BlockedTimeSlot> {
-    const [id] = await db('blocked_time_slots').insert({
+    const [insertedId] = await db('blocked_time_slots').insert({
       start_time: data.startTime,
       end_time: data.endTime,
       reason: data.reason,
       created_by: data.createdBy
     });
 
-    const slot = await this.findById(id);
+    const slot = await db('blocked_time_slots')
+      .where({ id: insertedId })
+      .first();
+    
     if (!slot) throw new Error('Error creating blocked time slot');
-    return slot;
+    return this.format(slot);
   }
 
   static async findById(id: string): Promise<BlockedTimeSlot | null> {
