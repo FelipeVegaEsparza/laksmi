@@ -621,11 +621,12 @@ export class BookingModel {
   }
 
   private static parseTimeString(date: Date, timeString: string): Date {
-    // Los horarios de negocio están en hora local
-    // Usar setHours (no setUTCHours) para que trabaje en hora local del servidor
+    // Los horarios de negocio están en hora de Chile (UTC-3)
+    // El servidor está en UTC, así que necesitamos sumar 3 horas
+    // para que 09:00 Chile se convierta en 12:00 UTC
     const [hours, minutes] = timeString.split(':').map(Number);
     const result = new Date(date);
-    result.setHours(hours, minutes, 0, 0);
+    result.setUTCHours(hours + 3, minutes, 0, 0);
     return result;
   }
 
