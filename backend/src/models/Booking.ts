@@ -505,56 +505,32 @@ export class BookingModel {
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
-    // Log temporal para debugging
-    const allBlocks = await db('blocked_time_slots').select('*');
-    console.log('🔍 Todos los bloques en BD:', allBlocks.map(b => ({
-      id: b.id,
-      start: b.start_time,
-      end: b.end_time,
-      reason: b.reason
-    })));
-    console.log('🔍 Verificando slot:', {
-      slotStart: dateTime.toISOString(),
-      slotEnd: endTime.toISOString()
-    });
-    
     // Verificar bloques bloqueados
-    // Un slot NO está disponible si hay algún bloque que se solape con él
-    // Si bloqueo de 11:00-12:00, tanto el slot 11:00 como el 12:00 deben estar bloqueados
+    // Un slot NO está disponible si se solapa con algún bloque
     const blockedSlot = await db('blocked_time_slots')
       .where(function() {
         this.where(function() {
-          // Bloque empieza antes o igual y termina después del inicio del slot
+          // Caso 1: El bloque cubre el inicio del slot
+          // Bloque: [10:00 - 11:00], Slot: [10:30 - 11:30] → Bloqueado
           this.where('start_time', '<=', dateTime)
             .where('end_time', '>', dateTime);
         })
         .orWhere(function() {
-          // Bloque empieza durante el slot (después del inicio, antes del fin)
-          this.where('start_time', '>', dateTime)
+          // Caso 2: El bloque empieza durante el slot
+          // Bloque: [10:30 - 11:30], Slot: [10:00 - 11:00] → Bloqueado
+          this.where('start_time', '>=', dateTime)
             .where('start_time', '<', endTime);
         })
         .orWhere(function() {
-          // Bloque termina durante el slot (después del inicio, antes o igual al fin)
-          this.where('end_time', '>', dateTime)
-            .where('end_time', '<=', endTime);
-        })
-        .orWhere(function() {
-          // El slot empieza exactamente cuando termina el bloque
-          // Si bloqueo hasta 12:00, el slot 12:00 también debe estar bloqueado
+          // Caso 3: El slot empieza exactamente cuando termina el bloque
+          // Bloque: [10:00 - 11:00], Slot: [11:00 - 12:00] → Bloqueado
           this.where('end_time', '=', dateTime);
         });
       })
       .first();
 
     if (blockedSlot) {
-      console.log('🚫 Slot bloqueado por:', {
-        blockStart: blockedSlot.start_time,
-        blockEnd: blockedSlot.end_time,
-        reason: blockedSlot.reason
-      });
       return false;
-    } else {
-      console.log('✅ Slot disponible (no hay bloques que lo afecten)');
     }
     
     // Buscar citas activas (confirmadas o pendientes de pago) que se solapen con este horario
