@@ -609,10 +609,7 @@ export class BookingModel {
   private static parseTimeString(date: Date, timeString: string): Date {
     const [hours, minutes] = timeString.split(':').map(Number);
     const result = new Date(date);
-    // Usar UTC para evitar problemas de zona horaria
-    // Los horarios de negocio están en hora de Chile (UTC-3)
-    // Entonces 09:00 Chile = 12:00 UTC
-    result.setUTCHours(hours + 3, minutes, 0, 0); // +3 porque Chile es UTC-3
+    result.setHours(hours, minutes, 0, 0);
     return result;
   }
 
