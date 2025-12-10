@@ -19,15 +19,20 @@ export interface CreateBlockedTimeSlotRequest {
 
 export class BlockedTimeSlotModel {
   static async create(data: CreateBlockedTimeSlotRequest): Promise<BlockedTimeSlot> {
-    const [insertedId] = await db('blocked_time_slots').insert({
+    await db('blocked_time_slots').insert({
       start_time: data.startTime,
       end_time: data.endTime,
       reason: data.reason,
       created_by: data.createdBy
     });
 
+    // Buscar el registro recién insertado por tiempo y usuario
     const slot = await db('blocked_time_slots')
-      .where({ id: insertedId })
+      .where({ 
+        start_time: data.startTime,
+        end_time: data.endTime
+      })
+      .orderBy('created_at', 'desc')
       .first();
     
     if (!slot) throw new Error('Error creating blocked time slot');
