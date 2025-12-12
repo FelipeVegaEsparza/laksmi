@@ -26,9 +26,15 @@ export default function Home() {
     const loadFeaturedServices = async () => {
       try {
         const services = await servicesApi.getAll();
-        // Get last 8 services (most recent)
-        const recentServices = services.slice(-8).reverse();
-        setFeaturedServices(recentServices);
+        // Filter services that belong to "Ofertas" category
+        const ofertasServices = services.filter(service => 
+          service.categories?.some(cat => 
+            cat.toLowerCase() === 'ofertas' || cat.toLowerCase() === 'oferta'
+          )
+        );
+        // Get up to 8 services from Ofertas category
+        const featuredOfertas = ofertasServices.slice(0, 8);
+        setFeaturedServices(featuredOfertas);
       } catch (error) {
         console.error('Error loading services:', error);
         setFeaturedServices([]);
@@ -53,10 +59,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Servicios Destacados
+              Ofertas Especiales
             </h2>
             <p className="text-xl text-gray-600">
-              Descubre nuestros tratamientos más populares
+              Aprovecha nuestras promociones y paquetes exclusivos
             </p>
           </div>
 
