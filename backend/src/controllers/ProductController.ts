@@ -88,7 +88,8 @@ export class ProductController {
         id,
         categories: updates.categories,
         category: updates.category,
-        name: updates.name
+        name: updates.name,
+        paymentLink: updates.paymentLink
       });
       
       // Clean image URLs before saving

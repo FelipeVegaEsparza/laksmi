@@ -139,8 +139,10 @@ export default function ProductsPage() {
         name: formData.name,
         category: formData.category,
         categories: formData.categories,
+        paymentLink: formData.paymentLink,
         isEditing: !!editingProduct
       })
+      console.log('🔍 Dashboard - FormData completo:', formData)
       
       if (editingProduct) {
         await apiService.put(`/products/${editingProduct.id}`, formData)
