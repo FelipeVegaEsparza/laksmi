@@ -13,6 +13,7 @@ import { themeColors } from '@/utils/colors';
 
 interface ShippingFormData {
   name: string;
+  email: string;
   phone: string;
   address: string;
 }
@@ -27,6 +28,7 @@ const ProductDetailPage = () => {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [shippingForm, setShippingForm] = useState<ShippingFormData>({
     name: '',
+    email: '',
     phone: '',
     address: ''
   });
@@ -70,6 +72,12 @@ const ProductDetailPage = () => {
       errors.name = 'El nombre es requerido';
     }
     
+    if (!shippingForm.email.trim()) {
+      errors.email = 'El email es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingForm.email)) {
+      errors.email = 'Email inválido';
+    }
+    
     if (!shippingForm.phone.trim()) {
       errors.phone = 'El teléfono es requerido';
     } else if (!/^[+]?[\d\s-()]+$/.test(shippingForm.phone)) {
@@ -93,13 +101,14 @@ const ProductDetailPage = () => {
     setSubmitError('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/${product.id}/request-payment`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product.id}/request-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: shippingForm.name,
+          email: shippingForm.email,
           phone: shippingForm.phone,
           address: shippingForm.address,
           quantity
@@ -121,7 +130,7 @@ const ProductDetailPage = () => {
       setTimeout(() => {
         setShowShippingModal(false);
         setSubmitSuccess(false);
-        setShippingForm({ name: '', phone: '', address: '' });
+        setShippingForm({ name: '', email: '', phone: '', address: '' });
         setQuantity(1);
       }, 3000);
       
@@ -136,7 +145,7 @@ const ProductDetailPage = () => {
   const handleCloseModal = () => {
     if (!submitting) {
       setShowShippingModal(false);
-      setShippingForm({ name: '', phone: '', address: '' });
+      setShippingForm({ name: '', email: '', phone: '', address: '' });
       setFormErrors({});
       setSubmitError('');
       setSubmitSuccess(false);
@@ -611,6 +620,25 @@ const ProductDetailPage = () => {
                       />
                       {formErrors.name && (
                         <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={shippingForm.email}
+                        onChange={(e) => setShippingForm({ ...shippingForm, email: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="tu@email.com"
+                        disabled={submitting}
+                      />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
                       )}
                     </div>
 
