@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { ProductModel } from '../models/Product';
-import { EmailService } from '../services/EmailService';
 import logger from '../utils/logger';
 
 interface ProductPaymentRequest {
@@ -47,14 +46,7 @@ export class ProductPaymentController {
         return;
       }
 
-      // Verificar que el producto tenga link de pago
-      if (!product.paymentLink) {
-        res.status(400).json({
-          success: false,
-          message: 'Este producto no tiene un link de pago configurado'
-        });
-        return;
-      }
+      // El link de pago es opcional - si no existe, el email se enviará sin él
 
       // Verificar stock disponible
       if (product.stock < quantity) {
@@ -77,7 +69,7 @@ export class ProductPaymentController {
         productPrice: product.price,
         quantity,
         total,
-        paymentLink: product.paymentLink,
+        paymentLink: product.paymentLink || '', // Usar string vacío si no hay link
         productImage: product.images && product.images.length > 0 ? product.images[0] : undefined
       });
 
@@ -291,6 +283,7 @@ export class ProductPaymentController {
         </div>
       </div>
 
+      ${details.paymentLink ? `
       <div style="text-align: center; margin: 30px 0;">
         <p style="font-size: 16px; margin-bottom: 15px;">
           <strong>Envía el link de pago al cliente:</strong>
@@ -303,6 +296,14 @@ export class ProductPaymentController {
           <a href="${details.paymentLink}" style="color: #667eea; word-break: break-all;">${details.paymentLink}</a>
         </p>
       </div>
+      ` : `
+      <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0; font-size: 16px; color: #856404;">
+          <strong>⚠️ Este producto no tiene un link de pago configurado</strong><br/>
+          <span style="font-size: 14px;">Contacta al cliente directamente para coordinar el pago</span>
+        </p>
+      </div>
+      `}
 
       <div class="info-box">
         <strong>📋 Próximos Pasos:</strong>

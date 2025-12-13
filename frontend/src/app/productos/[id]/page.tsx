@@ -57,21 +57,10 @@ const ProductDetailPage = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Si el producto tiene link de pago, abrir modal de envío
-    if (product.paymentLink) {
-      setShowShippingModal(true);
-      return;
-    }
+    console.log('Product paymentLink:', product.paymentLink);
     
-    // Si no tiene link de pago, comportamiento anterior (localStorage)
-    const currentCart = JSON.parse(localStorage.getItem('cart') || '{}');
-    currentCart[product.id] = (currentCart[product.id] || 0) + quantity;
-    localStorage.setItem('cart', JSON.stringify(currentCart));
-    
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-    
-    console.log(`Added ${quantity} of product ${product.id} to cart`);
+    // SIEMPRE abrir modal de envío para productos
+    setShowShippingModal(true);
   };
 
   const validateShippingForm = (): boolean => {
