@@ -125,7 +125,7 @@ export class ProductPaymentController {
       const companySettings = await CompanySettingsModel.getSettings();
 
       // Obtener email de la empresa desde settings o usar el SMTP_USER
-      const companyEmail = companySettings?.email || process.env.SMTP_USER;
+      const companyEmail = companySettings?.contactEmail || process.env.SMTP_USER;
 
       if (!companyEmail) {
         logger.warn('No se pudo determinar el email de destino');
@@ -133,14 +133,18 @@ export class ProductPaymentController {
       }
 
       // Convertir URLs relativas a absolutas
+      const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:3000';
+      
       let logoUrl = companySettings?.logoUrl;
       if (logoUrl && !logoUrl.startsWith('http')) {
-        logoUrl = EmailService['getAbsoluteUrl'](logoUrl);
+        const relativePath = logoUrl.startsWith('/') ? logoUrl : `/${logoUrl}`;
+        logoUrl = `${backendUrl}${relativePath}`;
       }
 
       let productImageUrl = details.productImage;
       if (productImageUrl && !productImageUrl.startsWith('http')) {
-        productImageUrl = EmailService['getAbsoluteUrl'](productImageUrl);
+        const relativePath = productImageUrl.startsWith('/') ? productImageUrl : `/${productImageUrl}`;
+        productImageUrl = `${backendUrl}${relativePath}`;
       }
 
       const html = ProductPaymentController.getPaymentEmailTemplate({
@@ -150,14 +154,36 @@ export class ProductPaymentController {
         logoUrl
       });
 
-      // Enviar email usando el método privado sendEmail
-      const result = await EmailService['sendEmail']({
+      // Enviar email usando el servicio de email
+      // Usamos un método público del EmailService o creamos uno temporal
+      const nodemailer = require('nodemailer');
+      
+      const smtpUser = process.env.SMTP_USER;
+      const smtpPass = process.env.SMTP_PASS;
+      
+      if (!smtpUser || !smtpPass) {
+        logger.warn('SMTP credentials not configured, email not sent');
+        return false;
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: parseInt(process.env.SMTP_PORT || '587') === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || `"Clínica de Belleza" <${smtpUser}>`,
         to: companyEmail,
         subject: `🛒 Nueva Solicitud de Compra - ${details.productName}`,
         html
       });
 
-      return result;
+      return true;
     } catch (error) {
       logger.error('Error enviando email de pago:', error);
       return false;

@@ -610,9 +610,8 @@ const ProductDetailPage = () => {
                         value={shippingForm.name}
                         onChange={(e) => setShippingForm({ ...shippingForm, name: e.target.value })}
                         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                          formErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
                         }`}
-                        style={{ focusRing: themeColors.primary }}
                         placeholder="Juan Pérez"
                         disabled={submitting}
                       />
