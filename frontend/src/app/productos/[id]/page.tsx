@@ -17,6 +17,7 @@ const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -38,9 +39,22 @@ const ProductDetailPage = () => {
   }, [params.id]);
 
   const handleAddToCart = () => {
-    // Aquí iría la lógica para agregar al carrito
-    console.log(`Adding ${quantity} of product ${product?.id} to cart`);
-    alert(`${quantity} ${product?.name} agregado(s) al carrito`);
+    if (!product) return;
+    
+    // Obtener carrito actual del localStorage
+    const currentCart = JSON.parse(localStorage.getItem('cart') || '{}');
+    
+    // Agregar o actualizar cantidad
+    currentCart[product.id] = (currentCart[product.id] || 0) + quantity;
+    
+    // Guardar en localStorage
+    localStorage.setItem('cart', JSON.stringify(currentCart));
+    
+    // Mostrar feedback visual
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+    
+    console.log(`Added ${quantity} of product ${product.id} to cart`);
   };
 
   if (loading) {
@@ -359,16 +373,27 @@ const ProductDetailPage = () => {
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
                 className="w-full text-white py-4 px-6 rounded-lg transition-all duration-200 font-semibold text-center flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
-                style={product.stock > 0 ? { backgroundColor: themeColors.primary } : {}}
+                style={product.stock > 0 ? { 
+                  backgroundColor: addedToCart ? '#10b981' : themeColors.primary 
+                } : {}}
                 onMouseEnter={(e) => {
-                  if (product.stock > 0) e.currentTarget.style.filter = 'brightness(0.9)';
+                  if (product.stock > 0 && !addedToCart) e.currentTarget.style.filter = 'brightness(0.9)';
                 }}
                 onMouseLeave={(e) => {
-                  if (product.stock > 0) e.currentTarget.style.filter = '';
+                  if (product.stock > 0 && !addedToCart) e.currentTarget.style.filter = '';
                 }}
               >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                {product.stock > 0 ? 'Añadir al Carrito' : 'Producto Agotado'}
+                {addedToCart ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    ¡Agregado al Carrito!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    {product.stock > 0 ? 'Añadir al Carrito' : 'Producto Agotado'}
+                  </>
+                )}
               </button>
 
               <div className="mt-4 flex items-center text-sm text-gray-600">
