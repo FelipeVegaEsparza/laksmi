@@ -27,6 +27,7 @@ export interface Product {
   compatibleServices: string[];
   images: string[];
   description?: string;
+  paymentLink?: string;
 }
 
 export interface Client {

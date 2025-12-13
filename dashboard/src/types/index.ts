@@ -65,6 +65,7 @@ export interface Product {
   images: string[]
   ingredients: string[]
   compatibleServices: string[]
+  paymentLink?: string
   createdAt: Date
 }
 
@@ -192,6 +193,7 @@ export interface ProductFormData {
   images: string[]
   ingredients: string[]
   compatibleServices: string[]
+  paymentLink?: string
 }
 
 export interface ClientFormData {

@@ -1,0 +1,304 @@
+import { Request, Response } from 'express';
+import { ProductModel } from '../models/Product';
+import { EmailService } from '../services/EmailService';
+import logger from '../utils/logger';
+
+interface ProductPaymentRequest {
+  name: string;
+  phone: string;
+  address: string;
+  quantity: number;
+}
+
+export class ProductPaymentController {
+  /**
+   * Solicitar pago de producto - Envía email con link de pago
+   */
+  static async requestPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: productId } = req.params;
+      const { name, phone, address, quantity }: ProductPaymentRequest = req.body;
+
+      // Validar datos requeridos
+      if (!name || !phone || !address || !quantity) {
+        res.status(400).json({
+          success: false,
+          message: 'Todos los campos son requeridos: nombre, teléfono, dirección y cantidad'
+        });
+        return;
+      }
+
+      if (quantity <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'La cantidad debe ser mayor a 0'
+        });
+        return;
+      }
+
+      // Obtener producto de la base de datos
+      const product = await ProductModel.findById(productId);
+
+      if (!product) {
+        res.status(404).json({
+          success: false,
+          message: 'Producto no encontrado'
+        });
+        return;
+      }
+
+      // Verificar que el producto tenga link de pago
+      if (!product.paymentLink) {
+        res.status(400).json({
+          success: false,
+          message: 'Este producto no tiene un link de pago configurado'
+        });
+        return;
+      }
+
+      // Verificar stock disponible
+      if (product.stock < quantity) {
+        res.status(400).json({
+          success: false,
+          message: `Stock insuficiente. Solo hay ${product.stock} unidades disponibles`
+        });
+        return;
+      }
+
+      // Calcular total
+      const total = product.price * quantity;
+
+      // Enviar email con la información
+      const emailSent = await ProductPaymentController.sendPaymentEmail({
+        customerName: name,
+        customerPhone: phone,
+        customerAddress: address,
+        productName: product.name,
+        productPrice: product.price,
+        quantity,
+        total,
+        paymentLink: product.paymentLink,
+        productImage: product.images && product.images.length > 0 ? product.images[0] : undefined
+      });
+
+      if (!emailSent) {
+        logger.warn('Email no pudo ser enviado, pero la solicitud fue procesada');
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Solicitud de pago enviada exitosamente. Recibirás un correo con el link de pago.',
+        data: {
+          productName: product.name,
+          quantity,
+          total,
+          estimatedDelivery: '3-5 días hábiles'
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error en requestPayment:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al procesar la solicitud de pago'
+      });
+    }
+  }
+
+  /**
+   * Enviar email con información de pago
+   */
+  private static async sendPaymentEmail(details: {
+    customerName: string;
+    customerPhone: string;
+    customerAddress: string;
+    productName: string;
+    productPrice: number;
+    quantity: number;
+    total: number;
+    paymentLink: string;
+    productImage?: string;
+  }): Promise<boolean> {
+    try {
+      // Obtener configuración de la empresa
+      const { CompanySettingsModel } = await import('../models/CompanySettings');
+      const companySettings = await CompanySettingsModel.getSettings();
+
+      // Obtener email de la empresa desde settings o usar el SMTP_USER
+      const companyEmail = companySettings?.email || process.env.SMTP_USER;
+
+      if (!companyEmail) {
+        logger.warn('No se pudo determinar el email de destino');
+        return false;
+      }
+
+      // Convertir URLs relativas a absolutas
+      let logoUrl = companySettings?.logoUrl;
+      if (logoUrl && !logoUrl.startsWith('http')) {
+        logoUrl = EmailService['getAbsoluteUrl'](logoUrl);
+      }
+
+      let productImageUrl = details.productImage;
+      if (productImageUrl && !productImageUrl.startsWith('http')) {
+        productImageUrl = EmailService['getAbsoluteUrl'](productImageUrl);
+      }
+
+      const html = ProductPaymentController.getPaymentEmailTemplate({
+        ...details,
+        productImage: productImageUrl,
+        companyName: companySettings?.companyName || 'Clínica de Belleza',
+        logoUrl
+      });
+
+      // Enviar email usando el método privado sendEmail
+      const result = await EmailService['sendEmail']({
+        to: companyEmail,
+        subject: `🛒 Nueva Solicitud de Compra - ${details.productName}`,
+        html
+      });
+
+      return result;
+    } catch (error) {
+      logger.error('Error enviando email de pago:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Plantilla HTML para email de solicitud de pago
+   */
+  private static getPaymentEmailTemplate(details: {
+    customerName: string;
+    customerPhone: string;
+    customerAddress: string;
+    productName: string;
+    productPrice: number;
+    quantity: number;
+    total: number;
+    paymentLink: string;
+    productImage?: string;
+    companyName: string;
+    logoUrl?: string;
+  }): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .content { padding: 30px; }
+    .order-box { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
+    .product-image { max-width: 200px; height: auto; border-radius: 8px; margin: 15px 0; }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0e0e0; }
+    .detail-label { font-weight: bold; color: #667eea; }
+    .total-row { display: flex; justify-content: space-between; padding: 15px 0; font-size: 20px; font-weight: bold; color: #667eea; border-top: 2px solid #667eea; margin-top: 10px; }
+    .customer-box { background: #e3f2fd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .customer-detail { margin: 10px 0; }
+    .customer-detail strong { color: #1976d2; display: block; margin-bottom: 5px; }
+    .payment-button { display: inline-block; padding: 15px 40px; background: #667eea; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin: 20px 0; text-align: center; }
+    .payment-button:hover { background: #5568d3; }
+    .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+    .info-box { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      ${details.logoUrl ? `<img src="${details.logoUrl}" alt="${details.companyName}" class="logo" />` : ''}
+      <h1>🛒 Nueva Solicitud de Compra</h1>
+    </div>
+    <div class="content">
+      <p>Has recibido una nueva solicitud de compra de producto.</p>
+      
+      <div class="order-box">
+        <h3 style="margin-top: 0; color: #667eea;">📦 Detalles del Pedido</h3>
+        
+        ${details.productImage ? `
+        <div style="text-align: center;">
+          <img src="${details.productImage}" alt="${details.productName}" class="product-image" />
+        </div>
+        ` : ''}
+        
+        <div class="detail-row">
+          <span class="detail-label">Producto:</span>
+          <span>${details.productName}</span>
+        </div>
+        
+        <div class="detail-row">
+          <span class="detail-label">Precio Unitario:</span>
+          <span>$${details.productPrice.toLocaleString('es-CL')}</span>
+        </div>
+        
+        <div class="detail-row">
+          <span class="detail-label">Cantidad:</span>
+          <span>${details.quantity} unidad${details.quantity > 1 ? 'es' : ''}</span>
+        </div>
+        
+        <div class="total-row">
+          <span>TOTAL:</span>
+          <span>$${details.total.toLocaleString('es-CL')}</span>
+        </div>
+      </div>
+
+      <div class="customer-box">
+        <h3 style="margin-top: 0; color: #1976d2;">👤 Información del Cliente</h3>
+        
+        <div class="customer-detail">
+          <strong>Nombre:</strong>
+          ${details.customerName}
+        </div>
+        
+        <div class="customer-detail">
+          <strong>Teléfono:</strong>
+          <a href="tel:${details.customerPhone}" style="color: #1976d2;">${details.customerPhone}</a>
+        </div>
+        
+        <div class="customer-detail">
+          <strong>Dirección de Envío:</strong>
+          ${details.customerAddress}
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <p style="font-size: 16px; margin-bottom: 15px;">
+          <strong>Envía el link de pago al cliente:</strong>
+        </p>
+        <a href="${details.paymentLink}" class="payment-button">
+          💳 Ver Link de Pago
+        </a>
+        <p style="font-size: 14px; color: #666; margin-top: 10px;">
+          O copia este link: <br/>
+          <a href="${details.paymentLink}" style="color: #667eea; word-break: break-all;">${details.paymentLink}</a>
+        </p>
+      </div>
+
+      <div class="info-box">
+        <strong>📋 Próximos Pasos:</strong>
+        <ol style="margin: 10px 0; padding-left: 20px;">
+          <li>Contacta al cliente por teléfono o WhatsApp</li>
+          <li>Envíale el link de pago</li>
+          <li>Una vez confirmado el pago, prepara el envío</li>
+          <li>Coordina la entrega a la dirección indicada</li>
+        </ol>
+      </div>
+
+      <p style="text-align: center; margin-top: 30px; color: #666;">
+        <strong>Tiempo estimado de entrega: 3-5 días hábiles</strong>
+      </p>
+    </div>
+    <div class="footer">
+      <p><strong>${details.companyName}</strong></p>
+      <p>Este es un correo automático generado por una solicitud de compra desde tu sitio web.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+  }
+}

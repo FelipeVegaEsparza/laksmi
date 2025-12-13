@@ -11,6 +11,12 @@ import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors } from '@/utils/colors';
 
+interface ShippingFormData {
+  name: string;
+  phone: string;
+  address: string;
+}
+
 const ProductDetailPage = () => {
   const params = useParams();
   const [product, setProduct] = useState<Product | null>(null);
@@ -18,6 +24,16 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingForm, setShippingForm] = useState<ShippingFormData>({
+    name: '',
+    phone: '',
+    address: ''
+  });
+  const [formErrors, setFormErrors] = useState<Partial<ShippingFormData>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -41,20 +57,96 @@ const ProductDetailPage = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Obtener carrito actual del localStorage
+    // Si el producto tiene link de pago, abrir modal de envío
+    if (product.paymentLink) {
+      setShowShippingModal(true);
+      return;
+    }
+    
+    // Si no tiene link de pago, comportamiento anterior (localStorage)
     const currentCart = JSON.parse(localStorage.getItem('cart') || '{}');
-    
-    // Agregar o actualizar cantidad
     currentCart[product.id] = (currentCart[product.id] || 0) + quantity;
-    
-    // Guardar en localStorage
     localStorage.setItem('cart', JSON.stringify(currentCart));
     
-    // Mostrar feedback visual
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
     
     console.log(`Added ${quantity} of product ${product.id} to cart`);
+  };
+
+  const validateShippingForm = (): boolean => {
+    const errors: Partial<ShippingFormData> = {};
+    
+    if (!shippingForm.name.trim()) {
+      errors.name = 'El nombre es requerido';
+    }
+    
+    if (!shippingForm.phone.trim()) {
+      errors.phone = 'El teléfono es requerido';
+    } else if (!/^[+]?[\d\s-()]+$/.test(shippingForm.phone)) {
+      errors.phone = 'Teléfono inválido';
+    }
+    
+    if (!shippingForm.address.trim()) {
+      errors.address = 'La dirección es requerida';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmitShipping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateShippingForm() || !product) return;
+    
+    setSubmitting(true);
+    setSubmitError('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/${product.id}/request-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: shippingForm.name,
+          phone: shippingForm.phone,
+          address: shippingForm.address,
+          quantity
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al procesar la solicitud');
+      }
+      
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowShippingModal(false);
+        setSubmitSuccess(false);
+        setShippingForm({ name: '', phone: '', address: '' });
+        setQuantity(1);
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Error submitting shipping form:', error);
+      setSubmitError(error.message || 'Error al enviar la solicitud. Por favor intenta nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (!submitting) {
+      setShowShippingModal(false);
+      setShippingForm({ name: '', phone: '', address: '' });
+      setFormErrors({});
+      setSubmitError('');
+      setSubmitSuccess(false);
+    }
   };
 
   if (loading) {
@@ -484,6 +576,153 @@ const ProductDetailPage = () => {
             ))}
           </div>
         </div>
+
+        {/* Shipping Form Modal */}
+        {showShippingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+              {!submitSuccess ? (
+                <>
+                  <button
+                    onClick={handleCloseModal}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    disabled={submitting}
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Información de Envío
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Completa tus datos para recibir el link de pago
+                  </p>
+
+                  <form onSubmit={handleSubmitShipping} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre Completo *
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingForm.name}
+                        onChange={(e) => setShippingForm({ ...shippingForm, name: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        style={{ focusRing: themeColors.primary }}
+                        placeholder="Juan Pérez"
+                        disabled={submitting}
+                      />
+                      {formErrors.name && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Teléfono *
+                      </label>
+                      <input
+                        type="tel"
+                        value={shippingForm.phone}
+                        onChange={(e) => setShippingForm({ ...shippingForm, phone: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="+56 9 1234 5678"
+                        disabled={submitting}
+                      />
+                      {formErrors.phone && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dirección de Envío *
+                      </label>
+                      <textarea
+                        value={shippingForm.address}
+                        onChange={(e) => setShippingForm({ ...shippingForm, address: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.address ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        rows={3}
+                        placeholder="Calle, número, comuna, ciudad"
+                        disabled={submitting}
+                      />
+                      {formErrors.address && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.address}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Producto:</span>
+                        <span className="font-medium">{product?.name}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Cantidad:</span>
+                        <span className="font-medium">{quantity}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                        <span>Total:</span>
+                        <span style={{ color: themeColors.primary }}>
+                          {formatPrice((product?.price || 0) * quantity)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {submitError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                        {submitError}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        disabled={submitting}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-3 text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: themeColors.primary }}
+                        disabled={submitting}
+                        onMouseEnter={(e) => !submitting && (e.currentTarget.style.filter = 'brightness(0.9)')}
+                        onMouseLeave={(e) => !submitting && (e.currentTarget.style.filter = '')}
+                      >
+                        {submitting ? 'Enviando...' : 'Solicitar Pago'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <CheckCircle className="h-16 w-16 mx-auto" style={{ color: themeColors.primary }} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    ¡Solicitud Enviada!
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Recibirás un correo electrónico con el link de pago en breve.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Esta ventana se cerrará automáticamente...
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

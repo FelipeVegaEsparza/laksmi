@@ -49,6 +49,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     images: [],
     ingredients: [],
     compatibleServices: [],
+    paymentLink: '',
   })
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
@@ -74,6 +75,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         images: product.images || [],
         ingredients: product.ingredients,
         compatibleServices: product.compatibleServices,
+        paymentLink: product.paymentLink || '',
       })
     }
   }, [product])
@@ -165,6 +167,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         images: Array.isArray(formData.images) ? formData.images : [],
         ingredients: Array.isArray(formData.ingredients) ? formData.ingredients : [],
         compatibleServices: Array.isArray(formData.compatibleServices) ? formData.compatibleServices : [],
+        paymentLink: formData.paymentLink?.trim() || '',
       }
       
       onSave(cleanedData)
@@ -417,6 +420,18 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             }}
             inputProps={{ min: 0, step: 'any' }}
             required
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Link de Pago"
+            value={formData.paymentLink}
+            onChange={handleInputChange('paymentLink')}
+            error={!!errors.paymentLink}
+            helperText={errors.paymentLink || 'URL del link de pago (ej: Flow, Mercado Pago, etc.)'}
+            placeholder="https://..."
           />
         </Grid>
 
