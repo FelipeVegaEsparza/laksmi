@@ -108,8 +108,13 @@ const ProductDetailPage = () => {
       
       const data = await response.json();
       
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
+      
       if (!response.ok) {
-        throw new Error(data.message || 'Error al procesar la solicitud');
+        const errorMessage = data.message || data.error || 'Error al procesar la solicitud';
+        console.error('Error from backend:', errorMessage);
+        throw new Error(errorMessage);
       }
       
       setSubmitSuccess(true);
