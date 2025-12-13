@@ -110,6 +110,15 @@ export const createProductSchema = Joi.object({
     .default([])
     .messages({
       'array.max': 'No se pueden agregar más de 20 servicios compatibles'
+    }),
+  paymentLink: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .max(500)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.uri': 'El link de pago debe ser una URL válida (http:// o https://)',
+      'string.max': 'El link de pago no puede tener más de 500 caracteres'
     })
 }).options({ stripUnknown: true });
 
@@ -200,5 +209,14 @@ export const updateProductSchema = Joi.object({
     .optional()
     .messages({
       'array.max': 'No se pueden agregar más de 20 servicios compatibles'
+    }),
+  paymentLink: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .max(500)
+    .optional()
+    .allow('', null)
+    .messages({
+      'string.uri': 'El link de pago debe ser una URL válida (http:// o https://)',
+      'string.max': 'El link de pago no puede tener más de 500 caracteres'
     })
 }).options({ stripUnknown: true });
