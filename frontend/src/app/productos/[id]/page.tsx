@@ -9,6 +9,7 @@ import { ArrowLeft, ShoppingCart, Package, AlertCircle, CheckCircle } from 'luci
 import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
+import { themeColors } from '@/utils/colors';
 
 const ProductDetailPage = () => {
   const params = useParams();
@@ -77,7 +78,10 @@ const ProductDetailPage = () => {
             </p>
             <Link
               href="/productos"
-              className="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
+              className="text-white px-6 py-3 rounded-lg transition-colors duration-200 font-medium"
+              style={{ backgroundColor: themeColors.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+              onMouseLeave={(e) => e.currentTarget.style.filter = ''}
             >
               Ver Todos los Productos
             </Link>
@@ -92,9 +96,25 @@ const ProductDetailPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-rose-600">Inicio</Link>
+          <Link 
+            href="/" 
+            className="transition-colors"
+            style={{ color: 'inherit' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
+          >
+            Inicio
+          </Link>
           <span>/</span>
-          <Link href="/productos" className="hover:text-rose-600">Productos</Link>
+          <Link 
+            href="/productos" 
+            className="transition-colors"
+            style={{ color: 'inherit' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = themeColors.primary}
+            onMouseLeave={(e) => e.currentTarget.style.color = ''}
+          >
+            Productos
+          </Link>
           <span>/</span>
           <span className="text-gray-900">{product.name}</span>
         </nav>
@@ -102,7 +122,10 @@ const ProductDetailPage = () => {
         {/* Back Button */}
         <Link
           href="/productos"
-          className="inline-flex items-center text-rose-600 hover:text-rose-700 mb-6"
+          className="inline-flex items-center mb-6 transition-colors"
+          style={{ color: themeColors.primary }}
+          onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+          onMouseLeave={(e) => e.currentTarget.style.filter = ''}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Productos
@@ -126,9 +149,14 @@ const ProductDetailPage = () => {
                     key={index} 
                     className={`relative aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-2 cursor-pointer transition-all duration-300 ${
                       selectedImageIndex === index 
-                        ? 'ring-2 ring-rose-600 ring-offset-2' 
+                        ? 'ring-offset-2' 
                         : 'hover:opacity-80'
                     }`}
+                    style={selectedImageIndex === index ? { 
+                      boxShadow: `0 0 0 2px ${themeColors.primary}`,
+                      outline: `2px solid ${themeColors.primary}`,
+                      outlineOffset: '2px'
+                    } : {}}
                     onClick={() => setSelectedImageIndex(index)}
                   >
                     <ServiceImage
@@ -143,7 +171,10 @@ const ProductDetailPage = () => {
             )}
             
             {/* Additional Info - Moved here for large screens */}
-            <div className="hidden lg:block bg-rose-50 p-6 rounded-lg">
+            <div 
+              className="hidden lg:block p-6 rounded-lg"
+              style={{ backgroundColor: `${themeColors.primary}15` }}
+            >
               <h3 className="font-semibold text-gray-900 mb-2">
                 ¿Tienes dudas sobre este producto?
               </h3>
@@ -152,12 +183,26 @@ const ProductDetailPage = () => {
                 y ayudarte a elegir el mejor producto para ti.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium">
+                <button 
+                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                  style={{ backgroundColor: themeColors.primary }}
+                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+                  onMouseLeave={(e) => e.currentTarget.style.filter = ''}
+                >
                   Chat en Vivo
                 </button>
                 <a
                   href="tel:+34123456789"
-                  className="border border-rose-600 text-rose-600 px-4 py-2 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-medium text-center"
+                  className="border px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
+                  style={{ borderColor: themeColors.primary, color: themeColors.primary }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = themeColors.primary;
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '';
+                    e.currentTarget.style.color = themeColors.primary;
+                  }}
                 >
                   Llamar Ahora
                 </a>
@@ -176,25 +221,25 @@ const ProductDetailPage = () => {
                       href={`/productos?category=${cat}`}
                       className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
                       style={{ 
-                        color: index === 0 ? 'white' : '#e11d48',
-                        backgroundColor: index === 0 ? '#e11d48' : '#ffe4e6',
+                        color: index === 0 ? 'white' : themeColors.primary,
+                        backgroundColor: index === 0 ? themeColors.primary : `${themeColors.primary}15`,
                         fontWeight: index === 0 ? 600 : 500
                       }}
                       title={index === 0 ? 'Categoría principal - Click para ver más productos' : 'Click para ver más productos'}
                       onMouseEnter={(e) => {
                         if (index === 0) {
-                          e.currentTarget.style.backgroundColor = '#be123c';
+                          e.currentTarget.style.filter = 'brightness(0.9)';
                         } else {
-                          e.currentTarget.style.backgroundColor = '#e11d48';
+                          e.currentTarget.style.backgroundColor = themeColors.primary;
                           e.currentTarget.style.color = 'white';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (index === 0) {
-                          e.currentTarget.style.backgroundColor = '#e11d48';
+                          e.currentTarget.style.filter = '';
                         } else {
-                          e.currentTarget.style.backgroundColor = '#ffe4e6';
-                          e.currentTarget.style.color = '#e11d48';
+                          e.currentTarget.style.backgroundColor = `${themeColors.primary}15`;
+                          e.currentTarget.style.color = themeColors.primary;
                         }
                       }}
                     >
@@ -206,16 +251,16 @@ const ProductDetailPage = () => {
                     href={`/productos?category=${product.category}`}
                     className="text-sm font-medium px-3 py-1 rounded-full transition-all duration-300 hover:shadow-md"
                     style={{ 
-                      color: '#e11d48',
-                      backgroundColor: '#ffe4e6'
+                      color: themeColors.primary,
+                      backgroundColor: `${themeColors.primary}15`
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#e11d48';
+                      e.currentTarget.style.backgroundColor = themeColors.primary;
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ffe4e6';
-                      e.currentTarget.style.color = '#e11d48';
+                      e.currentTarget.style.backgroundColor = `${themeColors.primary}15`;
+                      e.currentTarget.style.color = themeColors.primary;
                     }}
                   >
                     {product.category}
@@ -235,7 +280,7 @@ const ProductDetailPage = () => {
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 {product.name}
               </h1>
-              <div className="text-3xl font-bold text-rose-600 mb-4">
+              <div className="text-3xl font-bold mb-4" style={{ color: themeColors.primary }}>
                 {formatPrice(product.price)}
               </div>
             </div>
@@ -259,7 +304,7 @@ const ProductDetailPage = () => {
                 <ul className="space-y-2">
                   {product.ingredients.map((ingredient, index) => (
                     <li key={index} className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-rose-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
                       <span className="text-gray-600">{ingredient}</span>
                     </li>
                   ))}
@@ -313,7 +358,14 @@ const ProductDetailPage = () => {
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="w-full bg-rose-600 text-white py-4 px-6 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-semibold text-center flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full text-white py-4 px-6 rounded-lg transition-all duration-200 font-semibold text-center flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                style={product.stock > 0 ? { backgroundColor: themeColors.primary } : {}}
+                onMouseEnter={(e) => {
+                  if (product.stock > 0) e.currentTarget.style.filter = 'brightness(0.9)';
+                }}
+                onMouseLeave={(e) => {
+                  if (product.stock > 0) e.currentTarget.style.filter = '';
+                }}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 {product.stock > 0 ? 'Añadir al Carrito' : 'Producto Agotado'}
@@ -326,7 +378,10 @@ const ProductDetailPage = () => {
             </div>
 
             {/* Additional Info - Visible only on mobile/tablet */}
-            <div className="lg:hidden bg-rose-50 p-6 rounded-lg">
+            <div 
+              className="lg:hidden p-6 rounded-lg"
+              style={{ backgroundColor: `${themeColors.primary}15` }}
+            >
               <h3 className="font-semibold text-gray-900 mb-2">
                 ¿Tienes dudas sobre este producto?
               </h3>
@@ -335,12 +390,26 @@ const ProductDetailPage = () => {
                 y ayudarte a elegir el mejor producto para ti.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium">
+                <button 
+                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                  style={{ backgroundColor: themeColors.primary }}
+                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+                  onMouseLeave={(e) => e.currentTarget.style.filter = ''}
+                >
                   Chat en Vivo
                 </button>
                 <a
                   href="tel:+34123456789"
-                  className="border border-rose-600 text-rose-600 px-4 py-2 rounded-lg hover:bg-rose-600 hover:text-white transition-colors duration-200 font-medium text-center"
+                  className="border px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
+                  style={{ borderColor: themeColors.primary, color: themeColors.primary }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = themeColors.primary;
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '';
+                    e.currentTarget.style.color = themeColors.primary;
+                  }}
                 >
                   Llamar Ahora
                 </a>
@@ -358,9 +427,12 @@ const ProductDetailPage = () => {
             {/* Mock related products */}
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div className="relative h-48 bg-gradient-to-br from-rose-200 to-pink-300 overflow-hidden">
+                <div 
+                  className="relative h-48 overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${themeColors.primary}30, ${themeColors.primary}50)` }}
+                >
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Package className="h-16 w-16 text-rose-600" />
+                    <Package className="h-16 w-16" style={{ color: themeColors.primary }} />
                   </div>
                 </div>
                 <div className="p-6">
@@ -371,10 +443,13 @@ const ProductDetailPage = () => {
                     Descripción breve del producto relacionado.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-rose-600">{formatPrice(30 + i * 10)}</span>
+                    <span className="text-xl font-bold" style={{ color: themeColors.primary }}>{formatPrice(30 + i * 10)}</span>
                     <Link
                       href={`/productos/${i}`}
-                      className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition-colors duration-200 font-medium"
+                      className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                      style={{ backgroundColor: themeColors.primary }}
+                      onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+                      onMouseLeave={(e) => e.currentTarget.style.filter = ''}
                     >
                       Ver Detalles
                     </Link>
