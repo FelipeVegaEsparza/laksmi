@@ -138,8 +138,8 @@ logger.info('✅ Registrando rutas de API...');
 app.use(`/api/${config.apiVersion}/auth`, authRoutes);
 app.use(`/api/${config.apiVersion}/clients`, clientRoutes);
 app.use(`/api/${config.apiVersion}/loyalty`, loyaltyRoutes);
+app.use(`/api/${config.apiVersion}/product-payment`, productPaymentRoutes); // Ruta pública independiente
 app.use(`/api/${config.apiVersion}/products`, productRoutes);
-app.use(`/api/${config.apiVersion}/products`, productPaymentRoutes);
 app.use(`/api/${config.apiVersion}/services`, serviceRoutes);
 app.use(`/api/${config.apiVersion}/bookings`, bookingRoutes);
 app.use(`/api/${config.apiVersion}/blocked-time-slots`, blockedTimeSlotsRoutes);

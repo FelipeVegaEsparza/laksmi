@@ -101,7 +101,7 @@ const ProductDetailPage = () => {
     setSubmitError('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product.id}/request-payment`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product-payment/${product.id}/request-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
