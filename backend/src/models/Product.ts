@@ -21,6 +21,7 @@ export class ProductModel {
       name: productData.name,
       category: productData.category,
       price: productData.price,
+      payment_link: productData.paymentLink || null,
       stock: productData.stock,
       min_stock: productData.minStock || 5,
       description: productData.description || null,
@@ -72,6 +73,7 @@ export class ProductModel {
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.category !== undefined) updateData.category = updates.category;
     if (updates.price !== undefined) updateData.price = updates.price;
+    if (updates.paymentLink !== undefined) updateData.payment_link = updates.paymentLink;
     if (updates.stock !== undefined) updateData.stock = updates.stock;
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
     if (updates.description !== undefined) updateData.description = updates.description;
@@ -573,6 +575,7 @@ export class ProductModel {
       category: dbProduct.category, // Categoría primaria para backward compatibility
       categories: categoryNames.length > 0 ? categoryNames : [dbProduct.category], // Usar categorías de la tabla de unión o fallback
       price: parseFloat(dbProduct.price),
+      paymentLink: dbProduct.payment_link || undefined,
       stock: dbProduct.stock,
       minStock: dbProduct.min_stock,
       description: dbProduct.description || '',

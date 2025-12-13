@@ -4,6 +4,7 @@ export interface Product {
   category: string; // Categoría primaria (backward compatibility)
   categories: string[]; // Todas las categorías asignadas
   price: number;
+  paymentLink?: string; // Link de pago (Mercado Pago, Flow, etc.)
   stock: number;
   minStock: number;
   description?: string;
@@ -19,6 +20,7 @@ export interface CreateProductRequest {
   category: string; // Categoría primaria
   categories?: string[]; // Categorías adicionales (opcional)
   price: number;
+  paymentLink?: string; // Link de pago (opcional)
   stock: number;
   minStock?: number;
   description?: string;
@@ -32,6 +34,7 @@ export interface UpdateProductRequest {
   category?: string; // Actualizar categoría primaria
   categories?: string[]; // Actualizar todas las categorías
   price?: number;
+  paymentLink?: string; // Actualizar link de pago
   stock?: number;
   minStock?: number;
   description?: string;
