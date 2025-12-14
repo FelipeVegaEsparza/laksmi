@@ -8,17 +8,17 @@ const router = Router();
 router.use(authenticateToken);
 router.use(requireManagerOrAdmin);
 
+// GET /api/v1/product-orders/stats - Obtener estadísticas (DEBE IR ANTES DE /:id)
+router.get('/stats', ProductOrderController.getStats);
+
 // GET /api/v1/product-orders - Obtener todas las órdenes
 router.get('/', ProductOrderController.getOrders);
-
-// GET /api/v1/product-orders/stats - Obtener estadísticas
-router.get('/stats', ProductOrderController.getStats);
 
 // GET /api/v1/product-orders/:id - Obtener una orden por ID
 router.get('/:id', ProductOrderController.getOrderById);
 
-// PATCH /api/v1/product-orders/:id/payment-status - Actualizar estado de pago
-router.patch('/:id/payment-status', ProductOrderController.updatePaymentStatus);
+// PUT /api/v1/product-orders/:id/payment-status - Actualizar estado de pago
+router.put('/:id/payment-status', ProductOrderController.updatePaymentStatus);
 
 // DELETE /api/v1/product-orders/:id - Eliminar una orden
 router.delete('/:id', ProductOrderController.deleteOrder);
