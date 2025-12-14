@@ -49,6 +49,7 @@ export interface Service {
   isActive: boolean
   sessions?: number
   tag?: string
+  is_featured?: boolean // Servicio destacado en homepage
   createdAt: Date
 }
 

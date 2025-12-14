@@ -14,6 +14,7 @@ export interface Service {
   isActive: boolean;
   sessions?: number;
   tag?: string;
+  is_featured?: boolean; // NEW: Highlighted service for homepage
 }
 
 export interface Product {

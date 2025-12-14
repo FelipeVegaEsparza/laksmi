@@ -19,7 +19,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
-
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from '@mui/icons-material'
 import { Service, ServiceFormData } from '@/types'
 import { Category } from '@/types/category'
@@ -148,6 +149,26 @@ export default function ServicesPage() {
     setServiceToDelete(null)
   }
 
+  const handleToggleFeatured = async (service: Service) => {
+    try {
+      const newFeaturedStatus = !service.is_featured
+      await apiService.put(`/services/${service.id}`, {
+        ...service,
+        is_featured: newFeaturedStatus
+      })
+      showNotification(
+        newFeaturedStatus 
+          ? 'Servicio marcado como destacado' 
+          : 'Servicio desmarcado como destacado',
+        'success'
+      )
+      fetchServices()
+    } catch (error: any) {
+      console.error('Error toggling featured:', error)
+      showNotification('Error al actualizar servicio destacado', 'error')
+    }
+  }
+
   const handleSaveService = async (formData: ServiceFormData) => {
     console.log('🔍 ServicesPage - Datos recibidos del form:', formData)
     console.log('🔍 ServicesPage - Modo:', editingService ? 'EDITAR' : 'CREAR')
@@ -248,6 +269,23 @@ export default function ServicesPage() {
           color={value ? 'success' : 'default'}
           size="small"
         />
+      ),
+    },
+    {
+      id: 'is_featured',
+      label: 'Destacado',
+      minWidth: 120,
+      align: 'center',
+      format: (value: boolean, service?: Service) => (
+        <Tooltip title={value ? 'Quitar de destacados' : 'Marcar como destacado'}>
+          <IconButton
+            size="small"
+            onClick={() => service && handleToggleFeatured(service)}
+            color={value ? 'warning' : 'default'}
+          >
+            {value ? <StarIcon /> : <StarBorderIcon />}
+          </IconButton>
+        </Tooltip>
       ),
     },
   ]
@@ -417,6 +455,14 @@ export default function ServicesPage() {
                       color={service.isActive ? 'success' : 'default'}
                       size="small"
                     />
+                    {service.is_featured && (
+                      <Chip
+                        icon={<StarIcon />}
+                        label="Destacado"
+                        color="warning"
+                        size="small"
+                      />
+                    )}
                   </Box>
                   
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

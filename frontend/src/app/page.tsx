@@ -19,6 +19,7 @@ import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
+  const [highlightedService, setHighlightedService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const {contactWhatsapp} = useCompanySettings();
 
@@ -26,6 +27,11 @@ export default function Home() {
     const loadFeaturedServices = async () => {
       try {
         const services = await servicesApi.getAll();
+        
+        // Find the highlighted service (is_featured = true)
+        const highlighted = services.find(service => service.is_featured === true);
+        setHighlightedService(highlighted || null);
+        
         // Filter services that belong to "Ofertas" category
         const ofertasServices = services.filter(service => 
           service.categories?.some(cat => 
@@ -53,6 +59,144 @@ export default function Home() {
 
       {/* Featured Images */}
       <FeaturedImages />
+
+      {/* Highlighted Service Section */}
+      {highlightedService && (
+        <section className="py-16" style={{ backgroundColor: `${themeColors.primary}08` }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                {/* Image Side */}
+                <div className="relative h-64 lg:h-auto min-h-[400px]">
+                  <div className="absolute top-4 left-4 z-10">
+                    <div 
+                      className="text-white px-4 py-2 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-bold text-sm flex items-center gap-2"
+                      style={{ background: themeColors.gradientPrimary }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      SERVICIO DESTACADO
+                    </div>
+                  </div>
+                  {highlightedService.tag && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <div 
+                        className="text-white px-4 py-2 rounded-full shadow-lg backdrop-blur-sm bg-opacity-95 font-semibold text-sm tracking-wide uppercase"
+                        style={{ background: themeColors.gradientPrimary }}
+                      >
+                        {highlightedService.tag}
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/20"></div>
+                  <ServiceImage
+                    src={highlightedService.images?.[0] || ''}
+                    alt={highlightedService.name}
+                    className="w-full h-full object-cover"
+                    fallbackClassName="w-full h-full"
+                  />
+                </div>
+
+                {/* Content Side */}
+                <div className="p-8 lg:p-12 flex flex-col justify-center">
+                  <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                    {highlightedService.name}
+                  </h2>
+                  
+                  {highlightedService.sessions && highlightedService.sessions > 1 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div 
+                        className="text-white px-4 py-2 rounded-full font-semibold text-sm flex items-center gap-2"
+                        style={{ backgroundColor: themeColors.primary }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Incluye {highlightedService.sessions} Sesiones
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="prose prose-lg max-w-none mb-6">
+                    <p className="text-gray-600 text-lg leading-relaxed">
+                      {getPlainTextPreview(highlightedService.description || '', 200)}
+                    </p>
+                  </div>
+
+                  {/* Benefits */}
+                  {highlightedService.benefits && (() => {
+                    try {
+                      const benefitsList = typeof highlightedService.benefits === 'string' 
+                        ? JSON.parse(highlightedService.benefits) 
+                        : highlightedService.benefits;
+                      
+                      if (Array.isArray(benefitsList) && benefitsList.length > 0) {
+                        return (
+                          <div className="mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Beneficios:</h3>
+                            <ul className="space-y-2">
+                              {benefitsList.slice(0, 4).map((benefit: string, index: number) => (
+                                <li key={index} className="flex items-start">
+                                  <svg 
+                                    className="h-6 w-6 mr-2 flex-shrink-0 mt-0.5" 
+                                    fill="none" 
+                                    viewBox="0 0 24 24" 
+                                    stroke="currentColor"
+                                    style={{ color: themeColors.primary }}
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span className="text-gray-700">{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      }
+                    } catch (e) {
+                      console.error('Error parsing benefits:', e);
+                    }
+                    return null;
+                  })()}
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b">
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Precio</div>
+                      <div 
+                        className="text-4xl font-bold"
+                        style={{ color: themeColors.primary }}
+                      >
+                        {formatPrice(highlightedService.price)}
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="h-5 w-5 mr-2" />
+                      <span className="text-lg">{highlightedService.duration} minutos</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      href={`/servicios/${highlightedService.id}`}
+                      variant="primary"
+                      size="lg"
+                      className="flex-1 rounded-full px-8 py-4 text-lg font-semibold"
+                    >
+                      Reservar Ahora
+                      <ArrowRight className="h-5 w-5 ml-2" />
+                    </Button>
+                    <Button
+                      href={`/servicios/${highlightedService.id}`}
+                      variant="outline"
+                      size="lg"
+                      className="rounded-full px-8 py-4 text-lg font-semibold"
+                    >
+                      Ver Detalles
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Featured Services */}
       <section className="py-16 bg-gray-50">
