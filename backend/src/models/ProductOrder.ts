@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import pool from '../config/database';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import db from '../config/database';
 import {
   ProductOrder,
   CreateProductOrderRequest,
@@ -15,24 +14,18 @@ export class ProductOrderModel {
   static async create(orderData: CreateProductOrderRequest): Promise<ProductOrder> {
     const id = uuidv4();
     
-    const [result] = await pool.execute<ResultSetHeader>(
-      `INSERT INTO product_orders (
-        id, product_id, customer_name, customer_email, customer_phone,
-        customer_address, quantity, unit_price, total_price, payment_link
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        orderData.productId,
-        orderData.customerName,
-        orderData.customerEmail,
-        orderData.customerPhone,
-        orderData.customerAddress,
-        orderData.quantity,
-        orderData.unitPrice,
-        orderData.totalPrice,
-        orderData.paymentLink || null
-      ]
-    );
+    await db('product_orders').insert({
+      id,
+      product_id: orderData.productId,
+      customer_name: orderData.customerName,
+      customer_email: orderData.customerEmail,
+      customer_phone: orderData.customerPhone,
+      customer_address: orderData.customerAddress,
+      quantity: orderData.quantity,
+      unit_price: orderData.unitPrice,
+      total_price: orderData.totalPrice,
+      payment_link: orderData.paymentLink || null
+    });
 
     const order = await this.findById(id);
     if (!order) {
@@ -46,16 +39,14 @@ export class ProductOrderModel {
    * Buscar orden por ID
    */
   static async findById(id: string): Promise<ProductOrder | null> {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      `SELECT 
-        po.*,
-        p.name as product_name,
-        p.images as product_images
-      FROM product_orders po
-      LEFT JOIN products p ON po.product_id = p.id
-      WHERE po.id = ?`,
-      [id]
-    );
+    const rows = await db('product_orders as po')
+      .leftJoin('products as p', 'po.product_id', 'p.id')
+      .select(
+        'po.*',
+        'p.name as product_name',
+        'p.images as product_images'
+      )
+      .where('po.id', id);
 
     if (rows.length === 0) {
       return null;
@@ -81,55 +72,44 @@ export class ProductOrderModel {
       limit = 20
     } = filters;
 
-    let query = `
-      SELECT 
-        po.*,
-        p.name as product_name,
-        p.images as product_images
-      FROM product_orders po
-      LEFT JOIN products p ON po.product_id = p.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
+    let query = db('product_orders as po')
+      .leftJoin('products as p', 'po.product_id', 'p.id')
+      .select(
+        'po.*',
+        'p.name as product_name',
+        'p.images as product_images'
+      );
 
     if (productId) {
-      query += ' AND po.product_id = ?';
-      params.push(productId);
+      query = query.where('po.product_id', productId);
     }
 
     if (paymentStatus) {
-      query += ' AND po.payment_status = ?';
-      params.push(paymentStatus);
+      query = query.where('po.payment_status', paymentStatus);
     }
 
     if (dateFrom) {
-      query += ' AND po.created_at >= ?';
-      params.push(dateFrom);
+      query = query.where('po.created_at', '>=', dateFrom);
     }
 
     if (dateTo) {
-      query += ' AND po.created_at <= ?';
-      params.push(dateTo);
+      query = query.where('po.created_at', '<=', dateTo);
     }
 
     // Contar total
-    const countQuery = query.replace(
-      /SELECT .+ FROM/,
-      'SELECT COUNT(*) as total FROM'
-    );
-    const [countRows] = await pool.execute<RowDataPacket[]>(countQuery, params);
-    const total = countRows[0].total;
+    const countQuery = query.clone();
+    const countResult = await countQuery.count('* as total').first();
+    const total = countResult?.total || 0;
 
     // Agregar ordenamiento y paginación
-    query += ' ORDER BY po.created_at DESC';
-    query += ' LIMIT ? OFFSET ?';
-    params.push(limit, (page - 1) * limit);
-
-    const [rows] = await pool.execute<RowDataPacket[]>(query, params);
+    const rows = await query
+      .orderBy('po.created_at', 'desc')
+      .limit(limit)
+      .offset((page - 1) * limit);
 
     return {
-      orders: rows.map(row => this.formatOrder(row)),
-      total,
+      orders: rows.map((row: any) => this.formatOrder(row)),
+      total: Number(total),
       page
     };
   }
@@ -141,10 +121,12 @@ export class ProductOrderModel {
     id: string,
     paymentStatus: 'pending' | 'paid'
   ): Promise<ProductOrder | null> {
-    await pool.execute(
-      'UPDATE product_orders SET payment_status = ?, updated_at = NOW() WHERE id = ?',
-      [paymentStatus, id]
-    );
+    await db('product_orders')
+      .where('id', id)
+      .update({
+        payment_status: paymentStatus,
+        updated_at: db.fn.now()
+      });
 
     return this.findById(id);
   }
@@ -153,12 +135,11 @@ export class ProductOrderModel {
    * Eliminar una orden
    */
   static async delete(id: string): Promise<boolean> {
-    const [result] = await pool.execute<ResultSetHeader>(
-      'DELETE FROM product_orders WHERE id = ?',
-      [id]
-    );
+    const result = await db('product_orders')
+      .where('id', id)
+      .delete();
 
-    return result.affectedRows > 0;
+    return result > 0;
   }
 
   /**
@@ -171,23 +152,22 @@ export class ProductOrderModel {
     totalRevenue: number;
     pendingRevenue: number;
   }> {
-    const [rows] = await pool.execute<RowDataPacket[]>(`
-      SELECT 
-        COUNT(*) as total_orders,
-        SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
-        SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_orders,
-        SUM(total_price) as total_revenue,
-        SUM(CASE WHEN payment_status = 'pending' THEN total_price ELSE 0 END) as pending_revenue
-      FROM product_orders
-    `);
+    const result = await db('product_orders')
+      .select(
+        db.raw('COUNT(*) as total_orders'),
+        db.raw("SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_orders"),
+        db.raw("SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_orders"),
+        db.raw('SUM(total_price) as total_revenue'),
+        db.raw("SUM(CASE WHEN payment_status = 'pending' THEN total_price ELSE 0 END) as pending_revenue")
+      )
+      .first();
 
-    const stats = rows[0];
     return {
-      totalOrders: stats.total_orders || 0,
-      pendingOrders: stats.pending_orders || 0,
-      paidOrders: stats.paid_orders || 0,
-      totalRevenue: parseFloat(stats.total_revenue) || 0,
-      pendingRevenue: parseFloat(stats.pending_revenue) || 0
+      totalOrders: Number(result?.total_orders) || 0,
+      pendingOrders: Number(result?.pending_orders) || 0,
+      paidOrders: Number(result?.paid_orders) || 0,
+      totalRevenue: parseFloat(result?.total_revenue) || 0,
+      pendingRevenue: parseFloat(result?.pending_revenue) || 0
     };
   }
 

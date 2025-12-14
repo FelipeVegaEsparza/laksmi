@@ -1,13 +1,12 @@
 import { Router } from 'express';
 import { ProductOrderController } from '../controllers/ProductOrderController';
-import { authenticate } from '../middleware/auth';
-import { authorize } from '../middleware/authorize';
+import { authenticateToken, requireManagerOrAdmin } from '../middleware/auth';
 
 const router = Router();
 
 // Todas las rutas requieren autenticación de manager o admin
-router.use(authenticate);
-router.use(authorize(['manager', 'admin']));
+router.use(authenticateToken);
+router.use(requireManagerOrAdmin);
 
 // GET /api/v1/product-orders - Obtener todas las órdenes
 router.get('/', ProductOrderController.getOrders);
