@@ -8,8 +8,8 @@
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS product_orders (
-  id VARCHAR(36) PRIMARY KEY,
-  product_id VARCHAR(36) NOT NULL,
+  id CHAR(36) PRIMARY KEY,
+  product_id CHAR(36) NOT NULL,
   customer_name VARCHAR(255) NOT NULL,
   customer_email VARCHAR(255) NOT NULL,
   customer_phone VARCHAR(50) NOT NULL,
@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS product_orders (
   payment_link VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
   INDEX idx_product_id (product_id),
   INDEX idx_payment_status (payment_status),
-  INDEX idx_created_at (created_at)
+  INDEX idx_created_at (created_at),
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
