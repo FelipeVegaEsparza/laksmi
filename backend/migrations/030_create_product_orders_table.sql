@@ -34,3 +34,4 @@ CREATE TABLE IF NOT EXISTS product_orders (
 -- Esta tabla almacena todas las solicitudes de compra de productos
 -- payment_status: 'pending' = no pagado, 'paid' = pagado
 -- Se relaciona con la tabla products mediante product_id
+

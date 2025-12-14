@@ -73,6 +73,14 @@ const ProductOrdersPage: React.FC = () => {
       setStats(response);
     } catch (err) {
       console.error('Error loading stats:', err);
+      // Si falla, usar stats vacías para no romper la UI
+      setStats({
+        totalOrders: 0,
+        pendingOrders: 0,
+        paidOrders: 0,
+        totalRevenue: 0,
+        pendingRevenue: 0
+      });
     }
   };
 
