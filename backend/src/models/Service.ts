@@ -84,7 +84,13 @@ export class ServiceModel {
     
     updateData.updated_at = new Date();
 
+    console.log('🔍 ServiceModel.update - Actualizando servicio:', id);
+    console.log('📝 Datos a actualizar:', updateData);
+    console.log('⭐ is_featured value:', updateData.is_featured);
+
     const result = await db('services').where({ id }).update(updateData);
+    
+    console.log('✅ Filas actualizadas:', result);
     
     if (result === 0) {
       return null;
