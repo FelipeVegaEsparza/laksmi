@@ -57,6 +57,7 @@ const menuItems = [
   { text: 'Citas', icon: <EventNoteIcon />, path: '/bookings' },
   { text: 'Servicios', icon: <InventoryIcon />, path: '/services' },
   { text: 'Productos', icon: <InventoryIcon />, path: '/products' },
+  { text: 'Órdenes de Productos', icon: <InventoryIcon />, path: '/product-orders' },
   { text: 'Categorías', icon: <CategoryIcon />, path: '/categories' },
   { text: 'Conversaciones', icon: <ChatIcon />, path: '/conversations' },
   { text: 'Escalaciones', icon: <WarningIcon />, path: '/escalations' },

@@ -10,6 +10,7 @@ import ClientsPage from '@/pages/ClientsPage'
 import BookingsPage from '@/pages/BookingsPage'
 import ServicesPage from '@/pages/ServicesPage'
 import ProductsPage from '@/pages/ProductsPage'
+import ProductOrdersPage from '@/pages/ProductOrdersPage'
 import ConversationsPage from '@/pages/ConversationsPage'
 import EscalationsPage from '@/pages/EscalationsPage'
 import SettingsPage from '@/pages/SettingsPage'
@@ -104,6 +105,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ProductsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/product-orders"
+        element={
+          <ProtectedRoute>
+            <ProductOrdersPage />
           </ProtectedRoute>
         }
       />

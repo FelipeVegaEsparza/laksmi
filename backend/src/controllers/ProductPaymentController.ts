@@ -71,11 +71,29 @@ export class ProductPaymentController {
       // Calcular total
       const total = product.price * quantity;
 
+      // Guardar la orden en la base de datos
+      let orderId: string | undefined;
+      try {
+        const { ProductOrderModel } = await import('../models/ProductOrder');
+        const order = await ProductOrderModel.create({
+          productId: product.id,
+          customerName: name,
+          customerEmail: email,
+          customerPhone: phone,
+          customerAddress: address,
+          quantity,
+          unitPrice: product.price,
+          totalPrice: total,
+          paymentLink: product.paymentLink
+        });
+        orderId = order.id;
+        logger.info(`Product order created: ${orderId}`);
+      } catch (error) {
+        logger.error('Error creating product order:', error);
+        // Continuar aunque falle la creación de la orden
+      }
+
       // Enviar emails usando EmailService (al cliente y al admin)
-      logger.info('📧 Iniciando envío de emails...');
-      logger.info(`📧 Email cliente: ${email}`);
-      logger.info(`📧 Producto: ${product.name}`);
-      
       let clientEmailSent = false;
       let adminEmailSent = false;
 
@@ -84,7 +102,6 @@ export class ProductPaymentController {
         const { CompanySettingsModel } = await import('../models/CompanySettings');
         
         // 1. Enviar email al CLIENTE con el link de pago
-        logger.info('📧 Enviando email al cliente...');
         clientEmailSent = await EmailService.sendProductPaymentToClient(email, {
           customerName: name,
           productName: product.name,
@@ -95,18 +112,11 @@ export class ProductPaymentController {
           productImage: product.images && product.images.length > 0 ? product.images[0] : undefined
         });
 
-        if (clientEmailSent) {
-          logger.info(`✅ Email enviado al cliente: ${email}`);
-        } else {
-          logger.warn(`⚠️ Email al cliente no pudo ser enviado`);
-        }
-
         // 2. Enviar email al ADMIN con los datos del cliente
         const companySettings = await CompanySettingsModel.getSettings();
         const adminEmail = companySettings?.contactEmail || process.env.SMTP_USER;
         
         if (adminEmail) {
-          logger.info(`📧 Enviando email al admin: ${adminEmail}`);
           adminEmailSent = await EmailService.sendProductPaymentToAdmin(adminEmail, {
             customerName: name,
             customerPhone: phone,
@@ -118,20 +128,12 @@ export class ProductPaymentController {
             paymentLink: product.paymentLink || '',
             productImage: product.images && product.images.length > 0 ? product.images[0] : undefined
           });
-
-          if (adminEmailSent) {
-            logger.info(`✅ Email enviado al admin: ${adminEmail}`);
-          } else {
-            logger.warn(`⚠️ Email al admin no pudo ser enviado`);
-          }
-        } else {
-          logger.warn('⚠️ No se encontró email de admin para enviar notificación');
         }
       } catch (error) {
-        logger.error('❌ Error enviando emails:', error);
+        logger.error('Error sending product payment emails:', error);
       }
 
-      logger.info(`📧 Resultado emails - Cliente: ${clientEmailSent}, Admin: ${adminEmailSent}`);
+      logger.info(`Product payment request processed - Client email: ${clientEmailSent}, Admin email: ${adminEmailSent}`);
 
       res.status(200).json({
         success: true,

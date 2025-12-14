@@ -20,6 +20,7 @@ import clientRoutes from './routes/clients';
 import loyaltyRoutes from './routes/loyalty';
 import productRoutes from './routes/products';
 import productPaymentRoutes from './routes/productPayment';
+import productOrderRoutes from './routes/productOrders';
 import serviceRoutes from './routes/services';
 import bookingRoutes from './routes/bookings';
 import blockedTimeSlotsRoutes from './routes/blockedTimeSlots';
@@ -140,6 +141,7 @@ app.use(`/api/${config.apiVersion}/clients`, clientRoutes);
 app.use(`/api/${config.apiVersion}/loyalty`, loyaltyRoutes);
 app.use(`/api/${config.apiVersion}/product-payment`, productPaymentRoutes); // Ruta pública independiente
 app.use(`/api/${config.apiVersion}/products`, productRoutes);
+app.use(`/api/${config.apiVersion}/product-orders`, productOrderRoutes);
 app.use(`/api/${config.apiVersion}/services`, serviceRoutes);
 app.use(`/api/${config.apiVersion}/bookings`, bookingRoutes);
 app.use(`/api/${config.apiVersion}/blocked-time-slots`, blockedTimeSlotsRoutes);

@@ -19,13 +19,6 @@ export class EmailService {
       const port = parseInt(process.env.SMTP_PORT || '587');
       const host = process.env.SMTP_HOST || 'smtp.gmail.com';
       
-      console.log('📧 Creating SMTP transporter with config:', {
-        host,
-        port,
-        secure: port === 465,
-        user: process.env.SMTP_USER ? 'SET' : 'NOT SET'
-      });
-      
       this.transporter = nodemailer.createTransport({
         host,
         port,
@@ -68,36 +61,17 @@ export class EmailService {
    * Enviar email genérico con reintentos
    */
   private static async sendEmail(options: EmailOptions, retries = 3): Promise<boolean> {
-    console.log('📧 sendEmail called');
-    
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        console.log(`📧 Attempt ${attempt}/${retries}`);
-        console.log('📧 Checking SMTP credentials...');
         const smtpUser = process.env.SMTP_USER;
         const smtpPass = process.env.SMTP_PASS;
-        const smtpHost = process.env.SMTP_HOST;
-        const smtpPort = process.env.SMTP_PORT;
-        
-        console.log('📧 SMTP Configuration:', {
-          host: smtpHost || 'smtp.gmail.com',
-          port: smtpPort || '587',
-          user: smtpUser ? 'SET' : 'NOT SET',
-          pass: smtpPass ? 'SET' : 'NOT SET'
-        });
         
         if (!smtpUser || !smtpPass) {
-          console.warn('⚠️ SMTP credentials not configured, email not sent');
-          console.log('📧 Email would be sent to:', options.to);
-          console.log('📧 Subject:', options.subject);
+          logger.warn('SMTP credentials not configured, email not sent');
           return false;
         }
-        
-        console.log('✅ SMTP credentials are configured');
 
-        console.log('📧 Getting transporter...');
         const transporter = this.getTransporter();
-        console.log('📧 Transporter obtained');
 
         const mailOptions = {
           from: process.env.SMTP_FROM || `"Clínica de Belleza" <${process.env.SMTP_USER}>`,
@@ -107,34 +81,27 @@ export class EmailService {
           text: options.text || this.htmlToText(options.html),
         };
 
-        console.log('📧 Sending email...');
         const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent successfully to ${options.to}: ${info.messageId}`);
+        logger.info(`Email sent successfully to ${options.to}: ${info.messageId}`);
         return true;
       } catch (error: any) {
-        console.error(`❌ Error sending email (attempt ${attempt}/${retries}):`, {
+        logger.error(`Error sending email (attempt ${attempt}/${retries}):`, {
           code: error.code,
-          command: error.command,
           message: error.message,
-          response: error.response
+          to: options.to
         });
         
         // Si es el último intento, fallar
         if (attempt === retries) {
-          console.error('❌ All email sending attempts failed');
+          logger.error('All email sending attempts failed');
           
           // Log detallado del error para debugging
           if (error.code === 'ETIMEDOUT') {
-            console.error('⚠️ SMTP Connection Timeout - Possible causes:');
-            console.error('  1. Firewall blocking outbound SMTP connections');
-            console.error('  2. SMTP server not reachable from container');
-            console.error('  3. Incorrect SMTP host or port');
-            console.error('  4. Network restrictions in hosting environment');
-            console.error('💡 Suggestion: Use a dedicated email service like Resend, SendGrid, or Mailgun');
+            logger.error('SMTP Connection Timeout - Check firewall and network settings');
           } else if (error.code === 'EAUTH') {
-            console.error('⚠️ SMTP Authentication Failed - Check credentials');
+            logger.error('SMTP Authentication Failed - Check credentials');
           } else if (error.code === 'ECONNECTION') {
-            console.error('⚠️ SMTP Connection Failed - Check host and port');
+            logger.error('SMTP Connection Failed - Check host and port');
           }
           
           return false;
@@ -142,7 +109,6 @@ export class EmailService {
         
         // Esperar antes de reintentar (backoff exponencial)
         const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         
         // Resetear transporter para forzar nueva conexión
@@ -197,46 +163,37 @@ export class EmailService {
       bookingId?: string;
     }
   ): Promise<boolean> {
-    console.log('📧 sendBookingConfirmation called with email:', email);
     try {
       // Obtener configuración de la empresa para el logo
-      console.log('📧 Importing CompanySettingsModel...');
       const { CompanySettingsModel } = await import('../models/CompanySettings');
-      console.log('📧 Getting company settings...');
       const companySettings = await CompanySettingsModel.getSettings();
-      console.log('📧 Company settings retrieved');
     
-    // Convertir logo URL relativa a absoluta
-    if (companySettings?.logoUrl) {
-      companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
-    }
+      // Convertir logo URL relativa a absoluta
+      if (companySettings?.logoUrl) {
+        companySettings.logoUrl = this.getAbsoluteUrl(companySettings.logoUrl);
+      }
     
-    logger.info('Company settings for email:', {
-      companyName: companySettings?.companyName,
-      logoUrl: companySettings?.logoUrl,
-      hasLogo: !!companySettings?.logoUrl,
-      paymentLink: companySettings?.paymentLink
-    });
+      logger.info('Company settings for email:', {
+        companyName: companySettings?.companyName,
+        logoUrl: companySettings?.logoUrl,
+        hasLogo: !!companySettings?.logoUrl,
+        paymentLink: companySettings?.paymentLink
+      });
     
-      console.log('📧 Generating email template...');
       const html = this.getBookingConfirmationTemplate(bookingDetails, companySettings);
-      console.log('📧 Template generated');
       
       // Cambiar el asunto según el estado
       const subject = bookingDetails.status === 'pending_payment'
         ? `⚠️ Reserva Pendiente - Confirma tu Pago - ${companySettings?.companyName || 'Clínica de Belleza'}`
         : `✅ Reserva Confirmada - ${companySettings?.companyName || 'Clínica de Belleza'}`;
       
-      console.log('📧 Calling sendEmail with subject:', subject);
-      const result = await this.sendEmail({
+      return await this.sendEmail({
         to: email,
         subject,
         html,
       });
-      console.log('📧 sendEmail result:', result);
-      return result;
     } catch (error) {
-      console.error('❌ Error in sendBookingConfirmation:', error);
+      logger.error('Error in sendBookingConfirmation:', error);
       return false;
     }
   }
@@ -840,14 +797,10 @@ export class EmailService {
       productImage?: string;
     }
   ): Promise<boolean> {
-    console.log('📧 sendProductPaymentToClient called with email:', email);
     try {
       // Obtener configuración de la empresa para el logo
-      console.log('📧 Importing CompanySettingsModel...');
       const { CompanySettingsModel } = await import('../models/CompanySettings');
-      console.log('📧 Getting company settings...');
       const companySettings = await CompanySettingsModel.getSettings();
-      console.log('📧 Company settings retrieved');
     
       // Convertir logo URL relativa a absoluta
       if (companySettings?.logoUrl) {
@@ -860,27 +813,22 @@ export class EmailService {
         productImageUrl = this.getAbsoluteUrl(productImageUrl);
       }
       
-      console.log('📧 Generating email template...');
       const html = this.getProductPaymentClientTemplate({
         ...productDetails,
         productImage: productImageUrl,
         companyName: companySettings?.companyName || 'Clínica de Belleza',
         logoUrl: companySettings?.logoUrl
       });
-      console.log('📧 Template generated');
       
       const subject = `🛒 Tu Solicitud de Compra - ${productDetails.productName}`;
       
-      console.log('📧 Calling sendEmail with subject:', subject);
-      const result = await this.sendEmail({
+      return await this.sendEmail({
         to: email,
         subject,
         html,
       });
-      console.log('📧 sendEmail result:', result);
-      return result;
     } catch (error) {
-      console.error('❌ Error in sendProductPaymentToClient:', error);
+      logger.error('Error sending product payment email to client:', error);
       return false;
     }
   }
@@ -902,14 +850,10 @@ export class EmailService {
       productImage?: string;
     }
   ): Promise<boolean> {
-    console.log('📧 sendProductPaymentToAdmin called with email:', email);
     try {
       // Obtener configuración de la empresa para el logo
-      console.log('📧 Importing CompanySettingsModel...');
       const { CompanySettingsModel } = await import('../models/CompanySettings');
-      console.log('📧 Getting company settings...');
       const companySettings = await CompanySettingsModel.getSettings();
-      console.log('📧 Company settings retrieved');
     
       // Convertir logo URL relativa a absoluta
       if (companySettings?.logoUrl) {
@@ -922,27 +866,22 @@ export class EmailService {
         productImageUrl = this.getAbsoluteUrl(productImageUrl);
       }
       
-      console.log('📧 Generating email template...');
       const html = this.getProductPaymentAdminTemplate({
         ...productDetails,
         productImage: productImageUrl,
         companyName: companySettings?.companyName || 'Clínica de Belleza',
         logoUrl: companySettings?.logoUrl
       });
-      console.log('📧 Template generated');
       
       const subject = `🛒 Nueva Solicitud de Compra - ${productDetails.productName}`;
       
-      console.log('📧 Calling sendEmail with subject:', subject);
-      const result = await this.sendEmail({
+      return await this.sendEmail({
         to: email,
         subject,
         html,
       });
-      console.log('📧 sendEmail result:', result);
-      return result;
     } catch (error) {
-      console.error('❌ Error in sendProductPaymentToAdmin:', error);
+      logger.error('Error sending product payment email to admin:', error);
       return false;
     }
   }

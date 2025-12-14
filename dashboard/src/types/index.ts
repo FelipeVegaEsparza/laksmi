@@ -69,6 +69,33 @@ export interface Product {
   createdAt: Date
 }
 
+// Product Order types
+export interface ProductOrder {
+  id: string
+  productId: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  customerAddress: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  paymentStatus: 'pending' | 'paid'
+  paymentLink?: string
+  createdAt: Date
+  updatedAt: Date
+  productName?: string
+  productImage?: string
+}
+
+export interface ProductOrderStats {
+  totalOrders: number
+  pendingOrders: number
+  paidOrders: number
+  totalRevenue: number
+  pendingRevenue: number
+}
+
 // Booking types
 export interface Booking {
   id: string
