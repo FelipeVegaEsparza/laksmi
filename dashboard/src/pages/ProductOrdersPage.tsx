@@ -33,7 +33,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { ProductOrder, ProductOrderStats } from '../types';
-import api from '../services/api';
+import { apiService as api } from '../services/apiService';
 
 const ProductOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<ProductOrder[]>([]);
@@ -57,8 +57,8 @@ const ProductOrdersPage: React.FC = () => {
         params.paymentStatus = filterStatus;
       }
       
-      const response = await api.get('/product-orders', { params });
-      setOrders(response.data.data.orders);
+      const response = await api.get<{ orders: ProductOrder[]; total: number; page: number }>('/product-orders', { params });
+      setOrders(response.orders || []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar las órdenes');
@@ -69,8 +69,8 @@ const ProductOrdersPage: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/product-orders/stats');
-      setStats(response.data.data);
+      const response = await api.get<ProductOrderStats>('/product-orders/stats');
+      setStats(response);
     } catch (err) {
       console.error('Error loading stats:', err);
     }
@@ -78,7 +78,7 @@ const ProductOrdersPage: React.FC = () => {
 
   const handleUpdatePaymentStatus = async (orderId: string, status: 'pending' | 'paid') => {
     try {
-      await api.patch(`/product-orders/${orderId}/payment-status`, {
+      await api.put(`/product-orders/${orderId}/payment-status`, {
         paymentStatus: status
       });
       
