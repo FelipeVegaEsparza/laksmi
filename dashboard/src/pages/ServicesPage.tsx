@@ -152,10 +152,24 @@ export default function ServicesPage() {
   const handleToggleFeatured = async (service: Service) => {
     try {
       const newFeaturedStatus = !service.is_featured
+      
+      // Solo enviar los campos necesarios para evitar conflictos
       await apiService.put(`/services/${service.id}`, {
-        ...service,
+        name: service.name,
+        category: service.category,
+        categories: service.categories,
+        price: service.price,
+        duration: service.duration,
+        description: service.description,
+        benefits: service.benefits,
+        images: service.images,
+        requirements: service.requirements,
+        isActive: service.isActive,
+        sessions: service.sessions,
+        tag: service.tag,
         is_featured: newFeaturedStatus
       })
+      
       showNotification(
         newFeaturedStatus 
           ? 'Servicio marcado como destacado' 
