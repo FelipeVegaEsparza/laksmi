@@ -7,9 +7,11 @@
 -- CAMBIOS
 -- ============================================
 
+-- Crear tabla con tipos que coincidan con products table
+-- products.id es VARCHAR(36) según migración Knex 004_create_products_table.js
 CREATE TABLE IF NOT EXISTS product_orders (
-  id CHAR(36) PRIMARY KEY,
-  product_id CHAR(36) NOT NULL,
+  id VARCHAR(36) PRIMARY KEY,
+  product_id VARCHAR(36) NOT NULL,
   customer_name VARCHAR(255) NOT NULL,
   customer_email VARCHAR(255) NOT NULL,
   customer_phone VARCHAR(50) NOT NULL,
@@ -33,5 +35,5 @@ CREATE TABLE IF NOT EXISTS product_orders (
 
 -- Esta tabla almacena todas las solicitudes de compra de productos
 -- payment_status: 'pending' = no pagado, 'paid' = pagado
--- Se relaciona con la tabla products mediante product_id
+-- Se relaciona con la tabla products mediante product_id con foreign key constraint
 
