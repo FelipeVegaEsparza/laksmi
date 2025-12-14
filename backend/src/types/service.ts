@@ -12,6 +12,7 @@ export interface Service {
   isActive: boolean;
   sessions?: number; // Cantidad de sesiones recomendadas
   tag?: string; // Etiqueta (Popular, Nuevo, Oferta, etc.)
+  is_featured?: boolean; // Servicio destacado en homepage
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,7 @@ export interface UpdateServiceRequest {
   isActive?: boolean;
   sessions?: number;
   tag?: string;
+  is_featured?: boolean;
 }
 
 export interface ServiceFilters {

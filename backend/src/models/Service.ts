@@ -80,6 +80,7 @@ export class ServiceModel {
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     if (updates.sessions !== undefined) updateData.sessions = updates.sessions;
     if (updates.tag !== undefined) updateData.tag = updates.tag;
+    if (updates.is_featured !== undefined) updateData.is_featured = updates.is_featured;
     
     updateData.updated_at = new Date();
 
@@ -525,6 +526,7 @@ export class ServiceModel {
       isActive: Boolean(dbService.is_active),
       sessions: dbService.sessions || 1,
       tag: dbService.tag || null,
+      is_featured: Boolean(dbService.is_featured),
       createdAt: dbService.created_at,
       updatedAt: dbService.updated_at
     };
