@@ -8,11 +8,18 @@ import Card from '@/components/Card';
 import Loading from '@/components/Loading';
 import { Product } from '@/types';
 import { productsApi } from '@/services/api';
-import { Search, Filter, ShoppingCart, Sparkles } from 'lucide-react';
+import { Search, Filter, ShoppingCart, Sparkles, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
+
+interface ShippingFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
 
 const ProductsContent = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,6 +31,19 @@ const ProductsContent = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState<{ [key: string]: number }>({});
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [shippingForm, setShippingForm] = useState<ShippingFormData>({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+  const [formErrors, setFormErrors] = useState<Partial<ShippingFormData>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   
   const searchParams = useSearchParams();
 
@@ -76,11 +96,95 @@ const ProductsContent = () => {
     }
   }, [searchParams]);
 
-  const addToCart = (productId: string) => {
-    setCart(prev => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + 1
-    }));
+  const addToCart = (product: Product) => {
+    setSelectedProduct(product);
+    setQuantity(1);
+    setShowShippingModal(true);
+  };
+
+  const validateShippingForm = (): boolean => {
+    const errors: Partial<ShippingFormData> = {};
+    
+    if (!shippingForm.name.trim()) {
+      errors.name = 'El nombre es requerido';
+    }
+    
+    if (!shippingForm.email.trim()) {
+      errors.email = 'El email es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingForm.email)) {
+      errors.email = 'Email inválido';
+    }
+    
+    if (!shippingForm.phone.trim()) {
+      errors.phone = 'El teléfono es requerido';
+    } else if (!/^[+]?[\d\s-()]+$/.test(shippingForm.phone)) {
+      errors.phone = 'Teléfono inválido';
+    }
+    
+    if (!shippingForm.address.trim()) {
+      errors.address = 'La dirección es requerida';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmitShipping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateShippingForm() || !selectedProduct) return;
+    
+    setSubmitting(true);
+    setSubmitError('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product-payment/${selectedProduct.id}/request-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: shippingForm.name,
+          email: shippingForm.email,
+          phone: shippingForm.phone,
+          address: shippingForm.address,
+          quantity
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        const errorMessage = data.message || data.error || 'Error al procesar la solicitud';
+        throw new Error(errorMessage);
+      }
+      
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowShippingModal(false);
+        setSubmitSuccess(false);
+        setShippingForm({ name: '', email: '', phone: '', address: '' });
+        setQuantity(1);
+        setSelectedProduct(null);
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Error submitting shipping form:', error);
+      setSubmitError(error.message || 'Error al enviar la solicitud. Por favor intenta nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (!submitting) {
+      setShowShippingModal(false);
+      setShippingForm({ name: '', email: '', phone: '', address: '' });
+      setFormErrors({});
+      setSubmitError('');
+      setSubmitSuccess(false);
+      setSelectedProduct(null);
+    }
   };
 
   useEffect(() => {
@@ -271,19 +375,12 @@ const ProductsContent = () => {
                             variant="outline"
                             size="sm"
                             fullWidth
-                            onClick={() => addToCart(product.id)}
+                            onClick={() => addToCart(product)}
                             className="flex items-center justify-center"
+                            disabled={product.stock === 0}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
-                            Añadir al Carrito
-                            {cart[product.id] && (
-                              <span 
-                                className="ml-2 text-white rounded-full px-2 py-1 text-xs"
-                                style={{ backgroundColor: themeColors.primaryHover }}
-                              >
-                                {cart[product.id]}
-                              </span>
-                            )}
+                            {product.stock > 0 ? 'Añadir al Carrito' : 'Agotado'}
                           </Button>
                         </div>
                       </div>
@@ -294,6 +391,198 @@ const ProductsContent = () => {
             </div>
           </div>
         </div>
+
+        {/* Shipping Form Modal */}
+        {showShippingModal && selectedProduct && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto">
+              {!submitSuccess ? (
+                <>
+                  <button
+                    onClick={handleCloseModal}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    disabled={submitting}
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Información de Envío
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Completa tus datos para recibir el link de pago
+                  </p>
+
+                  <form onSubmit={handleSubmitShipping} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre Completo *
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingForm.name}
+                        onChange={(e) => setShippingForm({ ...shippingForm, name: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Juan Pérez"
+                        disabled={submitting}
+                      />
+                      {formErrors.name && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={shippingForm.email}
+                        onChange={(e) => setShippingForm({ ...shippingForm, email: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="tu@email.com"
+                        disabled={submitting}
+                      />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Teléfono *
+                      </label>
+                      <input
+                        type="tel"
+                        value={shippingForm.phone}
+                        onChange={(e) => setShippingForm({ ...shippingForm, phone: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="+56 9 1234 5678"
+                        disabled={submitting}
+                      />
+                      {formErrors.phone && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dirección de Envío *
+                      </label>
+                      <textarea
+                        value={shippingForm.address}
+                        onChange={(e) => setShippingForm({ ...shippingForm, address: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                          formErrors.address ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        rows={3}
+                        placeholder="Calle, número, comuna, ciudad"
+                        disabled={submitting}
+                      />
+                      {formErrors.address && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.address}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cantidad
+                      </label>
+                      <div className="flex items-center border border-gray-300 rounded-lg w-fit">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                          disabled={quantity <= 1 || submitting}
+                        >
+                          -
+                        </button>
+                        <span className="px-6 py-2 border-x border-gray-300 font-semibold">
+                          {quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                          disabled={quantity >= selectedProduct.stock || submitting}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Producto:</span>
+                        <span className="font-medium">{selectedProduct.name}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Cantidad:</span>
+                        <span className="font-medium">{quantity}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                        <span>Total:</span>
+                        <span style={{ color: themeColors.primary }}>
+                          {formatPrice(selectedProduct.price * quantity)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {submitError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                        {submitError}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        disabled={submitting}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-3 text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: themeColors.primary }}
+                        disabled={submitting}
+                        onMouseEnter={(e) => !submitting && (e.currentTarget.style.filter = 'brightness(0.9)')}
+                        onMouseLeave={(e) => !submitting && (e.currentTarget.style.filter = '')}
+                      >
+                        {submitting ? 'Enviando...' : 'Solicitar Pago'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <CheckCircle className="h-16 w-16 mx-auto" style={{ color: themeColors.primary }} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    ¡Solicitud Enviada!
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Recibirás un correo electrónico con el link de pago en breve.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Esta ventana se cerrará automáticamente...
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
