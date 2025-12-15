@@ -10,6 +10,7 @@ import Link from 'next/link';
 import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors } from '@/utils/colors';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 interface ShippingFormData {
   name: string;
@@ -20,6 +21,7 @@ interface ShippingFormData {
 
 const ProductDetailPage = () => {
   const params = useParams();
+  const { contactWhatsapp } = useCompanySettings();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -292,16 +294,28 @@ const ProductDetailPage = () => {
                 y ayudarte a elegir el mejor producto para ti.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button 
-                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                <a
+                  href={contactWhatsapp 
+                    ? `https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola, tengo una consulta sobre el producto: ${product?.name || ''}`)}`
+                    : '#'
+                  }
+                  onClick={(e) => {
+                    if (!contactWhatsapp) {
+                      e.preventDefault();
+                      alert('El número de WhatsApp no está configurado. Por favor, contacta al administrador.');
+                    }
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
                   style={{ backgroundColor: themeColors.primary }}
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = ''}
                 >
                   Chat en Vivo
-                </button>
+                </a>
                 <a
-                  href="tel:+34123456789"
+                  href={contactWhatsapp ? `tel:${contactWhatsapp}` : 'tel:+56962829244'}
                   className="border px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
                   style={{ borderColor: themeColors.primary, color: themeColors.primary }}
                   onMouseEnter={(e) => {
@@ -510,16 +524,28 @@ const ProductDetailPage = () => {
                 y ayudarte a elegir el mejor producto para ti.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <button 
-                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                <a
+                  href={contactWhatsapp 
+                    ? `https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hola, tengo una consulta sobre el producto: ${product?.name || ''}`)}`
+                    : '#'
+                  }
+                  onClick={(e) => {
+                    if (!contactWhatsapp) {
+                      e.preventDefault();
+                      alert('El número de WhatsApp no está configurado. Por favor, contacta al administrador.');
+                    }
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
                   style={{ backgroundColor: themeColors.primary }}
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = ''}
                 >
                   Chat en Vivo
-                </button>
+                </a>
                 <a
-                  href="tel:+34123456789"
+                  href={contactWhatsapp ? `tel:${contactWhatsapp}` : 'tel:+56962829244'}
                   className="border px-4 py-2 rounded-lg transition-all duration-200 font-medium text-center"
                   style={{ borderColor: themeColors.primary, color: themeColors.primary }}
                   onMouseEnter={(e) => {
