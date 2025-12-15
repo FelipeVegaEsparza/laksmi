@@ -8,9 +8,9 @@ import FeaturedImages from '@/components/FeaturedImages';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Loading from '@/components/Loading';
-import { Service } from '@/types';
-import { servicesApi } from '@/services/api';
-import { Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { Service, Product } from '@/types';
+import { servicesApi, productsApi } from '@/services/api';
+import { Clock, ArrowRight, Sparkles, ShoppingCart } from 'lucide-react';
 import { themeColors, hoverEffects } from '@/utils/colors';
 import { formatPrice } from '@/utils/currency';
 import { getPlainTextPreview } from '@/utils/text';
@@ -19,9 +19,11 @@ import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [highlightedServices, setHighlightedServices] = useState<Service[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const {contactWhatsapp} = useCompanySettings();
 
   useEffect(() => {
@@ -51,6 +53,31 @@ export default function Home() {
     };
 
     loadFeaturedServices();
+  }, []);
+
+  useEffect(() => {
+    const loadFeaturedProducts = async () => {
+      try {
+        const products = await productsApi.getAll();
+        
+        // Filter products that belong to "Ofertas" category
+        const ofertasProducts = products.filter(product => 
+          product.categories?.some(cat => 
+            cat.toLowerCase() === 'ofertas' || cat.toLowerCase() === 'oferta'
+          )
+        );
+        // Get up to 8 products from Ofertas category
+        const featuredOfertas = ofertasProducts.slice(0, 8);
+        setFeaturedProducts(featuredOfertas);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setFeaturedProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    loadFeaturedProducts();
   }, []);
 
   // Auto-advance slider every 5 seconds
@@ -391,6 +418,121 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Featured Products Section */}
+      {featuredProducts.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Productos en Oferta
+              </h2>
+              <p className="text-xl text-gray-600">
+                Descubre nuestros productos de belleza con precios especiales
+              </p>
+            </div>
+
+            {loadingProducts ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <Loading type="skeleton" className="h-48 mb-4" />
+                    <Loading type="skeleton" className="h-4 mb-2" />
+                    <Loading type="skeleton" className="h-4 w-2/3 mb-4" />
+                    <Loading type="skeleton" className="h-3 mb-2" />
+                    <Loading type="skeleton" className="h-3 mb-4" />
+                    <Loading type="skeleton" className="h-8" />
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredProducts.map((product) => (
+                  <Card key={product.id} hover className="overflow-hidden flex flex-col" padding="none">
+                    <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
+                      <ServiceImage
+                        src={product.images?.[0] || ''}
+                        alt={product.name}
+                        className="max-w-full max-h-full object-contain"
+                        fallbackClassName="w-full h-full"
+                      />
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex flex-wrap gap-1">
+                          {product.categories && product.categories.length > 0 ? (
+                            product.categories.map((cat, index) => (
+                              <span 
+                                key={index}
+                                className="text-xs font-medium px-2 py-1 rounded-full"
+                                style={{ 
+                                  color: index === 0 ? 'white' : themeColors.primary,
+                                  backgroundColor: index === 0 ? themeColors.primary : themeColors.primaryLight,
+                                  fontWeight: index === 0 ? 600 : 500
+                                }}
+                              >
+                                {cat}
+                              </span>
+                            ))
+                          ) : (
+                            <span 
+                              className="text-xs font-medium px-2 py-1 rounded-full"
+                              style={{ 
+                                color: themeColors.primary,
+                                backgroundColor: themeColors.primaryLight 
+                              }}
+                            >
+                              {product.category}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500 ml-2">
+                          Stock: {product.stock}
+                        </div>
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
+                        {product.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-grow">
+                        {product.description}
+                      </p>
+                      <div 
+                        className="text-xl font-bold mb-3"
+                        style={{ color: themeColors.primary }}
+                      >
+                        {formatPrice(product.price)}
+                      </div>
+                      <Button
+                        href={`/productos/${product.id}`}
+                        variant="primary"
+                        size="sm"
+                        fullWidth
+                        className="flex items-center justify-center"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Ver Producto
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="text-center mt-12">
+              <Button
+                href="/productos"
+                variant="primary"
+                size="lg"
+                className="rounded-full px-8 py-4 inline-flex items-center"
+              >
+                Ver Todos los Productos
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section 
