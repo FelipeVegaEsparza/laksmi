@@ -87,6 +87,8 @@ export default function CategoriesPage() {
 
   const handleSubmit = async () => {
     try {
+      console.log('📝 Enviando datos de categoría:', formData);
+      
       if (editingCategory) {
         await categoryService.updateCategory(editingCategory.id, {
           name: formData.name,
@@ -100,7 +102,10 @@ export default function CategoriesPage() {
       handleCloseDialog()
       loadCategories()
     } catch (error: any) {
-      enqueueSnackbar(error.message || 'Error al guardar categoría', { variant: 'error' })
+      console.error('❌ Error al guardar categoría:', error);
+      console.error('❌ Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || error.message || 'Error al guardar categoría';
+      enqueueSnackbar(errorMessage, { variant: 'error' })
     }
   }
 
