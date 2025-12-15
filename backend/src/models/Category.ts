@@ -11,7 +11,8 @@ export class CategoryModel {
 
   static async findByName(name: string, type: 'service' | 'product'): Promise<Category | null> {
     const category = await db('categories')
-      .where({ name, type })
+      .whereRaw('LOWER(name) = LOWER(?)', [name])
+      .where({ type })
       .first();
     
     if (!category) return null;
