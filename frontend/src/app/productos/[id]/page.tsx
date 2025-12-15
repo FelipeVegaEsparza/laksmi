@@ -38,6 +38,7 @@ const ProductDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -57,6 +58,36 @@ const ProductDetailPage = () => {
 
     loadProduct();
   }, [params.id]);
+
+  // Load related products from the same category
+  useEffect(() => {
+    const loadRelatedProducts = async () => {
+      if (!product) return;
+      
+      try {
+        const allProducts = await productsApi.getAll();
+        
+        // Filter products from the same category, excluding current product
+        const related = allProducts
+          .filter(p => 
+            p.id !== product.id && 
+            p.isActive && 
+            p.stock > 0 &&
+            (p.category === product.category || 
+             (p.categories && product.categories && 
+              p.categories.some(cat => product.categories?.includes(cat))))
+          )
+          .slice(0, 3); // Show max 3 related products
+        
+        setRelatedProducts(related);
+      } catch (error) {
+        console.error('Error loading related products:', error);
+        setRelatedProducts([]);
+      }
+    };
+
+    loadRelatedProducts();
+  }, [product]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -564,47 +595,50 @@ const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* Related Products */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">
-            Productos Relacionados
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Mock related products */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div 
-                  className="relative h-48 overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${themeColors.primary}30, ${themeColors.primary}50)` }}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Package className="h-16 w-16" style={{ color: themeColors.primary }} />
+        {/* Related Products - Only show if there are related products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              Productos Relacionados
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <div className="relative h-48 overflow-hidden bg-gray-50 flex items-center justify-center p-4">
+                    <ServiceImage
+                      src={relatedProduct.images?.[0] || ''}
+                      alt={relatedProduct.name}
+                      className="max-w-full max-h-full object-contain"
+                      fallbackClassName="w-full h-full"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {relatedProduct.name}
+                    </h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {relatedProduct.description || 'Producto de calidad premium'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl font-bold" style={{ color: themeColors.primary }}>
+                        {formatPrice(relatedProduct.price)}
+                      </span>
+                      <Link
+                        href={`/productos/${relatedProduct.id}`}
+                        className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                        style={{ backgroundColor: themeColors.primary }}
+                        onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
+                        onMouseLeave={(e) => e.currentTarget.style.filter = ''}
+                      >
+                        Ver Detalles
+                      </Link>
+                    </div>
                   </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Producto Relacionado {i}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Descripción breve del producto relacionado.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold" style={{ color: themeColors.primary }}>{formatPrice(30 + i * 10)}</span>
-                    <Link
-                      href={`/productos/${i}`}
-                      className="text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium"
-                      style={{ backgroundColor: themeColors.primary }}
-                      onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
-                      onMouseLeave={(e) => e.currentTarget.style.filter = ''}
-                    >
-                      Ver Detalles
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Shipping Form Modal */}
         {showShippingModal && (
