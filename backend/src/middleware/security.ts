@@ -187,6 +187,10 @@ const SKIP_SANITIZE_FIELDS = [
   'whatsapp',     // Generic WhatsApp fields
   'logoUrl',
   'logo_url',
+  'paymentLink',  // Payment URLs (MercadoPago, Flow, etc.)
+  'payment_link',
+  'paymentInstructions', // Payment instructions may contain special characters
+  'payment_instructions',
   'facebookUrl',
   'facebook_url',
   'instagramUrl',
