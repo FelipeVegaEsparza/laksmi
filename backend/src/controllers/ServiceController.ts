@@ -141,6 +141,14 @@ export class ServiceController {
       const { id } = req.params;
       const updates: UpdateServiceRequest = req.body;
       
+      // Log para debugging de is_featured
+      console.log('🔍 ServiceController.updateService:', {
+        serviceId: id,
+        is_featured_received: updates.is_featured,
+        is_featured_type: typeof updates.is_featured,
+        full_body: JSON.stringify(updates, null, 2)
+      });
+      
       // Clean image URLs before saving
       if (updates.images) {
         updates.images = decodeImageUrls(updates.images);
@@ -155,6 +163,8 @@ export class ServiceController {
         });
         return;
       }
+
+      console.log('✅ Service updated, is_featured in response:', service.is_featured);
 
       res.json({
         success: true,

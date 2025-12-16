@@ -169,20 +169,8 @@ export default function ServicesPage() {
         )
       )
       
-      // Enviar actualización al backend
+      // Enviar SOLO el campo is_featured para evitar conflictos
       const response = await apiService.put(`/services/${service.id}`, {
-        name: service.name,
-        category: service.category,
-        categories: service.categories,
-        price: service.price,
-        duration: service.duration,
-        description: service.description,
-        benefits: service.benefits,
-        images: service.images,
-        requirements: service.requirements,
-        isActive: service.isActive,
-        sessions: service.sessions,
-        tag: service.tag,
         is_featured: newFeaturedStatus
       })
       
