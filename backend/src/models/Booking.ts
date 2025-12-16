@@ -505,6 +505,14 @@ export class BookingModel {
   ): Promise<boolean> {
     const endTime = new Date(dateTime.getTime() + duration * 60000);
     
+    // Log para debugging
+    console.log('🔍 Verificando disponibilidad:', {
+      dateTime: dateTime.toISOString(),
+      endTime: endTime.toISOString(),
+      duration,
+      excludeBookingId
+    });
+    
     // Verificar bloques bloqueados
     // Un slot NO está disponible si se solapa con algún bloque
     const blockedSlot = await db('blocked_time_slots')
@@ -530,6 +538,7 @@ export class BookingModel {
       .first();
 
     if (blockedSlot) {
+      console.log('❌ Bloqueado por bloque de tiempo');
       return false;
     }
     
@@ -559,6 +568,17 @@ export class BookingModel {
     }
 
     const conflictingBookings = await query.first();
+    
+    if (conflictingBookings) {
+      console.log('❌ Conflicto encontrado:', {
+        bookingId: conflictingBookings.id,
+        bookingDateTime: conflictingBookings.date_time,
+        bookingDuration: conflictingBookings.duration,
+        bookingStatus: conflictingBookings.status
+      });
+    } else {
+      console.log('✅ Slot disponible');
+    }
     
     return !conflictingBookings;
   }
@@ -604,12 +624,21 @@ export class BookingModel {
   }
 
   private static parseTimeString(date: Date, timeString: string): Date {
-    // Los horarios de negocio están en hora de Chile (UTC-3)
-    // El servidor está en UTC, así que necesitamos sumar 3 horas
-    // para que 09:00 Chile se convierta en 12:00 UTC
+    // Los horarios de negocio están en hora de Chile
+    // Crear una fecha en hora local de Chile usando la zona horaria correcta
     const [hours, minutes] = timeString.split(':').map(Number);
-    const result = new Date(date);
-    result.setUTCHours(hours + 3, minutes, 0, 0);
+    
+    // Crear fecha en formato ISO con la fecha base
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    
+    // Crear fecha en hora de Chile (America/Santiago maneja automáticamente DST)
+    const chileTimeStr = `${year}-${month}-${day}T${hoursStr}:${minutesStr}:00`;
+    const result = parseChileDateTime(chileTimeStr);
+    
     return result;
   }
 
