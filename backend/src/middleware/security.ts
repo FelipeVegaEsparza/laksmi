@@ -152,7 +152,7 @@ export const securityHeaders = helmet({
 // Input sanitization middleware
 export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Skip sanitization for service and product update routes to preserve boolean fields
+    // Skip sanitization COMPLETELY for service and product update routes to preserve ALL fields
     const skipSanitizationRoutes = [
       '/api/v1/services/',
       '/api/v1/products/',
@@ -162,13 +162,14 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
     const shouldSkip = skipSanitizationRoutes.some(route => req.path.includes(route));
     
     if (shouldSkip && (req.method === 'PUT' || req.method === 'PATCH')) {
-      console.log('⚠️ Skipping sanitization for:', req.method, req.path);
-      console.log('📦 Body received:', JSON.stringify(req.body, null, 2));
+      console.log('⚠️ COMPLETELY skipping sanitization for:', req.method, req.path);
+      console.log('📦 Body BEFORE sanitization:', JSON.stringify(req.body, null, 2));
+      // NO tocar req.body, req.query, ni req.params - dejar pasar tal cual
       next();
       return;
     }
 
-    // Sanitize request body
+    // Sanitize request body (solo para rutas que NO están en skip)
     if (req.body && typeof req.body === 'object') {
       req.body = sanitizeObject(req.body, undefined);
     }
@@ -284,6 +285,22 @@ function sanitizeString(str: string): string {
 // Input validation middleware
 export const validateInput = (req: Request, res: Response, next: NextFunction): void => {
   try {
+    // Skip validation for service and product update routes
+    const skipValidationRoutes = [
+      '/api/v1/services/',
+      '/api/v1/products/',
+      '/api/v1/company-settings'
+    ];
+    
+    const shouldSkip = skipValidationRoutes.some(route => req.path.includes(route));
+    
+    if (shouldSkip && (req.method === 'PUT' || req.method === 'PATCH')) {
+      console.log('⚠️ Skipping validation for:', req.method, req.path);
+      console.log('📦 Body in validateInput:', JSON.stringify(req.body, null, 2));
+      next();
+      return;
+    }
+    
     // Validate common fields
     if (req.body.email && !validator.isEmail(req.body.email)) {
       res.status(400).json({ error: 'Invalid email format' });
