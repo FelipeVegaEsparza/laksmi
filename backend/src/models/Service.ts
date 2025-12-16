@@ -80,13 +80,15 @@ export class ServiceModel {
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     if (updates.sessions !== undefined) updateData.sessions = updates.sessions;
     if (updates.tag !== undefined) updateData.tag = updates.tag;
-    if (updates.is_featured !== undefined) updateData.is_featured = updates.is_featured;
+    if (updates.is_featured !== undefined) {
+      updateData.is_featured = updates.is_featured ? 1 : 0; // Asegurar que sea 0 o 1 para MySQL
+      console.log('⭐ is_featured - Input:', updates.is_featured, '→ Output:', updateData.is_featured);
+    }
     
     updateData.updated_at = new Date();
 
     console.log('🔍 ServiceModel.update - Actualizando servicio:', id);
     console.log('📝 Datos a actualizar:', updateData);
-    console.log('⭐ is_featured value:', updateData.is_featured);
 
     const result = await db('services').where({ id }).update(updateData);
     
