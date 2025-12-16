@@ -152,6 +152,22 @@ export const securityHeaders = helmet({
 // Input sanitization middleware
 export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Skip sanitization for service and product update routes to preserve boolean fields
+    const skipSanitizationRoutes = [
+      '/api/v1/services/',
+      '/api/v1/products/',
+      '/api/v1/company-settings'
+    ];
+    
+    const shouldSkip = skipSanitizationRoutes.some(route => req.path.includes(route));
+    
+    if (shouldSkip && (req.method === 'PUT' || req.method === 'PATCH')) {
+      console.log('⚠️ Skipping sanitization for:', req.method, req.path);
+      console.log('📦 Body received:', JSON.stringify(req.body, null, 2));
+      next();
+      return;
+    }
+
     // Sanitize request body
     if (req.body && typeof req.body === 'object') {
       req.body = sanitizeObject(req.body, undefined);
