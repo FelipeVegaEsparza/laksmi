@@ -72,20 +72,28 @@ const BookingContent = () => {
     // Si ya tiene timeSlot, usarlo
     if (slot.timeSlot) return slot.timeSlot;
     
-    // Si dateTime es string, extraer la hora usando UTC para evitar problemas de zona horaria
+    // Convertir la fecha UTC a hora de Chile (America/Santiago)
     if (typeof slot.dateTime === 'string') {
       const date = new Date(slot.dateTime);
-      // Usar UTC para mantener la hora exacta del backend
-      const hours = date.getUTCHours().toString().padStart(2, '0');
-      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
+      // Convertir a hora de Chile usando toLocaleString
+      const chileTime = date.toLocaleString('es-CL', {
+        timeZone: 'America/Santiago',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      return chileTime;
     }
     
     // Si dateTime es Date object
     if (slot.dateTime instanceof Date) {
-      const hours = slot.dateTime.getUTCHours().toString().padStart(2, '0');
-      const minutes = slot.dateTime.getUTCMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
+      const chileTime = slot.dateTime.toLocaleString('es-CL', {
+        timeZone: 'America/Santiago',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      return chileTime;
     }
     
     // Fallback
