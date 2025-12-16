@@ -191,6 +191,9 @@ const SKIP_SANITIZE_FIELDS = [
   'payment_link',
   'paymentInstructions', // Payment instructions may contain special characters
   'payment_instructions',
+  'is_featured',  // Boolean field for featured services/products
+  'isActive',     // Boolean field for active status
+  'is_active',    // Snake case version
   'facebookUrl',
   'facebook_url',
   'instagramUrl',
