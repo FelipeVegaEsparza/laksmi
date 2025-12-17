@@ -81,18 +81,12 @@ export class ServiceModel {
     if (updates.sessions !== undefined) updateData.sessions = updates.sessions;
     if (updates.tag !== undefined) updateData.tag = updates.tag;
     if (updates.is_featured !== undefined) {
-      updateData.is_featured = updates.is_featured ? 1 : 0; // Asegurar que sea 0 o 1 para MySQL
-      console.log('⭐ is_featured - Input:', updates.is_featured, '→ Output:', updateData.is_featured);
+      updateData.is_featured = updates.is_featured ? 1 : 0;
     }
     
     updateData.updated_at = new Date();
 
-    console.log('🔍 ServiceModel.update - Actualizando servicio:', id);
-    console.log('📝 Datos a actualizar:', updateData);
-
     const result = await db('services').where({ id }).update(updateData);
-    
-    console.log('✅ Filas actualizadas:', result);
     
     if (result === 0) {
       return null;

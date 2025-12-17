@@ -153,13 +153,6 @@ export default function ServicesPage() {
     try {
       const newFeaturedStatus = !service.is_featured
       
-      console.log('🔄 Toggling featured status:', {
-        serviceId: service.id,
-        serviceName: service.name,
-        currentStatus: service.is_featured,
-        newStatus: newFeaturedStatus
-      })
-      
       // Actualizar el estado local inmediatamente para feedback visual
       setServices(prevServices => 
         prevServices.map(s => 
@@ -169,12 +162,10 @@ export default function ServicesPage() {
         )
       )
       
-      // Enviar SOLO el campo is_featured para evitar conflictos
-      const response = await apiService.put(`/services/${service.id}`, {
+      // Enviar solo el campo is_featured
+      await apiService.put(`/services/${service.id}`, {
         is_featured: newFeaturedStatus
       })
-      
-      console.log('✅ Featured status updated:', response)
       
       showNotification(
         newFeaturedStatus 
@@ -186,7 +177,7 @@ export default function ServicesPage() {
       // Refrescar desde el servidor para asegurar sincronización
       await fetchServices()
     } catch (error: any) {
-      console.error('❌ Error toggling featured:', error)
+      console.error('Error toggling featured:', error)
       showNotification('Error al actualizar servicio destacado', 'error')
       // Revertir el cambio local si falla
       await fetchServices()

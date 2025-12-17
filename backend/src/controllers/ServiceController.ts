@@ -139,20 +139,7 @@ export class ServiceController {
   static async updateService(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      
-      // Log ANTES de asignar a updates
-      console.log('🔍 ServiceController.updateService - RAW REQUEST:');
-      console.log('   req.body:', JSON.stringify(req.body, null, 2));
-      console.log('   req.body.is_featured:', req.body.is_featured);
-      console.log('   typeof req.body.is_featured:', typeof req.body.is_featured);
-      
       const updates: UpdateServiceRequest = req.body;
-      
-      // Log DESPUÉS de asignar a updates
-      console.log('🔍 ServiceController.updateService - AFTER ASSIGNMENT:');
-      console.log('   updates.is_featured:', updates.is_featured);
-      console.log('   typeof updates.is_featured:', typeof updates.is_featured);
-      console.log('   Object.keys(updates):', Object.keys(updates));
       
       // Clean image URLs before saving
       if (updates.images) {
@@ -168,8 +155,6 @@ export class ServiceController {
         });
         return;
       }
-
-      console.log('✅ Service updated, is_featured in response:', service.is_featured);
 
       res.json({
         success: true,

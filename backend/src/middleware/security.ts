@@ -162,9 +162,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
     const shouldSkip = skipSanitizationRoutes.some(route => req.path.includes(route));
     
     if (shouldSkip && (req.method === 'PUT' || req.method === 'PATCH')) {
-      console.log('⚠️ COMPLETELY skipping sanitization for:', req.method, req.path);
-      console.log('📦 Body BEFORE sanitization:', JSON.stringify(req.body, null, 2));
-      // NO tocar req.body, req.query, ni req.params - dejar pasar tal cual
+      // Skip sanitization completely for these routes to preserve all fields
       next();
       return;
     }
@@ -295,8 +293,7 @@ export const validateInput = (req: Request, res: Response, next: NextFunction): 
     const shouldSkip = skipValidationRoutes.some(route => req.path.includes(route));
     
     if (shouldSkip && (req.method === 'PUT' || req.method === 'PATCH')) {
-      console.log('⚠️ Skipping validation for:', req.method, req.path);
-      console.log('📦 Body in validateInput:', JSON.stringify(req.body, null, 2));
+      // Skip validation for these routes
       next();
       return;
     }
