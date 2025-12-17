@@ -429,6 +429,19 @@ const ProductDetailPage = () => {
               </div>
             )}
 
+            {/* Benefits */}
+            {product.benefits && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">
+                  Beneficios del Producto
+                </h2>
+                <div 
+                  className="prose prose-sm max-w-none text-justify"
+                  dangerouslySetInnerHTML={{ __html: product.benefits }}
+                />
+              </div>
+            )}
+
             {product.ingredients && product.ingredients.length > 0 && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">

@@ -8,6 +8,7 @@ export interface Product {
   stock: number;
   minStock: number;
   description?: string;
+  benefits?: string; // Beneficios del producto (HTML con formato enriquecido)
   images: string[];
   ingredients: string[];
   compatibleServices: string[];
@@ -24,6 +25,7 @@ export interface CreateProductRequest {
   stock: number;
   minStock?: number;
   description?: string;
+  benefits?: string; // Beneficios del producto (opcional)
   images?: string[];
   ingredients?: string[];
   compatibleServices?: string[];
@@ -38,6 +40,7 @@ export interface UpdateProductRequest {
   stock?: number;
   minStock?: number;
   description?: string;
+  benefits?: string; // Actualizar beneficios
   images?: string[];
   ingredients?: string[];
   compatibleServices?: string[];

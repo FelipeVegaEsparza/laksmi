@@ -28,6 +28,7 @@ export interface Product {
   compatibleServices: string[];
   images: string[];
   description?: string;
+  benefits?: string; // NEW: Product benefits (HTML with rich formatting)
   paymentLink?: string;
 }
 

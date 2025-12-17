@@ -63,6 +63,7 @@ export interface Product {
   stock: number
   minStock: number
   description?: string
+  benefits?: string // Beneficios del producto (HTML con formato enriquecido)
   images: string[]
   ingredients: string[]
   compatibleServices: string[]
@@ -218,6 +219,7 @@ export interface ProductFormData {
   stock: number
   minStock: number
   description?: string
+  benefits?: string // Beneficios del producto (HTML con formato enriquecido)
   images: string[]
   ingredients: string[]
   compatibleServices: string[]

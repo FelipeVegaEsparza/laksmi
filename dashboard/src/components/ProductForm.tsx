@@ -17,6 +17,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Star as StarIcon, ArrowUpward, Ar
 import { Product, ProductFormData, Service } from '@/types'
 import { apiService } from '@/services/apiService'
 import ImageUpload from './ImageUpload'
+import RichTextEditor from './RichTextEditor'
 import Select, { MultiValue, StylesConfig } from 'react-select'
 
 interface Category {
@@ -46,6 +47,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     stock: 0,
     minStock: 5,
     description: '',
+    benefits: '',
     images: [],
     ingredients: [],
     compatibleServices: [],
@@ -72,6 +74,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         stock: product.stock,
         minStock: product.minStock,
         description: product.description || '',
+        benefits: product.benefits || '',
         images: product.images || [],
         ingredients: product.ingredients,
         compatibleServices: product.compatibleServices,
@@ -164,6 +167,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         stock: Number(formData.stock),
         minStock: Number(formData.minStock),
         description: formData.description || '',
+        benefits: formData.benefits || '',
         images: Array.isArray(formData.images) ? formData.images : [],
         ingredients: Array.isArray(formData.ingredients) ? formData.ingredients : [],
         compatibleServices: Array.isArray(formData.compatibleServices) ? formData.compatibleServices : [],
@@ -464,15 +468,23 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         </Grid>
 
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
+          <RichTextEditor
             label="Descripción"
-            value={formData.description}
-            onChange={handleInputChange('description')}
+            value={formData.description || ''}
+            onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
             error={!!errors.description}
+            placeholder="Describe el producto en detalle..."
             helperText={errors.description || 'Descripción detallada del producto'}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <RichTextEditor
+            label="Beneficios"
+            value={formData.benefits || ''}
+            onChange={(value) => setFormData(prev => ({ ...prev, benefits: value }))}
+            placeholder="Lista los beneficios del producto..."
+            helperText="Beneficios del producto (opcional)"
           />
         </Grid>
 

@@ -25,6 +25,7 @@ export class ProductModel {
       stock: productData.stock,
       min_stock: productData.minStock || 5,
       description: productData.description || null,
+      benefits: productData.benefits || null,
       images: JSON.stringify(productData.images || []),
       ingredients: JSON.stringify(productData.ingredients || []),
       compatible_services: JSON.stringify(productData.compatibleServices || [])
@@ -77,6 +78,7 @@ export class ProductModel {
     if (updates.stock !== undefined) updateData.stock = updates.stock;
     if (updates.minStock !== undefined) updateData.min_stock = updates.minStock;
     if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.benefits !== undefined) updateData.benefits = updates.benefits;
     if (updates.images !== undefined) updateData.images = JSON.stringify(updates.images);
     if (updates.ingredients !== undefined) updateData.ingredients = JSON.stringify(updates.ingredients);
     if (updates.compatibleServices !== undefined) updateData.compatible_services = JSON.stringify(updates.compatibleServices);
@@ -579,6 +581,7 @@ export class ProductModel {
       stock: dbProduct.stock,
       minStock: dbProduct.min_stock,
       description: dbProduct.description || '',
+      benefits: dbProduct.benefits || '',
       images: Array.isArray(dbProduct.images) ? dbProduct.images : (dbProduct.images ? JSON.parse(dbProduct.images) : []),
       ingredients: Array.isArray(dbProduct.ingredients) ? dbProduct.ingredients : (dbProduct.ingredients ? JSON.parse(dbProduct.ingredients) : []),
       compatibleServices: Array.isArray(dbProduct.compatible_services) ? dbProduct.compatible_services : (dbProduct.compatible_services ? JSON.parse(dbProduct.compatible_services) : []),
