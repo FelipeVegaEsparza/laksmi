@@ -423,9 +423,10 @@ const ProductDetailPage = () => {
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">
                   Descripción del Producto
                 </h2>
-                <p className="text-gray-600 leading-relaxed">
-                  {product.description}
-                </p>
+                <div 
+                  className="prose prose-sm max-w-none text-justify"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
               </div>
             )}
 
