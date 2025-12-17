@@ -220,6 +220,11 @@ export const updateServiceSchema = Joi.object({
     .allow('', null)
     .messages({
       'string.max': 'La etiqueta no puede tener más de 50 caracteres'
+    }),
+  is_featured: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'is_featured debe ser verdadero o falso'
     })
 }).options({ stripUnknown: true });
 
