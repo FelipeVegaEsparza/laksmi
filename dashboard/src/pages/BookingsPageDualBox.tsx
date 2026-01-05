@@ -51,6 +51,7 @@ const statusLabels: Record<string, string> = {
 
 export default function BookingsPageDualBox() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [blockedSlots, setBlockedSlots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -104,11 +105,16 @@ export default function BookingsPageDualBox() {
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd')
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd')
       
-      const bookingsRes = await apiService.getBookings({
-        dateFrom: start,
-        dateTo: end,
-      })
+      const [bookingsRes, blockedSlotsRes] = await Promise.all([
+        apiService.getBookings({
+          dateFrom: start,
+          dateTo: end,
+        }),
+        apiService.get<any[]>(`/blocked-time-slots/range?startDate=${start}&endDate=${end}`)
+      ])
+      
       setBookings(bookingsRes.bookings || [])
+      setBlockedSlots(blockedSlotsRes || [])
     } catch (error) {
       console.error('Error fetching bookings:', error)
       enqueueSnackbar('Error al cargar citas', { variant: 'error' })
@@ -244,6 +250,18 @@ export default function BookingsPageDualBox() {
     }
   }
 
+  const handleUnblockTime = async (blockId: string) => {
+    try {
+      await apiService.delete(`/blocked-time-slots/${blockId}`)
+      enqueueSnackbar('Horario desbloqueado correctamente', { variant: 'success' })
+      fetchMonthBookings()
+    } catch (error: any) {
+      console.error('Error unblocking time:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error al desbloquear horario'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    }
+  }
+
   // Generar días del calendario
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -355,9 +373,11 @@ export default function BookingsPageDualBox() {
             boxId="box1"
             boxName="Box 1"
             bookings={bookings}
+            blockedSlots={blockedSlots}
             selectedDate={selectedDate}
             onBookingClick={handleBookingClick}
             onEditBooking={handleEditBooking}
+            onUnblockTime={handleUnblockTime}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -365,9 +385,11 @@ export default function BookingsPageDualBox() {
             boxId="box2"
             boxName="Box 2"
             bookings={bookings}
+            blockedSlots={blockedSlots}
             selectedDate={selectedDate}
             onBookingClick={handleBookingClick}
             onEditBooking={handleEditBooking}
+            onUnblockTime={handleUnblockTime}
           />
         </Grid>
       </Grid>
