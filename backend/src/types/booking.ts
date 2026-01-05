@@ -3,6 +3,7 @@ export interface Booking {
   clientId: string;
   serviceId: string;
   professionalId?: string;
+  box?: 'box1' | 'box2';
   dateTime: Date;
   duration: number; // en minutos
   status: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
@@ -21,6 +22,7 @@ export interface CreateBookingRequest {
   dateTime: Date;
   notes?: string;
   preferredProfessionalId?: string;
+  box?: 'box1' | 'box2';
   status?: 'pending_payment' | 'confirmed';
   paymentAmount?: number;
   paymentMethod?: string;
@@ -30,6 +32,7 @@ export interface CreateBookingRequest {
 export interface UpdateBookingRequest {
   dateTime?: Date;
   professionalId?: string;
+  box?: 'box1' | 'box2';
   status?: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   notes?: string;
   paymentAmount?: number;
@@ -42,6 +45,7 @@ export interface BookingFilters {
   clientId?: string;
   professionalId?: string;
   serviceId?: string;
+  box?: 'box1' | 'box2';
   status?: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   dateFrom?: Date;
   dateTo?: Date;

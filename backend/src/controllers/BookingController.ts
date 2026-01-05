@@ -37,6 +37,7 @@ export class BookingController {
         clientId: req.query.clientId as string,
         professionalId: req.query.professionalId as string,
         serviceId: req.query.serviceId as string,
+        box: req.query.box as 'box1' | 'box2' | undefined,
         status: req.query.status as any,
         dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
         dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,

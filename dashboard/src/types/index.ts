@@ -104,6 +104,7 @@ export interface Booking {
   clientId: string
   serviceId: string
   professionalId?: string
+  box?: 'box1' | 'box2'
   dateTime: Date
   duration: number
   status: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
@@ -238,6 +239,7 @@ export interface BookingFormData {
   clientId: string
   serviceId: string
   professionalId?: string
+  box?: 'box1' | 'box2'
   dateTime: Date
   notes?: string
   status?: 'pending_payment' | 'confirmed'

@@ -32,6 +32,12 @@ export const createBookingSchema = Joi.object({
     .messages({
       'string.uuid': 'El ID del profesional debe ser un UUID válido'
     }),
+  box: Joi.string()
+    .valid('box1', 'box2')
+    .optional()
+    .messages({
+      'any.only': 'El box debe ser: box1 o box2'
+    }),
   notes: Joi.string()
     .max(500)
     .optional()
@@ -83,6 +89,12 @@ export const updateBookingSchema = Joi.object({
     .optional()
     .messages({
       'string.uuid': 'El ID del profesional debe ser un UUID válido'
+    }),
+  box: Joi.string()
+    .valid('box1', 'box2')
+    .optional()
+    .messages({
+      'any.only': 'El box debe ser: box1 o box2'
     }),
   status: Joi.string()
     .valid('confirmed', 'cancelled', 'completed', 'no_show', 'pending_payment')
@@ -287,6 +299,7 @@ export const bookingFiltersSchema = Joi.object({
   clientId: Joi.string().uuid().optional(),
   professionalId: Joi.string().uuid().optional(),
   serviceId: Joi.string().uuid().optional(),
+  box: Joi.string().valid('box1', 'box2').optional(),
   status: Joi.string().valid('confirmed', 'cancelled', 'completed', 'no_show').optional(),
   dateFrom: Joi.date().iso().optional(),
   dateTo: Joi.date().iso().min(Joi.ref('dateFrom')).optional(),

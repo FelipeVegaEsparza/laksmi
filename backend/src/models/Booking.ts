@@ -23,10 +23,15 @@ export class BookingModel {
     // El sistema ahora funciona basado en horarios del local
     const professionalId = bookingData.preferredProfessionalId || null;
 
-    // Validar que no haya conflictos de horario
-    const isAvailable = await this.isTimeSlotAvailable(bookingData.dateTime, service.duration);
+    // Validar que no haya conflictos de horario en el box especificado
+    const isAvailable = await this.isTimeSlotAvailableInBox(
+      bookingData.dateTime, 
+      service.duration, 
+      bookingData.box
+    );
+    
     if (!isAvailable) {
-      throw new Error('El horario seleccionado ya no está disponible');
+      throw new Error('El horario seleccionado ya no está disponible en el box especificado');
     }
 
     const status = bookingData.status || 'pending_payment';
@@ -35,6 +40,7 @@ export class BookingModel {
       client_id: bookingData.clientId,
       service_id: bookingData.serviceId,
       professional_id: professionalId,
+      box: bookingData.box || null,
       date_time: bookingData.dateTime,
       duration: service.duration,
       status: status,
@@ -94,20 +100,22 @@ export class BookingModel {
       }
 
       // Verificar disponibilidad del horario (excluyendo esta cita)
-      const isAvailable = await this.isTimeSlotAvailableExcluding(
+      const isAvailable = await this.isTimeSlotAvailableInBoxExcluding(
         updates.dateTime,
         service.duration,
+        updates.box || existingBooking.box,
         id
       );
 
       if (!isAvailable) {
-        throw new Error('El horario seleccionado ya no está disponible');
+        throw new Error('El horario seleccionado ya no está disponible en el box especificado');
       }
 
       updateData.date_time = updates.dateTime;
     }
     
     if (updates.professionalId !== undefined) updateData.professional_id = updates.professionalId;
+    if (updates.box !== undefined) updateData.box = updates.box;
     if (updates.status !== undefined) {
       updateData.status = updates.status;
       // Si el estado cambia a confirmed y no tiene paid_at, establecerlo
@@ -136,7 +144,8 @@ export class BookingModel {
     const { 
       clientId, 
       professionalId, 
-      serviceId, 
+      serviceId,
+      box,
       status, 
       dateFrom, 
       dateTo, 
@@ -171,6 +180,10 @@ export class BookingModel {
       query = query.where('bookings.service_id', serviceId);
     }
 
+    if (box) {
+      query = query.where('bookings.box', box);
+    }
+
     if (status) {
       query = query.where('bookings.status', status);
     }
@@ -188,6 +201,7 @@ export class BookingModel {
     if (clientId) countQuery.where('client_id', clientId);
     if (professionalId) countQuery.where('professional_id', professionalId);
     if (serviceId) countQuery.where('service_id', serviceId);
+    if (box) countQuery.where('box', box);
     if (status) countQuery.where('status', status);
     if (dateFrom) countQuery.where('date_time', '>=', dateFrom);
     if (dateTo) countQuery.where('date_time', '<=', dateTo);
@@ -498,6 +512,98 @@ export class BookingModel {
     return this.isTimeSlotAvailableExcluding(dateTime, duration, null);
   }
 
+  private static async isTimeSlotAvailableInBox(
+    dateTime: Date, 
+    duration: number, 
+    box?: 'box1' | 'box2'
+  ): Promise<boolean> {
+    return this.isTimeSlotAvailableInBoxExcluding(dateTime, duration, box, null);
+  }
+
+  private static async isTimeSlotAvailableInBoxExcluding(
+    dateTime: Date, 
+    duration: number, 
+    box: 'box1' | 'box2' | undefined,
+    excludeBookingId: string | null
+  ): Promise<boolean> {
+    const endTime = new Date(dateTime.getTime() + duration * 60000);
+    
+    // Log para debugging
+    console.log('🔍 Verificando disponibilidad en box:', {
+      dateTime: dateTime.toISOString(),
+      endTime: endTime.toISOString(),
+      duration,
+      box,
+      excludeBookingId
+    });
+    
+    // Verificar bloques bloqueados (aplica a todos los boxes)
+    const blockedSlot = await db('blocked_time_slots')
+      .where(function() {
+        this.where(function() {
+          this.where('start_time', '<=', dateTime)
+            .where('end_time', '>', dateTime);
+        })
+        .orWhere(function() {
+          this.where('start_time', '>=', dateTime)
+            .where('start_time', '<', endTime);
+        })
+        .orWhere(function() {
+          this.where('end_time', '=', dateTime);
+        });
+      })
+      .first();
+
+    if (blockedSlot) {
+      console.log('❌ Bloqueado por bloque de tiempo');
+      return false;
+    }
+    
+    // Si se especifica un box, verificar solo ese box
+    // Si no se especifica box, verificar que al menos un box esté disponible
+    if (box) {
+      // Verificar disponibilidad en el box específico
+      let query = db('bookings')
+        .where('box', box)
+        .whereIn('status', ['confirmed', 'pending_payment'])
+        .where(function() {
+          this.where(function() {
+            this.where('date_time', '<=', dateTime)
+              .whereRaw('DATE_ADD(date_time, INTERVAL duration MINUTE) > ?', [dateTime]);
+          }).orWhere(function() {
+            this.where('date_time', '<', endTime)
+              .whereRaw('DATE_ADD(date_time, INTERVAL duration MINUTE) >= ?', [endTime]);
+          }).orWhere(function() {
+            this.where('date_time', '>=', dateTime)
+              .where('date_time', '<', endTime);
+          });
+        });
+
+      if (excludeBookingId) {
+        query = query.where('id', '!=', excludeBookingId);
+      }
+
+      const conflictingBooking = await query.first();
+      
+      if (conflictingBooking) {
+        console.log('❌ Conflicto encontrado en box:', box);
+        return false;
+      }
+      
+      console.log('✅ Box disponible:', box);
+      return true;
+    } else {
+      // No se especificó box: verificar si AL MENOS UN box está disponible
+      // Esto es para el frontend público
+      const box1Available = await this.isTimeSlotAvailableInBoxExcluding(dateTime, duration, 'box1', excludeBookingId);
+      const box2Available = await this.isTimeSlotAvailableInBoxExcluding(dateTime, duration, 'box2', excludeBookingId);
+      
+      const available = box1Available || box2Available;
+      console.log('✅ Disponibilidad general:', { box1Available, box2Available, available });
+      return available;
+    }
+  }
+
   private static async isTimeSlotAvailableExcluding(
     dateTime: Date, 
     duration: number, 
@@ -648,6 +754,7 @@ export class BookingModel {
       clientId: dbBooking.client_id,
       serviceId: dbBooking.service_id,
       professionalId: dbBooking.professional_id,
+      box: dbBooking.box,
       dateTime: new Date(dbBooking.date_time),
       duration: dbBooking.duration,
       status: dbBooking.status,
@@ -667,6 +774,7 @@ export class BookingModel {
       clientId: dbBooking.client_id,
       serviceId: dbBooking.service_id,
       professionalId: dbBooking.professional_id,
+      box: dbBooking.box,
       dateTime: new Date(dbBooking.date_time),
       duration: dbBooking.duration,
       status: dbBooking.status,
