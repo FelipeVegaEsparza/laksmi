@@ -14,7 +14,12 @@ interface Message {
 }
 
 const ChatWidget = () => {
-  const { clientId, isConnected, serviceContext, setServiceContext } = useChatContext();
+  const chatContext = useChatContext();
+  const clientId = chatContext?.clientId || null;
+  const isConnected = chatContext?.isConnected || false;
+  const serviceContext = chatContext?.serviceContext || null;
+  const setServiceContext = chatContext?.setServiceContext;
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);

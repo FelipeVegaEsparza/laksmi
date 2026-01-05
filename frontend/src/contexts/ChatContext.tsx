@@ -17,9 +17,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const useChatContext = () => {
   const context = useContext(ChatContext);
-  if (!context) {
-    throw new Error('useChatContext must be used within a ChatProvider');
-  }
+  // Don't throw error, just return undefined if not available
   return context;
 };
 

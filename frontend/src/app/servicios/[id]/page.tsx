@@ -23,15 +23,7 @@ const ServiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { contactPhone } = useCompanySettings();
-  
-  // Safely get chat context - it might not be available
-  let chatContext;
-  try {
-    chatContext = useChatContext();
-  } catch (error) {
-    // ChatContext not available, that's ok
-    chatContext = null;
-  }
+  const chatContext = useChatContext();
 
   useEffect(() => {
     const loadService = async () => {
