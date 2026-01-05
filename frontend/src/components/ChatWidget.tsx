@@ -97,11 +97,19 @@ const ChatWidget = () => {
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
       
+      console.log('Chat response:', response);
+      
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La respuesta tiene estructura { response: string, conversationId: string }
-        messageContent = (response as any).response || messageContent;
+        // La API devuelve { success, message, data: { response: string } }
+        if ((response as any).data?.response) {
+          messageContent = (response as any).data.response;
+        } else if ((response as any).response) {
+          messageContent = (response as any).response;
+        } else if ((response as any).data?.message) {
+          messageContent = (response as any).data.message;
+        }
       }
       
       const aiMessage: Message = {
@@ -147,11 +155,19 @@ const ChatWidget = () => {
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
       
+      console.log('Chat response:', response);
+      
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La respuesta tiene estructura { response: string, conversationId: string }
-        messageContent = (response as any).response || messageContent;
+        // La API devuelve { success, message, data: { response: string } }
+        if ((response as any).data?.response) {
+          messageContent = (response as any).data.response;
+        } else if ((response as any).response) {
+          messageContent = (response as any).response;
+        } else if ((response as any).data?.message) {
+          messageContent = (response as any).data.message;
+        }
       }
       
       const aiMessage: Message = {
