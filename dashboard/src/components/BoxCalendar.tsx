@@ -1,8 +1,8 @@
 import { Box, Typography, Card, Chip, IconButton, Stack } from '@mui/material'
-import { format, isSameDay, isToday } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Booking } from '../types'
-import { Edit as EditIcon, MoreVert as MoreVertIcon } from '@mui/icons-material'
+import { Edit as EditIcon } from '@mui/icons-material'
 
 interface BoxCalendarProps {
   boxId: 'box1' | 'box2'
@@ -38,8 +38,13 @@ export default function BoxCalendar({
   onEditBooking,
 }: BoxCalendarProps) {
   // Filtrar citas del box específico para el día seleccionado
+  // También incluir citas sin box asignado (null) para backward compatibility
   const boxBookings = bookings
-    .filter(b => b.box === boxId && isSameDay(new Date(b.dateTime), selectedDate))
+    .filter(b => {
+      const isSameDate = isSameDay(new Date(b.dateTime), selectedDate)
+      const isCorrectBox = b.box === boxId || b.box === null || b.box === undefined
+      return isSameDate && isCorrectBox
+    })
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
 
   return (
@@ -77,11 +82,16 @@ export default function BoxCalendar({
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" fontWeight="bold">
-                      {format(new Date(booking.dateTime), 'HH:mm')} - {booking.service?.name || 'Servicio'}
+                      {format(new Date(booking.dateTime), 'HH:mm')} - {booking.service?.name || 'Servicio sin nombre'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {booking.client?.name || 'Cliente'}
+                      {booking.client?.name || 'Cliente sin nombre'}
                     </Typography>
+                    {(!booking.box || booking.box === null) && (
+                      <Typography variant="caption" color="warning.main" display="block">
+                        ⚠️ Sin box asignado
+                      </Typography>
+                    )}
                     <Box sx={{ mt: 0.5 }}>
                       <Chip
                         label={statusLabels[booking.status]}
