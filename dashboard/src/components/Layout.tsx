@@ -159,7 +159,14 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   const drawer = (
-    <div>
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'linear-gradient(180deg, #1a237e 0%, #283593 100%)',
+      }}
+    >
       <Toolbar 
         sx={{ 
           display: 'flex', 
@@ -167,7 +174,9 @@ export default function Layout({ children }: LayoutProps) {
           alignItems: 'center', 
           justifyContent: 'center',
           gap: 1,
-          py: 3
+          py: 3,
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(10px)',
         }}
       >
         {companyLogo && !logoError ? (
@@ -183,28 +192,32 @@ export default function Layout({ children }: LayoutProps) {
               height: 80,
               width: 'auto',
               maxWidth: '90%',
-              objectFit: 'contain'
+              objectFit: 'contain',
+              filter: 'brightness(0) invert(1)',
             }}
           />
         ) : (
           <Typography 
-            variant="h6" 
+            variant="h5" 
             component="div" 
             sx={{ 
-              color: 'primary.main', 
-              fontWeight: 'bold',
+              color: '#fff', 
+              fontWeight: 700,
               textAlign: 'center',
-              px: 2
+              px: 2,
+              letterSpacing: '0.5px',
             }}
           >
             {companyName}
           </Typography>
         )}
       </Toolbar>
-      <Divider />
-      <List>
+      
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
+      
+      <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
         {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
@@ -214,28 +227,76 @@ export default function Layout({ children }: LayoutProps) {
                 }
               }}
               sx={{
+                borderRadius: 2,
+                py: 1.2,
+                px: 2,
+                transition: 'all 0.2s ease-in-out',
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#fff',
+                  transform: 'translateX(4px)',
+                },
                 '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
-                  color: 'primary.contrastText',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  color: '#fff',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                   '&:hover': {
-                    backgroundColor: 'primary.main',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 4,
+                    height: '60%',
+                    backgroundColor: '#fff',
+                    borderRadius: '0 4px 4px 0',
                   },
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: location.pathname === item.path ? 'primary.contrastText' : 'inherit',
+                  color: 'inherit',
+                  minWidth: 40,
                 }}
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText 
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontSize: '0.9rem',
+                  fontWeight: location.pathname === item.path ? 600 : 400,
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+      
+      <Box
+        sx={{
+          p: 2,
+          borderTop: '1px solid rgba(255, 255, 255, 0.12)',
+          background: 'rgba(0, 0, 0, 0.2)',
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.5)',
+            display: 'block',
+            textAlign: 'center',
+          }}
+        >
+          © 2026 {companyName}
+        </Typography>
+      </Box>
+    </Box>
   )
 
   return (
@@ -410,7 +471,11 @@ export default function Layout({ children }: LayoutProps) {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              border: 'none',
+            },
           }}
         >
           {drawer}
@@ -419,7 +484,12 @@ export default function Layout({ children }: LayoutProps) {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              border: 'none',
+              boxShadow: '4px 0 24px rgba(0, 0, 0, 0.12)',
+            },
           }}
           open
         >
