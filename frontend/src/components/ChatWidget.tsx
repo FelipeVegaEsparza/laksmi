@@ -102,13 +102,13 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La API devuelve { success, message, data: { response: string } }
-        if ((response as any).data?.response) {
-          messageContent = (response as any).data.response;
-        } else if ((response as any).response) {
-          messageContent = (response as any).response;
-        } else if ((response as any).data?.message) {
-          messageContent = (response as any).data.message;
+        // La API devuelve { response: { message: string, ... }, conversationId, messageId, processingTime }
+        if ((response as any).response?.message) {
+          messageContent = (response as any).response.message;
+        } else if ((response as any).data?.response?.message) {
+          messageContent = (response as any).data.response.message;
+        } else if ((response as any).message) {
+          messageContent = (response as any).message;
         }
       }
       
@@ -160,13 +160,13 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La API devuelve { success, message, data: { response: string } }
-        if ((response as any).data?.response) {
-          messageContent = (response as any).data.response;
-        } else if ((response as any).response) {
-          messageContent = (response as any).response;
-        } else if ((response as any).data?.message) {
-          messageContent = (response as any).data.message;
+        // La API devuelve { response: { message: string, ... }, conversationId, messageId, processingTime }
+        if ((response as any).response?.message) {
+          messageContent = (response as any).response.message;
+        } else if ((response as any).data?.response?.message) {
+          messageContent = (response as any).data.response.message;
+        } else if ((response as any).message) {
+          messageContent = (response as any).message;
         }
       }
       
