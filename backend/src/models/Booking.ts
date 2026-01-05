@@ -504,8 +504,10 @@ export class BookingModel {
         currentTime.getTime() < lunchEnd.getTime();
       
       if (!isInLunchTime) {
-        // Verificar si hay conflicto con citas existentes o bloques bloqueados
-        const isAvailable = await this.isTimeSlotAvailable(currentTime, serviceDuration);
+        // Verificar si AL MENOS UN box está disponible
+        const box1Available = await this.isTimeSlotAvailableInBox(currentTime, serviceDuration, 'box1');
+        const box2Available = await this.isTimeSlotAvailableInBox(currentTime, serviceDuration, 'box2');
+        const isAvailable = box1Available || box2Available;
         
         slots.push({
           dateTime: new Date(currentTime),
