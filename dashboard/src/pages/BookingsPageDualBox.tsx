@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Today,
+  Block as BlockIcon,
 } from '@mui/icons-material'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -57,6 +58,12 @@ export default function BookingsPageDualBox() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [blockOpen, setBlockOpen] = useState(false)
+  const [blockData, setBlockData] = useState({
+    startTime: '',
+    endTime: '',
+    reason: ''
+  })
   const [clients, setClients] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
   const [newBooking, setNewBooking] = useState({
@@ -204,6 +211,39 @@ export default function BookingsPageDualBox() {
     }
   }
 
+  const handleBlockTime = async () => {
+    if (!selectedDate || !blockData.startTime || !blockData.endTime) {
+      enqueueSnackbar('Por favor completa todos los campos requeridos', { variant: 'warning' })
+      return
+    }
+
+    try {
+      const [startHour, startMinute] = blockData.startTime.split(':').map(Number)
+      const [endHour, endMinute] = blockData.endTime.split(':').map(Number)
+      
+      const startDate = new Date(selectedDate)
+      startDate.setHours(startHour, startMinute, 0, 0)
+      
+      const endDate = new Date(selectedDate)
+      endDate.setHours(endHour, endMinute, 0, 0)
+
+      await apiService.post('/blocked-time-slots', {
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        reason: blockData.reason
+      })
+
+      enqueueSnackbar('Horario bloqueado correctamente', { variant: 'success' })
+      setBlockOpen(false)
+      setBlockData({ startTime: '', endTime: '', reason: '' })
+      fetchMonthBookings()
+    } catch (error: any) {
+      console.error('Error blocking time:', error)
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error al bloquear horario'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    }
+  }
+
   // Generar días del calendario
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -226,13 +266,22 @@ export default function BookingsPageDualBox() {
         <Typography variant="h4" fontWeight="bold">
           Gestión de Citas - 2 Boxes
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Nueva Cita
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<BlockIcon />}
+            onClick={() => setBlockOpen(true)}
+          >
+            Bloquear Horario
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateOpen(true)}
+          >
+            Nueva Cita
+          </Button>
+        </Stack>
       </Stack>
 
       {/* Navegación del calendario */}
@@ -519,6 +568,61 @@ export default function BookingsPageDualBox() {
           <Button onClick={() => setCreateOpen(false)}>Cancelar</Button>
           <Button onClick={handleCreateBooking} variant="contained">
             Crear
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de bloqueo de horarios */}
+      <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Bloquear Horario</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Fecha seleccionada: {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: es })}
+            </Typography>
+            <TextField
+              label="Hora de inicio"
+              type="time"
+              fullWidth
+              required
+              value={blockData.startTime}
+              onChange={(e) => setBlockData({ ...blockData, startTime: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Hora de fin"
+              type="time"
+              fullWidth
+              required
+              value={blockData.endTime}
+              onChange={(e) => setBlockData({ ...blockData, endTime: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Motivo (opcional)"
+              multiline
+              rows={3}
+              fullWidth
+              value={blockData.reason}
+              onChange={(e) => setBlockData({ ...blockData, reason: e.target.value })}
+              placeholder="Ej: Vacaciones, Mantenimiento, Evento especial"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setBlockOpen(false)
+            setBlockData({ startTime: '', endTime: '', reason: '' })
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleBlockTime}
+            disabled={!blockData.startTime || !blockData.endTime}
+            startIcon={<BlockIcon />}
+          >
+            Bloquear
           </Button>
         </DialogActions>
       </Dialog>
