@@ -105,12 +105,16 @@ const ChatWidget = () => {
         // La API devuelve { response: { message: string, ... }, conversationId, messageId, processingTime }
         if ((response as any).response?.message) {
           messageContent = (response as any).response.message;
+          console.log('✅ Extracted message:', messageContent);
+          console.log('📋 Metadata:', (response as any).response?.metadata);
         } else if ((response as any).data?.response?.message) {
           messageContent = (response as any).data.response.message;
         } else if ((response as any).message) {
           messageContent = (response as any).message;
         }
       }
+      
+      console.log('📨 Final message to display:', messageContent);
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
