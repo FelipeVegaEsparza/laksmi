@@ -175,7 +175,7 @@ export default function Layout({ children }: LayoutProps) {
           justifyContent: 'center',
           gap: 1,
           py: 3,
-          background: 'rgba(255, 255, 255, 0.05)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
         }}
       >
@@ -193,7 +193,6 @@ export default function Layout({ children }: LayoutProps) {
               width: 'auto',
               maxWidth: '90%',
               objectFit: 'contain',
-              filter: 'brightness(0) invert(1)',
             }}
           />
         ) : (
@@ -201,7 +200,7 @@ export default function Layout({ children }: LayoutProps) {
             variant="h5" 
             component="div" 
             sx={{ 
-              color: '#fff', 
+              color: '#1a237e', 
               fontWeight: 700,
               textAlign: 'center',
               px: 2,
