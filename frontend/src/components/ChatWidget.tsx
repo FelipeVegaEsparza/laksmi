@@ -14,13 +14,14 @@ interface Message {
 }
 
 const ChatWidget = () => {
-  const { clientId, isConnected } = useChatContext();
+  const { clientId, isConnected, serviceContext, setServiceContext } = useChatContext();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [hasAutoSentMessage, setHasAutoSentMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,13 @@ const ChatWidget = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Reset auto-sent flag when service context changes
+  useEffect(() => {
+    if (serviceContext) {
+      setHasAutoSentMessage(false);
+    }
+  }, [serviceContext]);
 
   const loadConversationHistory = async (clientId: string) => {
     try {
@@ -114,6 +122,55 @@ const ChatWidget = () => {
     }
   };
 
+  const sendAutoMessage = async (message: string) => {
+    if (!message.trim() || !clientId) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: message,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const response = await chatApi.sendMessage(message, clientId);
+      
+      // Extraer el mensaje de la respuesta
+      let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
+      
+      if (typeof response === 'string') {
+        messageContent = response;
+      } else if (response && typeof response === 'object') {
+        messageContent = response.response?.message || response.message || response.response || messageContent;
+      }
+      
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: messageContent,
+        sender: 'ai',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Lo siento, hay un problema con la conexión. Por favor, intenta de nuevo o contáctanos por WhatsApp.',
+        sender: 'ai',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -122,8 +179,21 @@ const ChatWidget = () => {
   };
 
   const toggleChat = () => {
-    setIsOpen(!isOpen);
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
     setIsMinimized(false);
+    
+    // Si se abre el chat y hay contexto de servicio, enviar mensaje automático
+    if (newIsOpen && serviceContext && !hasAutoSentMessage) {
+      setHasAutoSentMessage(true);
+      const autoMessage = `Hola, quiero información sobre ${serviceContext.name}`;
+      setInputMessage(autoMessage);
+      
+      // Enviar el mensaje automáticamente después de un pequeño delay
+      setTimeout(() => {
+        sendAutoMessage(autoMessage);
+      }, 500);
+    }
   };
 
   const minimizeChat = () => {

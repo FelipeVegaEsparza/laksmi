@@ -14,6 +14,7 @@ import ServiceImage from '@/components/ServiceImage';
 import { formatPrice } from '@/utils/currency';
 import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { useChatContext } from '@/contexts/ChatContext';
 
 const ServiceDetailPage = () => {
   const params = useParams();
@@ -22,6 +23,7 @@ const ServiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { contactPhone } = useCompanySettings();
+  const { setServiceContext } = useChatContext();
 
   useEffect(() => {
     const loadService = async () => {
@@ -31,6 +33,12 @@ const ServiceDetailPage = () => {
           console.log('Service data received:', serviceData);
           console.log('Service images:', serviceData.images);
           setService(serviceData);
+          
+          // Set service context for chat widget
+          setServiceContext({
+            id: serviceData.id,
+            name: serviceData.name
+          });
           
           // Cargar servicios relacionados (misma categoría o aleatorios)
           try {
@@ -75,7 +83,12 @@ const ServiceDetailPage = () => {
     };
 
     loadService();
-  }, [params.id]);
+    
+    // Cleanup: clear service context when leaving the page
+    return () => {
+      setServiceContext(null);
+    };
+  }, [params.id, setServiceContext]);
 
   if (loading) {
     return (
@@ -245,7 +258,7 @@ const ServiceDetailPage = () => {
                 className="w-full flex items-center justify-center gap-2"
                 onClick={() => {
                   const phone = contactPhone?.replace(/\D/g, '') || '';
-                  const message = encodeURIComponent(`Hola! Tengo dudas sobre el tratamiento: ${service?.name}`);
+                  const message = encodeURIComponent(`Hola, quiero información sobre ${service.name}`);
                   window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
                 }}
               >
@@ -390,6 +403,11 @@ const ServiceDetailPage = () => {
                 variant="outline" 
                 size="lg"
                 className="flex-1"
+                onClick={() => {
+                  const phone = contactPhone?.replace(/\D/g, '') || '';
+                  const message = encodeURIComponent(`Hola, quiero información sobre ${service.name}`);
+                  window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+                }}
               >
                 Consultar por WhatsApp
               </Button>
@@ -413,7 +431,7 @@ const ServiceDetailPage = () => {
                 className="w-full flex items-center justify-center gap-2"
                 onClick={() => {
                   const phone = contactPhone?.replace(/\D/g, '') || '';
-                  const message = encodeURIComponent(`Hola! Tengo dudas sobre el tratamiento: ${service?.name}`);
+                  const message = encodeURIComponent(`Hola, quiero información sobre ${service.name}`);
                   window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
                 }}
               >

@@ -9,6 +9,8 @@ interface ChatContextType {
   setUnreadCount: (count: number) => void;
   openChat: () => void;
   closeChat: () => void;
+  serviceContext: { id: string; name: string } | null;
+  setServiceContext: (service: { id: string; name: string } | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -29,6 +31,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [serviceContext, setServiceContext] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     // Initialize client ID only on client side
@@ -64,6 +67,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         setUnreadCount,
         openChat,
         closeChat,
+        serviceContext,
+        setServiceContext,
       }}
     >
       {children}
