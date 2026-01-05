@@ -958,16 +958,19 @@ export class MessageRouter {
         return null;
       }
 
-      // ⚠️ REGLA CRÍTICA 2: Verificar que el bot YA mostró opciones
+      // ⚠️ REGLA CRÍTICA 2: Verificar que el bot YA mostró opciones O que hay servicio en contexto
       // Solo generar link si el bot ya respondió con una lista de opciones
+      // O si hay un servicio guardado en el contexto (ej: desde chat web con contexto)
       const botAlreadyShowedOptions = context.lastMessages && context.lastMessages.length > 0 &&
         context.lastMessages.some((msg: any) => 
           msg.senderType === 'ai' && 
           msg.content.includes('¿De cuál de estos te gustaría conocer más detalles?')
         );
 
-      if (!botAlreadyShowedOptions) {
-        logger.info('🚫 Bot has not shown options yet, NOT generating booking link');
+      const hasServiceInContext = context.variables?.lastMentionedService?.id;
+
+      if (!botAlreadyShowedOptions && !hasServiceInContext) {
+        logger.info('🚫 Bot has not shown options yet and no service in context, NOT generating booking link');
         return null;
       }
 
@@ -979,7 +982,8 @@ export class MessageRouter {
         'me interesa ese', 'me interesa esa', 
         'reservar ese', 'agendar ese', 'reservar esa', 'agendar esa',
         'confirmo', 'adelante', 'proceder', 'sí, reservar', 'si, reservar',
-        'quiero reservar ese', 'quiero agendar ese', 'quiero reservar esa', 'quiero agendar esa'
+        'quiero reservar ese', 'quiero agendar ese', 'quiero reservar esa', 'quiero agendar esa',
+        'quiero agendar', 'quiero reservar', 'agendar', 'reservar'  // Agregados para ser más flexible
       ];
 
       const isExplicitConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
