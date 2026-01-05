@@ -18,7 +18,6 @@ const ChatWidget = () => {
   const clientId = chatContext?.clientId || null;
   const isConnected = chatContext?.isConnected || false;
   const serviceContext = chatContext?.serviceContext || null;
-  const setServiceContext = chatContext?.setServiceContext;
   
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -28,6 +27,19 @@ const ChatWidget = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [hasAutoSentMessage, setHasAutoSentMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Función para convertir URLs en links clicables
+  const linkifyText = (text: string): string => {
+    // Regex para detectar URLs (http, https, www)
+    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
+    
+    return text.replace(urlRegex, (url) => {
+      // Si la URL no tiene protocolo, agregar https://
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${url}</a>`;
+    });
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -335,9 +347,12 @@ const ChatWidget = () => {
                         : 'bg-gray-100 text-gray-800'
                     }`}
                     style={message.sender === 'user' ? { backgroundColor: themeColors.primary } : {}}
-                  >
-                    {message.content}
-                  </div>
+                    dangerouslySetInnerHTML={{
+                      __html: message.sender === 'ai' 
+                        ? linkifyText(message.content)
+                        : message.content
+                    }}
+                  />
                 </div>
               ))}
               
