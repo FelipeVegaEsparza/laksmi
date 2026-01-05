@@ -23,15 +23,29 @@ export class BookingModel {
     // El sistema ahora funciona basado en horarios del local
     const professionalId = bookingData.preferredProfessionalId || null;
 
-    // Validar que no haya conflictos de horario en el box especificado
-    const isAvailable = await this.isTimeSlotAvailableInBox(
-      bookingData.dateTime, 
-      service.duration, 
-      bookingData.box
-    );
+    // Asignación automática de box si no se especificó
+    let assignedBox = bookingData.box;
     
-    if (!isAvailable) {
-      throw new Error('El horario seleccionado ya no está disponible en el box especificado');
+    if (!assignedBox) {
+      // Asignar automáticamente el box disponible
+      assignedBox = await this.findAvailableBox(bookingData.dateTime, service.duration);
+      
+      if (!assignedBox) {
+        throw new Error('No hay boxes disponibles en el horario seleccionado');
+      }
+      
+      console.log(`🎯 Box asignado automáticamente: ${assignedBox}`);
+    } else {
+      // Si se especificó un box, validar que esté disponible
+      const isAvailable = await this.isTimeSlotAvailableInBox(
+        bookingData.dateTime, 
+        service.duration, 
+        assignedBox
+      );
+      
+      if (!isAvailable) {
+        throw new Error('El horario seleccionado ya no está disponible en el box especificado');
+      }
     }
 
     const status = bookingData.status || 'pending_payment';
@@ -40,7 +54,7 @@ export class BookingModel {
       client_id: bookingData.clientId,
       service_id: bookingData.serviceId,
       professional_id: professionalId,
-      box: bookingData.box || null,
+      box: assignedBox,
       date_time: bookingData.dateTime,
       duration: service.duration,
       status: status,
@@ -510,6 +524,59 @@ export class BookingModel {
 
   private static async isTimeSlotAvailable(dateTime: Date, duration: number): Promise<boolean> {
     return this.isTimeSlotAvailableExcluding(dateTime, duration, null);
+  }
+
+  private static async findAvailableBox(
+    dateTime: Date, 
+    duration: number
+  ): Promise<'box1' | 'box2' | null> {
+    // Verificar disponibilidad de ambos boxes
+    const box1Available = await this.isTimeSlotAvailableInBox(dateTime, duration, 'box1');
+    const box2Available = await this.isTimeSlotAvailableInBox(dateTime, duration, 'box2');
+    
+    console.log('🔍 Disponibilidad de boxes:', { box1Available, box2Available });
+    
+    // Si ninguno está disponible, retornar null
+    if (!box1Available && !box2Available) {
+      return null;
+    }
+    
+    // Si solo uno está disponible, retornarlo
+    if (box1Available && !box2Available) {
+      return 'box1';
+    }
+    if (box2Available && !box1Available) {
+      return 'box2';
+    }
+    
+    // Si ambos están disponibles, hacer balanceo de carga
+    // Contar citas del día en cada box para balancear
+    const dayStart = new Date(dateTime);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dateTime);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    const [box1Count] = await db('bookings')
+      .where('box', 'box1')
+      .whereIn('status', ['confirmed', 'pending_payment'])
+      .where('date_time', '>=', dayStart)
+      .where('date_time', '<=', dayEnd)
+      .count('* as count');
+    
+    const [box2Count] = await db('bookings')
+      .where('box', 'box2')
+      .whereIn('status', ['confirmed', 'pending_payment'])
+      .where('date_time', '>=', dayStart)
+      .where('date_time', '<=', dayEnd)
+      .count('* as count');
+    
+    const box1Total = parseInt(box1Count.count as string);
+    const box2Total = parseInt(box2Count.count as string);
+    
+    console.log('📊 Balanceo de carga:', { box1Total, box2Total });
+    
+    // Asignar al box con menos citas del día
+    return box1Total <= box2Total ? 'box1' : 'box2';
   }
 
   private static async isTimeSlotAvailableInBox(

@@ -38,11 +38,10 @@ export default function BoxCalendar({
   onEditBooking,
 }: BoxCalendarProps) {
   // Filtrar citas del box específico para el día seleccionado
-  // También incluir citas sin box asignado (null) para backward compatibility
   const boxBookings = bookings
     .filter(b => {
       const isSameDate = isSameDay(new Date(b.dateTime), selectedDate)
-      const isCorrectBox = b.box === boxId || b.box === null || b.box === undefined
+      const isCorrectBox = b.box === boxId
       return isSameDate && isCorrectBox
     })
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
@@ -87,11 +86,6 @@ export default function BoxCalendar({
                     <Typography variant="caption" color="text.secondary">
                       {booking.client?.name || 'Cliente sin nombre'}
                     </Typography>
-                    {(!booking.box || booking.box === null) && (
-                      <Typography variant="caption" color="warning.main" display="block">
-                        ⚠️ Sin box asignado
-                      </Typography>
-                    )}
                     <Box sx={{ mt: 0.5 }}>
                       <Chip
                         label={statusLabels[booking.status]}
