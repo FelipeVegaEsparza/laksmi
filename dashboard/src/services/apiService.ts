@@ -227,6 +227,11 @@ class ApiService {
     return this.put(`/bookings/${id}`, data)
   }
 
+  // Create booking
+  async createBooking(data: any): Promise<any> {
+    return this.post('/bookings', data)
+  }
+
   // Delete booking
   async deleteBooking(id: string): Promise<any> {
     return this.delete(`/bookings/${id}`)
