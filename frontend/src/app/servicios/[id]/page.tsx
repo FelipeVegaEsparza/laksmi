@@ -23,7 +23,15 @@ const ServiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { contactPhone } = useCompanySettings();
-  const { setServiceContext } = useChatContext();
+  
+  // Safely get chat context - it might not be available
+  let chatContext;
+  try {
+    chatContext = useChatContext();
+  } catch (error) {
+    // ChatContext not available, that's ok
+    chatContext = null;
+  }
 
   useEffect(() => {
     const loadService = async () => {
@@ -34,11 +42,13 @@ const ServiceDetailPage = () => {
           console.log('Service images:', serviceData.images);
           setService(serviceData);
           
-          // Set service context for chat widget
-          setServiceContext({
-            id: serviceData.id,
-            name: serviceData.name
-          });
+          // Set service context for chat widget (if available)
+          if (chatContext?.setServiceContext) {
+            chatContext.setServiceContext({
+              id: serviceData.id,
+              name: serviceData.name
+            });
+          }
           
           // Cargar servicios relacionados (misma categoría o aleatorios)
           try {
@@ -84,11 +94,13 @@ const ServiceDetailPage = () => {
 
     loadService();
     
-    // Cleanup: clear service context when leaving the page
+    // Cleanup: clear service context when leaving the page (if available)
     return () => {
-      setServiceContext(null);
+      if (chatContext?.setServiceContext) {
+        chatContext.setServiceContext(null);
+      }
     };
-  }, [params.id, setServiceContext]);
+  }, [params.id]);
 
   if (loading) {
     return (
