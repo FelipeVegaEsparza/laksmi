@@ -95,7 +95,8 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        messageContent = response.response?.message || response.message || response.response || messageContent;
+        // La respuesta tiene estructura { response: string, conversationId: string }
+        messageContent = (response as any).response || messageContent;
       }
       
       const aiMessage: Message = {
@@ -144,7 +145,8 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        messageContent = response.response?.message || response.message || response.response || messageContent;
+        // La respuesta tiene estructura { response: string, conversationId: string }
+        messageContent = (response as any).response || messageContent;
       }
       
       const aiMessage: Message = {
