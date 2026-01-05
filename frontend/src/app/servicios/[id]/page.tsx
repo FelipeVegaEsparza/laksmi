@@ -23,6 +23,8 @@ const ServiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { contactPhone } = useCompanySettings();
+  
+  // Get chat context safely - may be undefined
   const chatContext = useChatContext();
 
   useEffect(() => {
@@ -34,12 +36,17 @@ const ServiceDetailPage = () => {
           console.log('Service images:', serviceData.images);
           setService(serviceData);
           
-          // Set service context for chat widget (if available)
-          if (chatContext?.setServiceContext) {
-            chatContext.setServiceContext({
-              id: serviceData.id,
-              name: serviceData.name
-            });
+          // Set service context for chat widget (only if context is available)
+          try {
+            if (chatContext?.setServiceContext) {
+              chatContext.setServiceContext({
+                id: serviceData.id,
+                name: serviceData.name
+              });
+            }
+          } catch (error) {
+            // Ignore if context is not available
+            console.log('Chat context not available');
           }
           
           // Cargar servicios relacionados (misma categoría o aleatorios)
@@ -86,10 +93,14 @@ const ServiceDetailPage = () => {
 
     loadService();
     
-    // Cleanup: clear service context when leaving the page (if available)
+    // Cleanup: clear service context when leaving the page (only if available)
     return () => {
-      if (chatContext?.setServiceContext) {
-        chatContext.setServiceContext(null);
+      try {
+        if (chatContext?.setServiceContext) {
+          chatContext.setServiceContext(null);
+        }
+      } catch (error) {
+        // Ignore if context is not available
       }
     };
   }, [params.id]);
