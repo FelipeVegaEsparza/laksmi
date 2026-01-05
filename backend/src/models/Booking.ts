@@ -24,16 +24,17 @@ export class BookingModel {
     const professionalId = bookingData.preferredProfessionalId || null;
 
     // Asignación automática de box si no se especificó
-    let assignedBox = bookingData.box;
+    let assignedBox: 'box1' | 'box2' | undefined = bookingData.box;
     
     if (!assignedBox) {
       // Asignar automáticamente el box disponible
-      assignedBox = await this.findAvailableBox(bookingData.dateTime, service.duration);
+      const availableBox = await this.findAvailableBox(bookingData.dateTime, service.duration);
       
-      if (!assignedBox) {
+      if (!availableBox) {
         throw new Error('No hay boxes disponibles en el horario seleccionado');
       }
       
+      assignedBox = availableBox;
       console.log(`🎯 Box asignado automáticamente: ${assignedBox}`);
     } else {
       // Si se especificó un box, validar que esté disponible
