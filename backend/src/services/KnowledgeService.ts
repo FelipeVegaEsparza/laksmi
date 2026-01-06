@@ -76,8 +76,10 @@ export class KnowledgeService {
         
         if (services && services.length > 0) {
           context += '\n\n═══════════════════════════════════════════════════\n';
-          context += 'SERVICIOS DISPONIBLES CON INFORMACIÓN COMPLETA:\n';
-          context += '═══════════════════════════════════════════════════\n\n';
+          context += 'SERVICIOS DISPONIBLES - BASE DE DATOS:\n';
+          context += '═══════════════════════════════════════════════════\n';
+          context += '⚠️ INSTRUCCIÓN: Esta información está disponible, pero NO la entregues toda de golpe.\n';
+          context += 'Sigue el flujo conversacional: PREGUNTA qué información necesita el usuario.\n\n';
           
           services.forEach((service: any, index: number) => {
             context += `${index + 1}. ${service.name.toUpperCase()}\n`;
@@ -116,10 +118,13 @@ export class KnowledgeService {
           });
           
           context += '═══════════════════════════════════════════════════\n';
-          context += 'IMPORTANTE: Estos son los ÚNICOS servicios oficiales.\n';
-          context += '- Si el usuario pregunta por un precio, búscalo en esta lista y responde con el precio EXACTO.\n';
-          context += '- Si el usuario pregunta por un servicio que NO está en esta lista, dile que no lo ofrecemos actualmente.\n';
-          context += '- Usa la descripción y beneficios para explicar cada servicio en detalle.\n';
+          context += 'REGLAS DE USO DE ESTA INFORMACIÓN:\n';
+          context += '1. Cuando el usuario pregunte por una CATEGORÍA, lista SOLO nombres y precios\n';
+          context += '2. Cuando el usuario elija UN servicio, NO des todos los detalles - PREGUNTA qué necesita saber\n';
+          context += '3. Solo proporciona la información específica que el usuario solicite\n';
+          context += '4. Si el usuario pregunta por un precio específico, responde SOLO con el precio\n';
+          context += '5. Si el usuario pregunta por duración, responde SOLO con la duración\n';
+          context += '6. Mantén la conversación INTERACTIVA y GRADUAL - NO des toda la info de golpe\n';
           context += '═══════════════════════════════════════════════════\n\n';
           
           logger.info(`Services loaded for AI context: ${services.length} services with full details`);
