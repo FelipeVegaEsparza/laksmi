@@ -231,6 +231,8 @@ const ChatWidget = () => {
       // Enviar el mensaje automáticamente después de un pequeño delay
       setTimeout(() => {
         sendAutoMessage(autoMessage);
+        // Limpiar el input después de enviar el mensaje automático
+        setInputMessage('');
       }, 500);
     }
   };
