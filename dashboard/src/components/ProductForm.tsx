@@ -52,6 +52,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     ingredients: [],
     compatibleServices: [],
     paymentLink: '',
+    isActive: true,
   })
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
@@ -79,6 +80,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         ingredients: product.ingredients,
         compatibleServices: product.compatibleServices,
         paymentLink: product.paymentLink || '',
+        isActive: product.isActive !== undefined ? product.isActive : true,
       })
     }
   }, [product])
@@ -172,6 +174,7 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
         ingredients: Array.isArray(formData.ingredients) ? formData.ingredients : [],
         compatibleServices: Array.isArray(formData.compatibleServices) ? formData.compatibleServices : [],
         paymentLink: formData.paymentLink?.trim() || '',
+        isActive: formData.isActive !== undefined ? formData.isActive : true,
       }
       
       onSave(cleanedData)
@@ -562,6 +565,19 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
                 />
               ))
             }
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.isActive}
+                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                color="primary"
+              />
+            }
+            label="Producto activo"
           />
         </Grid>
 

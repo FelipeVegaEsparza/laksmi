@@ -12,6 +12,7 @@ export interface Product {
   images: string[];
   ingredients: string[];
   compatibleServices: string[];
+  isActive: boolean; // Estado de activación del producto
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,7 @@ export interface CreateProductRequest {
   images?: string[];
   ingredients?: string[];
   compatibleServices?: string[];
+  isActive?: boolean; // Estado de activación (opcional, por defecto true)
 }
 
 export interface UpdateProductRequest {
@@ -44,6 +46,7 @@ export interface UpdateProductRequest {
   images?: string[];
   ingredients?: string[];
   compatibleServices?: string[];
+  isActive?: boolean; // Actualizar estado de activación
 }
 
 export interface ProductFilters {
@@ -52,6 +55,7 @@ export interface ProductFilters {
   maxPrice?: number;
   inStock?: boolean;
   lowStock?: boolean;
+  isActive?: boolean; // Filtrar por estado de activación
   search?: string;
   page?: number;
   limit?: number;

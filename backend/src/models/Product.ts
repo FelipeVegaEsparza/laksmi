@@ -28,7 +28,8 @@ export class ProductModel {
       benefits: productData.benefits || null,
       images: JSON.stringify(productData.images || []),
       ingredients: JSON.stringify(productData.ingredients || []),
-      compatible_services: JSON.stringify(productData.compatibleServices || [])
+      compatible_services: JSON.stringify(productData.compatibleServices || []),
+      is_active: productData.isActive !== undefined ? productData.isActive : true
     };
 
     await db('products').insert(insertData);
@@ -82,6 +83,7 @@ export class ProductModel {
     if (updates.images !== undefined) updateData.images = JSON.stringify(updates.images);
     if (updates.ingredients !== undefined) updateData.ingredients = JSON.stringify(updates.ingredients);
     if (updates.compatibleServices !== undefined) updateData.compatible_services = JSON.stringify(updates.compatibleServices);
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
     
     updateData.updated_at = new Date();
 
@@ -114,6 +116,7 @@ export class ProductModel {
       inStock, 
       lowStock, 
       search, 
+      isActive,
       page = 1, 
       limit = 10 
     } = filters;
@@ -154,6 +157,10 @@ export class ProductModel {
 
     if (lowStock) {
       query = query.whereRaw('stock <= min_stock AND stock > 0');
+    }
+
+    if (isActive !== undefined) {
+      query = query.where('is_active', isActive);
     }
 
     if (search) {
@@ -585,6 +592,7 @@ export class ProductModel {
       images: Array.isArray(dbProduct.images) ? dbProduct.images : (dbProduct.images ? JSON.parse(dbProduct.images) : []),
       ingredients: Array.isArray(dbProduct.ingredients) ? dbProduct.ingredients : (dbProduct.ingredients ? JSON.parse(dbProduct.ingredients) : []),
       compatibleServices: Array.isArray(dbProduct.compatible_services) ? dbProduct.compatible_services : (dbProduct.compatible_services ? JSON.parse(dbProduct.compatible_services) : []),
+      isActive: dbProduct.is_active !== undefined ? Boolean(dbProduct.is_active) : true,
       createdAt: dbProduct.created_at,
       updatedAt: dbProduct.updated_at
     };

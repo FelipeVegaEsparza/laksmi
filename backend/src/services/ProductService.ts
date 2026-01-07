@@ -203,6 +203,7 @@ export class ProductService {
     const publicFilters = {
       ...filters,
       inStock: true, // Solo productos en stock
+      isActive: true, // Solo productos activos
     };
 
     const { page = 1, limit = 20 } = publicFilters;
@@ -225,8 +226,12 @@ export class ProductService {
       throw new Error('Producto no encontrado');
     }
 
-    // Solo mostrar productos en stock al público
+    // Solo mostrar productos activos y en stock al público
     if (product.stock <= 0) {
+      throw new Error('Producto no disponible');
+    }
+
+    if (!product.isActive) {
       throw new Error('Producto no disponible');
     }
 
@@ -237,7 +242,7 @@ export class ProductService {
   static async getPublicProductsByCategory(category: string): Promise<Product[]> {
     const products = await ProductModel.getProductsByCategory(category);
     
-    // Solo productos en stock
+    // Solo productos activos y en stock
     return products.filter(product => product.stock > 0);
   }
 }

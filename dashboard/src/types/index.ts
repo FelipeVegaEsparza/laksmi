@@ -225,6 +225,7 @@ export interface ProductFormData {
   ingredients: string[]
   compatibleServices: string[]
   paymentLink?: string
+  isActive?: boolean // Estado de activación del producto
 }
 
 export interface ClientFormData {
