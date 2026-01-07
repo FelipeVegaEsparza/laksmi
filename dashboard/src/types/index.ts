@@ -68,6 +68,7 @@ export interface Product {
   ingredients: string[]
   compatibleServices: string[]
   paymentLink?: string
+  isActive: boolean // Estado de activación del producto
   createdAt: Date
 }
 
