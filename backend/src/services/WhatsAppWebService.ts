@@ -77,10 +77,31 @@ export class WhatsAppWebService {
       });
 
       // Evento: Cliente listo (se dispara cuando está completamente conectado)
-      this.client.on('ready', () => {
+      this.client.on('ready', async () => {
         logger.info('✅ ========== WHATSAPP WEB READY ==========');
         logger.info('Client is now ready to send and receive messages');
         logger.info('Message listener is active and waiting for messages');
+        
+        // 🔧 PARCHE: Deshabilitar sendSeen para evitar errores con WhatsApp Web actualizado
+        try {
+          logger.info('🔧 Aplicando parche para deshabilitar sendSeen...');
+          const pupPage = await (this.client as any).pupPage;
+          if (pupPage) {
+            await pupPage.evaluate(() => {
+              // Sobrescribir la función sendSeen para que no haga nada
+              if (window.WWebJS && window.WWebJS.sendSeen) {
+                window.WWebJS.sendSeen = async () => {
+                  console.log('sendSeen deshabilitado - parche aplicado');
+                  return true;
+                };
+              }
+            });
+            logger.info('✅ Parche sendSeen aplicado exitosamente');
+          }
+        } catch (patchError) {
+          logger.warn('⚠️ No se pudo aplicar parche sendSeen (no crítico):', patchError);
+        }
+        
         logger.info('==========================================');
         this.isReady = true;
         this.connectionStatus = 'connected';
