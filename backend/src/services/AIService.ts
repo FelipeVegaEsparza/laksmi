@@ -398,6 +398,24 @@ FORMATO GENERAL:
           priority,
           confidence
         });
+        
+        // Generar mensaje de escalación con link de WhatsApp
+        try {
+          const { MessageRouter } = await import('./ai/MessageRouter');
+          // @ts-ignore - Acceder a método privado para generar mensaje
+          const escalationMessage = await MessageRouter['generateEscalationMessage'](reason);
+          
+          // Reemplazar el mensaje de AI con el mensaje de escalación
+          aiResponse = escalationMessage;
+          
+          logger.info('✅ Mensaje de escalación con WhatsApp generado y aplicado', {
+            conversationId,
+            reason,
+            messageLength: escalationMessage.length
+          });
+        } catch (msgError) {
+          logger.error('❌ Error generando mensaje de escalación con WhatsApp:', msgError);
+        }
       }
       
     } catch (error) {
