@@ -322,7 +322,7 @@ export class MessageRouter {
 
         if (escalationResult.success) {
           aiResponse = {
-            message: this.generateEscalationMessage(escalationEvaluation.reason!),
+            message: await this.generateEscalationMessage(escalationEvaluation.reason!),
             intent: nluResult.intent.name,
             entities: nluResult.entities,
             needsHumanEscalation: true,
@@ -1188,28 +1188,44 @@ export class MessageRouter {
   /**
    * Generar mensaje de escalación según la razón
    */
-  private static generateEscalationMessage(reason: string): string {
+  private static async generateEscalationMessage(reason: string): Promise<string> {
+    // Obtener número de WhatsApp de la configuración
+    let whatsappLink = '';
+    try {
+      const { CompanySettingsModel } = await import('../../models/CompanySettings');
+      const settings = await CompanySettingsModel.getSettings();
+      
+      if (settings?.contactWhatsapp) {
+        // Limpiar el número (quitar espacios, guiones, etc.)
+        const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
+        const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
+        whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+      }
+    } catch (error) {
+      logger.warn('No se pudo obtener número de WhatsApp:', error);
+    }
+
     switch (reason) {
       case 'complaint':
-        return 'Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...';
+        return `Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...${whatsappLink}`;
 
       case 'failed_attempts':
-        return 'Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.';
+        return `Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.${whatsappLink}`;
 
       case 'complex_request':
-        return 'Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.';
+        return `Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.${whatsappLink}`;
 
       case 'payment_issue':
-        return 'Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.';
+        return `Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.${whatsappLink}`;
 
       case 'client_request':
-        return 'Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.';
+        return `Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.${whatsappLink}`;
 
       case 'technical_issue':
-        return 'Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.';
+        return `Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.${whatsappLink}`;
 
       default:
-        return 'Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...';
+        return `Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...${whatsappLink}`;
     }
   }
 
