@@ -10,6 +10,7 @@ export interface HumanTakeoverSession {
   humanAgentId: string;
   escalationId?: string;
   startTime: Date;
+  lastHumanMessageTime?: Date; // Timestamp del último mensaje enviado por el humano
   status: 'active' | 'paused' | 'ended';
   clientId: string;
   channel: 'web' | 'whatsapp';
@@ -158,10 +159,16 @@ export class HumanTakeoverService {
       const updatedContext = await ContextManager.addMessageToContext(conversationId, savedMessage);
       session.context = updatedContext;
 
+      // ⏰ ACTUALIZAR TIMESTAMP DEL ÚLTIMO MENSAJE HUMANO
+      // Esto hará que el bot no responda por 1 hora
+      session.lastHumanMessageTime = new Date();
+      this.activeSessions.set(conversationId, session);
+
       logger.info(`Human message sent: ${conversationId}`, {
         humanAgentId,
         messageLength: content.length,
-        hasMedia: !!mediaUrl
+        hasMedia: !!mediaUrl,
+        lastHumanMessageTime: session.lastHumanMessageTime
       });
 
       return {
@@ -423,10 +430,36 @@ export class HumanTakeoverService {
 
   /**
    * Verificar si una conversación está bajo control humano
+   * Retorna true si:
+   * 1. Hay una sesión activa Y
+   * 2. El humano escribió hace menos de 1 hora
    */
   static isUnderHumanControl(conversationId: string): boolean {
     const session = this.activeSessions.get(conversationId);
-    return session?.status === 'active' || false;
+    
+    if (!session || session.status !== 'active') {
+      return false;
+    }
+
+    // Si el humano nunca ha escrito, considerar que está bajo control
+    if (!session.lastHumanMessageTime) {
+      return true;
+    }
+
+    // Verificar si ha pasado más de 1 hora desde el último mensaje humano
+    const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hora en milisegundos
+    const timeSinceLastMessage = Date.now() - session.lastHumanMessageTime.getTime();
+
+    if (timeSinceLastMessage > ONE_HOUR_MS) {
+      logger.info(`🤖 Bot reactivated: 1 hour passed since last human message`, {
+        conversationId,
+        timeSinceLastMessage: Math.round(timeSinceLastMessage / 1000 / 60) + ' minutes',
+        lastHumanMessageTime: session.lastHumanMessageTime
+      });
+      return false; // Ha pasado más de 1 hora, el bot puede responder
+    }
+
+    return true; // Aún está bajo control humano
   }
 
   /**
