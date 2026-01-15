@@ -89,7 +89,9 @@ export class WhatsAppWebService {
           if (pupPage) {
             await pupPage.evaluate(() => {
               // Sobrescribir la función sendSeen para que no haga nada
+              // @ts-ignore - WWebJS es inyectado por whatsapp-web.js
               if (window.WWebJS && window.WWebJS.sendSeen) {
+                // @ts-ignore
                 window.WWebJS.sendSeen = async () => {
                   console.log('sendSeen deshabilitado - parche aplicado');
                   return true;
