@@ -1203,7 +1203,7 @@ export class MessageRouter {
         return 'Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.';
 
       case 'client_request':
-        return 'Por supuesto, te conecto con un agente humano. Un momento por favor...';
+        return 'Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.';
 
       case 'technical_issue':
         return 'Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.';
