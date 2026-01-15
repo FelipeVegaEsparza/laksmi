@@ -1192,41 +1192,66 @@ export class MessageRouter {
     // Obtener número de WhatsApp de la configuración
     let whatsappLink = '';
     try {
+      logger.info('🔍 Obteniendo configuración de WhatsApp para link de escalación...');
       const { CompanySettingsModel } = await import('../../models/CompanySettings');
       const settings = await CompanySettingsModel.getSettings();
+      
+      logger.info('📋 Configuración obtenida:', {
+        hasSettings: !!settings,
+        contactWhatsapp: settings?.contactWhatsapp
+      });
       
       if (settings?.contactWhatsapp) {
         // Limpiar el número (quitar espacios, guiones, etc.)
         const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
         const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
         whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+        
+        logger.info('✅ Link de WhatsApp generado:', {
+          cleanNumber,
+          linkLength: whatsappLink.length
+        });
+      } else {
+        logger.warn('⚠️ No hay número de WhatsApp configurado en company_settings');
       }
     } catch (error) {
-      logger.warn('No se pudo obtener número de WhatsApp:', error);
+      logger.error('❌ Error obteniendo número de WhatsApp:', error);
     }
 
-    switch (reason) {
-      case 'complaint':
-        return `Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...${whatsappLink}`;
+    const baseMessage = (() => {
+      switch (reason) {
+        case 'complaint':
+          return 'Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...';
 
-      case 'failed_attempts':
-        return `Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.${whatsappLink}`;
+        case 'failed_attempts':
+          return 'Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.';
 
-      case 'complex_request':
-        return `Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.${whatsappLink}`;
+        case 'complex_request':
+          return 'Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.';
 
-      case 'payment_issue':
-        return `Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.${whatsappLink}`;
+        case 'payment_issue':
+          return 'Para asuntos relacionados con pagos, es mejor que hables directamente con nuestro equipo especializado. Te conecto ahora mismo.';
 
-      case 'client_request':
-        return `Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.${whatsappLink}`;
+        case 'client_request':
+          return 'Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.';
 
-      case 'technical_issue':
-        return `Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.${whatsappLink}`;
+        case 'technical_issue':
+          return 'Ha ocurrido un problema técnico. Un especialista te contactará para asistirte.';
 
-      default:
-        return `Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...${whatsappLink}`;
-    }
+        default:
+          return 'Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...';
+      }
+    })();
+
+    const finalMessage = baseMessage + whatsappLink;
+    
+    logger.info('📤 Mensaje de escalación generado:', {
+      reason,
+      hasWhatsappLink: whatsappLink.length > 0,
+      messageLength: finalMessage.length
+    });
+
+    return finalMessage;
   }
 
   /**
