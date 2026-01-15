@@ -494,6 +494,7 @@ export default function ConversationsPage() {
         <DialogActions>
           <Button onClick={() => setDetailModalOpen(false)}>Cerrar</Button>
           
+          {/* Mostrar botones según el estado de la conversación */}
           {selectedConversation?.status === 'active' && (
             <>
               <Button
@@ -519,14 +520,27 @@ export default function ConversationsPage() {
             </>
           )}
           
+          {/* Si está escalada, permitir tomar control o finalizar si ya lo tienes */}
           {selectedConversation?.status === 'escalated' && (
-            <Button
-              color="success"
-              startIcon={<StopIcon />}
-              onClick={handleEndTakeover}
-            >
-              Finalizar Control
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                startIcon={<SupportIcon />}
+                onClick={() => {
+                  setDetailModalOpen(false)
+                  handleTakeoverConversation(selectedConversation)
+                }}
+              >
+                Tomar Control
+              </Button>
+              <Button
+                color="success"
+                startIcon={<StopIcon />}
+                onClick={handleEndTakeover}
+              >
+                Finalizar Control
+              </Button>
+            </>
           )}
         </DialogActions>
       </Dialog>
