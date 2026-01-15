@@ -249,12 +249,45 @@ export class WhatsAppWebService {
       if (result.success && result.response) {
         // Enviar respuesta
         logger.info('💬 Enviando respuesta:', result.response.substring(0, 100) + '...');
-        await message.reply(result.response);
-        logger.info('✅ Respuesta enviada automáticamente');
+        
+        try {
+          // Intentar enviar con reply primero
+          await message.reply(result.response);
+          logger.info('✅ Respuesta enviada automáticamente con reply');
+        } catch (replyError: any) {
+          // Si falla reply (por problemas con sendSeen), usar sendMessage directo
+          logger.warn('⚠️ Reply falló, intentando con sendMessage directo:', replyError.message);
+          
+          try {
+            const chat = await message.getChat();
+            await chat.sendMessage(result.response);
+            logger.info('✅ Respuesta enviada con sendMessage directo');
+          } catch (sendError: any) {
+            logger.error('❌ Ambos métodos fallaron:', sendError.message);
+            // Último intento: usar el cliente directamente sin opciones extras
+            try {
+              await this.client!.sendMessage(message.from, result.response);
+              logger.info('✅ Respuesta enviada con cliente directo');
+            } catch (finalError: any) {
+              logger.error('❌ Error final enviando mensaje:', finalError.message);
+              throw finalError;
+            }
+          }
+        }
       } else if (result.error) {
         logger.error('❌ Error en el procesador:', result.error);
-        // Enviar mensaje de error al usuario
-        await message.reply('Lo siento, ha ocurrido un error. Un especialista te contactará pronto.');
+        
+        // Enviar mensaje de error al usuario con manejo robusto
+        try {
+          await message.reply('Lo siento, ha ocurrido un error. Un especialista te contactará pronto.');
+        } catch (replyError: any) {
+          logger.warn('⚠️ No se pudo enviar mensaje de error con reply, intentando alternativa');
+          try {
+            await this.client!.sendMessage(message.from, 'Lo siento, ha ocurrido un error. Un especialista te contactará pronto.');
+          } catch (sendError: any) {
+            logger.error('❌ No se pudo enviar mensaje de error:', sendError.message);
+          }
+        }
       } else {
         logger.warn('⚠️  No se generó respuesta');
       }
@@ -281,11 +314,17 @@ export class WhatsAppWebService {
         from: message?.from
       });
 
-      // Intentar enviar mensaje de error al usuario
+      // Intentar enviar mensaje de error al usuario con manejo robusto
       try {
         await message.reply('Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.');
-      } catch (replyError) {
-        logger.error('No se pudo enviar mensaje de error al usuario:', replyError);
+      } catch (replyError: any) {
+        // Si falla reply, intentar con cliente directo
+        try {
+          await this.client!.sendMessage(message.from, 'Lo siento, ha ocurrido un error técnico. Por favor, intenta de nuevo en unos momentos.');
+          logger.info('✅ Mensaje de error enviado con cliente directo');
+        } catch (sendError: any) {
+          logger.error('❌ No se pudo enviar mensaje de error al usuario:', sendError.message);
+        }
       }
     }
   }

@@ -139,8 +139,14 @@ EVITA DECIR:
 SOLO ESCALA A HUMANO SI:
 - El cliente tiene una alergia severa o problema médico
 - El cliente está muy molesto o tiene una queja seria
-- El cliente solicita explícitamente hablar con una persona
+- El cliente solicita explícitamente hablar con una persona (ej: "quiero hablar con un humano", "necesito hablar con alguien", "quiero atención de una persona")
 - Es un caso verdaderamente complejo que requiere decisiones especiales
+
+⚠️ IMPORTANTE SOBRE ESCALACIÓN:
+Si el cliente pide hablar con un humano, responde EXACTAMENTE:
+"Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente."
+
+Y luego el sistema automáticamente creará la escalación.
 
 FORMATO GENERAL:
 - Usa párrafos cortos
@@ -267,7 +273,16 @@ FORMATO GENERAL:
       'muy enojado',
       'quiero una queja formal',
       'hablar con el gerente',
-      'hablar con un supervisor'
+      'hablar con un supervisor',
+      'quiero hablar con un humano',
+      'quiero hablar con una persona',
+      'necesito hablar con alguien',
+      'hablar con alguien',
+      'agente humano',
+      'persona real',
+      'atención humana',
+      'operador',
+      'representante'
       // REMOVIDO: 'problema', 'mal', 'error', 'queja' (muy comunes)
     ];
 
@@ -341,7 +356,11 @@ FORMATO GENERAL:
       }
       // Detectar solicitud explícita de humano
       else if (messageLower.includes('agente humano') || messageLower.includes('persona real') ||
-               messageLower.includes('hablar con alguien') || messageLower.includes('gerente')) {
+               messageLower.includes('hablar con alguien') || messageLower.includes('gerente') ||
+               messageLower.includes('hablar con un humano') || messageLower.includes('hablar con una persona') ||
+               messageLower.includes('quiero hablar con') || messageLower.includes('necesito hablar con') ||
+               messageLower.includes('contactar con') || messageLower.includes('atención humana') ||
+               messageLower.includes('operador') || messageLower.includes('representante')) {
         reason = 'client_request';
         priority = 'medium';
       }
