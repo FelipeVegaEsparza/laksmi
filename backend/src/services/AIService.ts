@@ -227,23 +227,9 @@ FORMATO GENERAL:
       const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
       const confidence = this.calculateConfidence(completion, knowledgeContext);
 
-      logger.info('🔔 Evaluación de escalación:', {
-        conversationId,
-        shouldEscalate,
-        confidence,
-        userMessagePreview: userMessage.substring(0, 100),
-        aiMessagePreview: aiMessage.substring(0, 100)
-      });
-
       // Si debe escalar Y la confianza es baja, crear escalación automática
       let finalMessage = aiMessage;
       if (shouldEscalate && conversationId) {
-        logger.info('🔔 shouldEscalate es TRUE, llamando a createAutomaticEscalation...', {
-          conversationId,
-          shouldEscalate,
-          confidence
-        });
-        
         const escalationMessage = await this.createAutomaticEscalation(
           conversationId,
           userMessage,
@@ -252,15 +238,9 @@ FORMATO GENERAL:
           !!knowledgeContext
         );
         
-        logger.info('🔔 createAutomaticEscalation retornó:', {
-          hasEscalationMessage: !!escalationMessage,
-          messageLength: escalationMessage?.length
-        });
-        
         // Si se generó un mensaje de escalación, usarlo
         if (escalationMessage) {
           finalMessage = escalationMessage;
-          logger.info('🔔 Mensaje final reemplazado con mensaje de escalación');
         }
       }
 
@@ -428,33 +408,19 @@ FORMATO GENERAL:
         
         // Generar mensaje de escalación con link de WhatsApp
         try {
-          logger.info('🔍 Generando mensaje de escalación con WhatsApp...', { reason });
-          
           // Obtener número de WhatsApp de la configuración
           let whatsappLink = '';
           try {
             const { CompanySettingsModel } = await import('../models/CompanySettings');
             const settings = await CompanySettingsModel.getSettings();
             
-            logger.info('📋 Configuración obtenida en AIService:', {
-              hasSettings: !!settings,
-              contactWhatsapp: settings?.contactWhatsapp
-            });
-            
             if (settings?.contactWhatsapp) {
               const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
               const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
               whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
-              
-              logger.info('✅ Link de WhatsApp generado en AIService:', {
-                cleanNumber,
-                linkLength: whatsappLink.length
-              });
-            } else {
-              logger.warn('⚠️ No hay número de WhatsApp configurado');
             }
           } catch (settingsError) {
-            logger.error('❌ Error obteniendo configuración de WhatsApp:', settingsError);
+            logger.error('Error obteniendo configuración de WhatsApp:', settingsError);
           }
           
           // Generar mensaje base según la razón
@@ -474,18 +440,10 @@ FORMATO GENERAL:
           // Combinar mensaje base con link de WhatsApp
           const escalationMessage = baseMessage + whatsappLink;
           
-          logger.info('✅ Mensaje de escalación con WhatsApp generado y aplicado', {
-            conversationId,
-            reason,
-            hasWhatsappLink: whatsappLink.length > 0,
-            messageLength: escalationMessage.length,
-            finalMessage: escalationMessage.substring(0, 200)
-          });
-          
           // Retornar el mensaje de escalación
           return escalationMessage;
         } catch (msgError) {
-          logger.error('❌ Error generando mensaje de escalación con WhatsApp:', msgError);
+          logger.error('Error generando mensaje de escalación con WhatsApp:', msgError);
           return undefined;
         }
       }
