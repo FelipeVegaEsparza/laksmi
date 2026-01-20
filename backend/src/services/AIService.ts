@@ -228,18 +228,23 @@ FORMATO GENERAL:
       const confidence = this.calculateConfidence(completion, knowledgeContext);
 
       // Si debe escalar Y la confianza es baja, crear escalación automática
+      let finalMessage = aiMessage;
       if (shouldEscalate && conversationId) {
-        await this.createAutomaticEscalation(
+        const escalationMessage = await this.createAutomaticEscalation(
           conversationId,
           userMessage,
           aiMessage,
           confidence,
           !!knowledgeContext
         );
+        // Si se generó un mensaje de escalación, usarlo
+        if (escalationMessage) {
+          finalMessage = escalationMessage;
+        }
       }
 
       return {
-        message: aiMessage,
+        message: finalMessage,
         usedKnowledgeBase: !!knowledgeContext,
         confidence,
         suggestedActions: shouldEscalate ? ['escalate'] : undefined,
@@ -328,6 +333,7 @@ FORMATO GENERAL:
 
   /**
    * Crear escalación automática cuando el bot no puede ayudar
+   * @returns El mensaje de escalación con link de WhatsApp, o undefined si no se pudo generar
    */
   private static async createAutomaticEscalation(
     conversationId: string,
@@ -335,7 +341,7 @@ FORMATO GENERAL:
     aiResponse: string,
     confidence: number,
     usedKnowledgeBase: boolean
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     try {
       // Importar dinámicamente para evitar dependencias circulares
       const { EscalationService } = await import('./ai/EscalationService');
@@ -447,9 +453,6 @@ FORMATO GENERAL:
           // Combinar mensaje base con link de WhatsApp
           const escalationMessage = baseMessage + whatsappLink;
           
-          // Reemplazar el mensaje de AI con el mensaje de escalación
-          aiResponse = escalationMessage;
-          
           logger.info('✅ Mensaje de escalación con WhatsApp generado y aplicado', {
             conversationId,
             reason,
@@ -457,14 +460,21 @@ FORMATO GENERAL:
             messageLength: escalationMessage.length,
             finalMessage: escalationMessage.substring(0, 200)
           });
+          
+          // Retornar el mensaje de escalación
+          return escalationMessage;
         } catch (msgError) {
           logger.error('❌ Error generando mensaje de escalación con WhatsApp:', msgError);
+          return undefined;
         }
       }
+      
+      return undefined;
       
     } catch (error) {
       logger.error('Error creating automatic escalation:', error);
       // No lanzar error para no interrumpir el flujo
+      return undefined;
     }
   }
 
