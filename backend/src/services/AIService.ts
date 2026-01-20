@@ -227,6 +227,14 @@ FORMATO GENERAL:
       const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
       const confidence = this.calculateConfidence(completion, knowledgeContext);
 
+      logger.info('🔔 Evaluación de escalación:', {
+        conversationId,
+        shouldEscalate,
+        confidence,
+        userMessagePreview: userMessage.substring(0, 100),
+        aiMessagePreview: aiMessage.substring(0, 100)
+      });
+
       // Si debe escalar Y la confianza es baja, crear escalación automática
       let finalMessage = aiMessage;
       if (shouldEscalate && conversationId) {
