@@ -230,6 +230,12 @@ FORMATO GENERAL:
       // Si debe escalar Y la confianza es baja, crear escalación automática
       let finalMessage = aiMessage;
       if (shouldEscalate && conversationId) {
+        logger.info('🔔 shouldEscalate es TRUE, llamando a createAutomaticEscalation...', {
+          conversationId,
+          shouldEscalate,
+          confidence
+        });
+        
         const escalationMessage = await this.createAutomaticEscalation(
           conversationId,
           userMessage,
@@ -237,9 +243,16 @@ FORMATO GENERAL:
           confidence,
           !!knowledgeContext
         );
+        
+        logger.info('🔔 createAutomaticEscalation retornó:', {
+          hasEscalationMessage: !!escalationMessage,
+          messageLength: escalationMessage?.length
+        });
+        
         // Si se generó un mensaje de escalación, usarlo
         if (escalationMessage) {
           finalMessage = escalationMessage;
+          logger.info('🔔 Mensaje final reemplazado con mensaje de escalación');
         }
       }
 
