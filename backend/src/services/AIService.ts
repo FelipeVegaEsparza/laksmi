@@ -401,9 +401,51 @@ FORMATO GENERAL:
         
         // Generar mensaje de escalación con link de WhatsApp
         try {
-          const { MessageRouter } = await import('./ai/MessageRouter');
-          // @ts-ignore - Acceder a método privado para generar mensaje
-          const escalationMessage = await MessageRouter['generateEscalationMessage'](reason);
+          logger.info('🔍 Generando mensaje de escalación con WhatsApp...', { reason });
+          
+          // Obtener número de WhatsApp de la configuración
+          let whatsappLink = '';
+          try {
+            const { CompanySettingsModel } = await import('../models/CompanySettings');
+            const settings = await CompanySettingsModel.getSettings();
+            
+            logger.info('📋 Configuración obtenida en AIService:', {
+              hasSettings: !!settings,
+              contactWhatsapp: settings?.contactWhatsapp
+            });
+            
+            if (settings?.contactWhatsapp) {
+              const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
+              const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
+              whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+              
+              logger.info('✅ Link de WhatsApp generado en AIService:', {
+                cleanNumber,
+                linkLength: whatsappLink.length
+              });
+            } else {
+              logger.warn('⚠️ No hay número de WhatsApp configurado');
+            }
+          } catch (settingsError) {
+            logger.error('❌ Error obteniendo configuración de WhatsApp:', settingsError);
+          }
+          
+          // Generar mensaje base según la razón
+          let baseMessage = '';
+          if (reason === 'complaint') {
+            baseMessage = 'Entiendo tu preocupación y quiero asegurarme de que recibas la mejor atención. Te voy a conectar con uno de nuestros especialistas que podrá ayudarte mejor. Un momento por favor...';
+          } else if (reason === 'client_request') {
+            baseMessage = 'Entendido. Apenas una persona esté disponible, te hablará de forma directa para atenderte personalmente.';
+          } else if (reason === 'complex_request') {
+            baseMessage = 'Tu consulta requiere atención especializada. Te voy a transferir con uno de nuestros expertos que podrá darte una respuesta más detallada.';
+          } else if (reason === 'low_confidence') {
+            baseMessage = 'Veo que hemos tenido algunas dificultades para entendernos. Permíteme conectarte con un agente humano que podrá asistirte de manera más personalizada.';
+          } else {
+            baseMessage = 'Te voy a conectar con uno de nuestros especialistas para brindarte la mejor atención posible. Un momento por favor...';
+          }
+          
+          // Combinar mensaje base con link de WhatsApp
+          const escalationMessage = baseMessage + whatsappLink;
           
           // Reemplazar el mensaje de AI con el mensaje de escalación
           aiResponse = escalationMessage;
@@ -411,7 +453,9 @@ FORMATO GENERAL:
           logger.info('✅ Mensaje de escalación con WhatsApp generado y aplicado', {
             conversationId,
             reason,
-            messageLength: escalationMessage.length
+            hasWhatsappLink: whatsappLink.length > 0,
+            messageLength: escalationMessage.length,
+            finalMessage: escalationMessage.substring(0, 200)
           });
         } catch (msgError) {
           logger.error('❌ Error generando mensaje de escalación con WhatsApp:', msgError);
