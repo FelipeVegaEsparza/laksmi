@@ -1192,30 +1192,16 @@ export class MessageRouter {
     // Obtener número de WhatsApp de la configuración
     let whatsappLink = '';
     try {
-      logger.info('🔍 Obteniendo configuración de WhatsApp para link de escalación...');
       const { CompanySettingsModel } = await import('../../models/CompanySettings');
       const settings = await CompanySettingsModel.getSettings();
       
-      logger.info('📋 Configuración obtenida:', {
-        hasSettings: !!settings,
-        contactWhatsapp: settings?.contactWhatsapp
-      });
-      
       if (settings?.contactWhatsapp) {
-        // Limpiar el número (quitar espacios, guiones, etc.)
         const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
         const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
         whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
-        
-        logger.info('✅ Link de WhatsApp generado:', {
-          cleanNumber,
-          linkLength: whatsappLink.length
-        });
-      } else {
-        logger.warn('⚠️ No hay número de WhatsApp configurado en company_settings');
       }
     } catch (error) {
-      logger.error('❌ Error obteniendo número de WhatsApp:', error);
+      logger.error('Error obteniendo número de WhatsApp para escalación:', error);
     }
 
     const baseMessage = (() => {
@@ -1243,15 +1229,7 @@ export class MessageRouter {
       }
     })();
 
-    const finalMessage = baseMessage + whatsappLink;
-    
-    logger.info('📤 Mensaje de escalación generado:', {
-      reason,
-      hasWhatsappLink: whatsappLink.length > 0,
-      messageLength: finalMessage.length
-    });
-
-    return finalMessage;
+    return baseMessage + whatsappLink;
   }
 
   /**
