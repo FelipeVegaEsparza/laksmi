@@ -227,25 +227,8 @@ FORMATO GENERAL:
       const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
       const confidence = this.calculateConfidence(completion, knowledgeContext);
 
-      // Si debe escalar Y la confianza es baja, crear escalación automática
-      let finalMessage = aiMessage;
-      if (shouldEscalate && conversationId) {
-        const escalationMessage = await this.createAutomaticEscalation(
-          conversationId,
-          userMessage,
-          aiMessage,
-          confidence,
-          !!knowledgeContext
-        );
-        
-        // Si se generó un mensaje de escalación, usarlo
-        if (escalationMessage) {
-          finalMessage = escalationMessage;
-        }
-      }
-
       return {
-        message: finalMessage,
+        message: aiMessage,
         usedKnowledgeBase: !!knowledgeContext,
         confidence,
         suggestedActions: shouldEscalate ? ['escalate'] : undefined,
@@ -332,10 +315,9 @@ FORMATO GENERAL:
     return Math.min(confidence, 1.0);
   }
 
-  /**
-   * Crear escalación automática cuando el bot no puede ayudar
-   * @returns El mensaje de escalación con link de WhatsApp, o undefined si no se pudo generar
-   */
+  // NOTA: Esta función ya no se usa. La escalación ahora se maneja completamente en MessageRouter
+  // para garantizar consistencia y que siempre se envíe el link de WhatsApp
+  /*
   private static async createAutomaticEscalation(
     conversationId: string,
     userMessage: string,
@@ -449,13 +431,9 @@ FORMATO GENERAL:
       }
       
       return undefined;
-      
-    } catch (error) {
-      logger.error('Error creating automatic escalation:', error);
-      // No lanzar error para no interrumpir el flujo
-      return undefined;
     }
   }
+  */
 
   /**
    * Fallback response when AI is not available
