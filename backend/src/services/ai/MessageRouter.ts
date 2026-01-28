@@ -1089,14 +1089,31 @@ export class MessageRouter {
         const { CompanySettingsModel } = await import('../../models/CompanySettings');
         const settings = await CompanySettingsModel.getSettings();
         
+        logger.info('🔍 Generating escalation message', {
+          channel,
+          hasSettings: !!settings,
+          hasWhatsapp: !!settings?.contactWhatsapp,
+          whatsappNumber: settings?.contactWhatsapp
+        });
+        
         if (settings?.contactWhatsapp) {
           const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
           const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
           whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\nhttps://wa.me/${cleanNumber}?text=${message}`;
+          
+          logger.info('✅ WhatsApp link generated', {
+            cleanNumber,
+            linkLength: whatsappLink.length,
+            link: whatsappLink
+          });
+        } else {
+          logger.warn('⚠️ No WhatsApp number configured in company_settings');
         }
       } catch (error) {
         logger.error('Error obteniendo número de WhatsApp para escalación:', error);
       }
+    } else {
+      logger.info('📱 Channel is not web, skipping WhatsApp link', { channel });
     }
 
     const baseMessage = (() => {
@@ -1124,7 +1141,19 @@ export class MessageRouter {
       }
     })();
 
-    return baseMessage + whatsappLink;
+    const finalMessage = baseMessage + whatsappLink;
+    
+    logger.info('📨 Final escalation message generated', {
+      reason,
+      channel,
+      baseMessageLength: baseMessage.length,
+      whatsappLinkLength: whatsappLink.length,
+      finalMessageLength: finalMessage.length,
+      hasWhatsappLink: whatsappLink.length > 0,
+      finalMessage: finalMessage.substring(0, 200) + '...'
+    });
+
+    return finalMessage;
   }
 
   /**
