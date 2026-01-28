@@ -503,6 +503,28 @@ export class MessageRouter {
         );
         logger.info(`Conversation escalated: ${conversation.id}`);
         
+        // 🔧 FIX: Reemplazar el mensaje de OpenAI con el mensaje del sistema que incluye el link de WhatsApp
+        // Solo si el canal es web
+        if (request.channel === 'web') {
+          const escalationMessageWithLink = await this.generateEscalationMessage('client_request', request.channel);
+          
+          // Actualizar el mensaje en la BD directamente
+          const db = (await import('../../config/database')).default;
+          await db('messages')
+            .where('id', aiMessage.id)
+            .update({ content: escalationMessageWithLink });
+          
+          // Actualizar el mensaje en la respuesta que se enviará al cliente
+          aiResponse.message = escalationMessageWithLink;
+          
+          logger.info('✅ Escalation message updated with WhatsApp link', {
+            conversationId: conversation.id,
+            messageId: aiMessage.id,
+            channel: request.channel,
+            messageLength: escalationMessageWithLink.length
+          });
+        }
+        
         // NO activar control humano automáticamente aquí
         // El control humano se activará cuando un agente real tome la conversación
         // Esto permite que el bot siga respondiendo hasta que un humano intervenga
