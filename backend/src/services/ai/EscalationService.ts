@@ -433,18 +433,47 @@ export class EscalationService {
   // Métodos privados de detección
 
   private static detectComplaint(message: string): boolean {
-    // ⚠️ IMPORTANTE: Solo detectar quejas REALES, no palabras comunes
-    // Removidas palabras que se usan en contextos normales: 'problema'
-    const complaintKeywords = [
-      'queja formal', 'mal servicio', 'muy insatisfecho', 'muy molesto',
-      'terrible servicio', 'horrible servicio', 'pésimo servicio', 
-      'fatal servicio', 'desastre de servicio',
-      'quiero reembolso', 'devolver dinero', 'cancelar todo',
-      'hablar con gerente', 'hablar con supervisor', 'quiero quejarme'
-    ];
-
+    // MEJORADO: Solo detectar quejas REALES con contexto negativo
+    // Removidas palabras que se usan en contextos normales
+    
     const lowerMessage = message.toLowerCase();
-    return complaintKeywords.some(keyword => lowerMessage.includes(keyword));
+    
+    // Nivel 1: Quejas explícitas (alta confianza)
+    const explicitComplaints = [
+      'queja formal', 'quiero quejarme', 'presentar una queja',
+      'hablar con gerente', 'hablar con supervisor', 'hablar con el encargado',
+      'quiero reembolso', 'devolver dinero', 'cancelar todo',
+      'demanda', 'abogado', 'denuncia'
+    ];
+    
+    if (explicitComplaints.some(keyword => lowerMessage.includes(keyword))) {
+      return true;
+    }
+    
+    // Nivel 2: Frases negativas sobre el servicio (requiere contexto)
+    const negativeServicePhrases = [
+      'mal servicio', 'pésimo servicio', 'horrible servicio',
+      'terrible servicio', 'fatal servicio', 'desastre de servicio'
+    ];
+    
+    if (negativeServicePhrases.some(phrase => lowerMessage.includes(phrase))) {
+      return true;
+    }
+    
+    // Nivel 3: Insatisfacción extrema (requiere intensificador)
+    const extremeUnsatisfaction = [
+      'muy insatisfecho', 'muy molesto', 'extremadamente molesto',
+      'totalmente insatisfecho', 'completamente decepcionado'
+    ];
+    
+    if (extremeUnsatisfaction.some(phrase => lowerMessage.includes(phrase))) {
+      return true;
+    }
+    
+    // NO detectar palabras sueltas como "problema", "mal", "error"
+    // Estas son muy comunes en contextos normales
+    
+    return false;
   }
 
   /**
