@@ -322,7 +322,7 @@ export class MessageRouter {
 
         if (escalationResult.success) {
           aiResponse = {
-            message: await this.generateEscalationMessage(escalationEvaluation.reason!),
+            message: await this.generateEscalationMessage(escalationEvaluation.reason!, request.channel),
             intent: nluResult.intent.name,
             entities: nluResult.entities,
             needsHumanEscalation: true,
@@ -470,6 +470,10 @@ export class MessageRouter {
           'AI confidence low or complex request'
         );
         logger.info(`Conversation escalated: ${conversation.id}`);
+        
+        // NO activar control humano automáticamente aquí
+        // El control humano se activará cuando un agente real tome la conversación
+        // Esto permite que el bot siga respondiendo hasta que un humano intervenga
       }
 
       // Cerrar conversación si terminó
@@ -1188,20 +1192,22 @@ export class MessageRouter {
   /**
    * Generar mensaje de escalación según la razón
    */
-  private static async generateEscalationMessage(reason: string): Promise<string> {
-    // Obtener número de WhatsApp de la configuración
+  private static async generateEscalationMessage(reason: string, channel: ConversationChannel = 'web'): Promise<string> {
+    // Obtener número de WhatsApp de la configuración SOLO si el canal es web
     let whatsappLink = '';
-    try {
-      const { CompanySettingsModel } = await import('../../models/CompanySettings');
-      const settings = await CompanySettingsModel.getSettings();
-      
-      if (settings?.contactWhatsapp) {
-        const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
-        const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
-        whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+    if (channel === 'web') {
+      try {
+        const { CompanySettingsModel } = await import('../../models/CompanySettings');
+        const settings = await CompanySettingsModel.getSettings();
+        
+        if (settings?.contactWhatsapp) {
+          const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
+          const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
+          whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+        }
+      } catch (error) {
+        logger.error('Error obteniendo número de WhatsApp para escalación:', error);
       }
-    } catch (error) {
-      logger.error('Error obteniendo número de WhatsApp para escalación:', error);
     }
 
     const baseMessage = (() => {
