@@ -1092,7 +1092,7 @@ export class MessageRouter {
         if (settings?.contactWhatsapp) {
           const cleanNumber = settings.contactWhatsapp.replace(/[^\d+]/g, '');
           const message = encodeURIComponent('Hola, vengo desde el sitio web. Necesito hablar con un humano');
-          whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\n${`https://wa.me/${cleanNumber}?text=${message}`}`;
+          whatsappLink = `\n\n📱 También puedes contactarnos directamente por WhatsApp:\nhttps://wa.me/${cleanNumber}?text=${message}`;
         }
       } catch (error) {
         logger.error('Error obteniendo número de WhatsApp para escalación:', error);
