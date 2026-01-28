@@ -1,6 +1,7 @@
 import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import logger from '../utils/logger';
+import db from '../config/database';
 
 console.log('🚨🚨🚨 WhatsAppWebService MODULE LOADED 🚨🚨🚨');
 
@@ -225,6 +226,58 @@ export class WhatsAppWebService {
       logger.info('Body:', message.body);
       logger.info('Type:', message.type);
       logger.info('ID:', message.id.id);
+
+      // 🔍 DETECTAR SI EL MENSAJE VIENE DEL NÚMERO DE LA CLÍNICA
+      // Si es así, activar control humano automáticamente
+      const { CompanySettingsModel } = await import('../models/CompanySettings');
+      const companySettings = await CompanySettingsModel.getSettings();
+      
+      if (companySettings?.contactWhatsapp) {
+        // Normalizar números para comparación (solo dígitos)
+        const clinicNumber = companySettings.contactWhatsapp.replace(/[^\d]/g, '');
+        const messageFromNumber = message.from.replace(/[^\d]/g, '');
+        
+        if (messageFromNumber === clinicNumber) {
+          logger.info('🧑 Mensaje detectado del número de la clínica - Activando control humano automáticamente');
+          
+          // Obtener conversación activa del cliente que está recibiendo el mensaje
+          // El mensaje viene DE la clínica, así que necesitamos encontrar la conversación
+          // donde la clínica está respondiendo
+          const { ConversationModel } = await import('../models/Conversation');
+          const { HumanTakeoverService } = await import('./ai/HumanTakeoverService');
+          
+          // Buscar conversaciones activas recientes en WhatsApp
+          const recentConversations = await db('conversations')
+            .where('channel', 'whatsapp')
+            .whereIn('status', ['active', 'escalated'])
+            .orderBy('updated_at', 'desc')
+            .limit(10);
+          
+          // Activar control humano en todas las conversaciones activas de WhatsApp
+          // para que el bot no responda mientras el humano está escribiendo
+          for (const conv of recentConversations) {
+            const session = HumanTakeoverService.getActiveSession(conv.id);
+            
+            if (session) {
+              // Ya hay sesión activa, solo actualizar timestamp
+              session.lastHumanMessageTime = new Date();
+              logger.info(`⏰ Timestamp actualizado para conversación ${conv.id}`);
+            } else {
+              // No hay sesión, crear una nueva
+              await HumanTakeoverService.startTakeover(
+                conv.id,
+                'whatsapp-human-agent', // ID genérico para agente humano de WhatsApp
+                undefined
+              );
+              logger.info(`✅ Control humano activado automáticamente para conversación ${conv.id}`);
+            }
+          }
+          
+          // No procesar este mensaje más (es del humano, no del cliente)
+          logger.info('⏭️  Mensaje de la clínica procesado, no se enviará al bot');
+          return;
+        }
+      }
 
       // Obtener información del contacto (con fallback por errores de versión de WA)
       let contact: any;
