@@ -30,7 +30,7 @@ import conversationRoutes from './routes/conversations';
 import escalationRoutes from './routes/escalations';
 import humanTakeoverRoutes from './routes/humanTakeover';
 import twilioRoutes from './routes/twilio';
-import whatsappWebRoutes from './routes/whatsappWeb';
+// WhatsApp Web routes removed - using Twilio WhatsApp API instead
 // ...
 
 import securityRoutes from './routes/security';
@@ -151,7 +151,7 @@ app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
 app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
-app.use(`/api/${config.apiVersion}/whatsapp-web`, whatsappWebRoutes);
+// WhatsApp Web routes removed - using Twilio WhatsApp API instead
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
 app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
 app.use(`/api/${config.apiVersion}/upload`, uploadRoutes); // UNA SOLA RUTA DE UPLOAD

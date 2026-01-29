@@ -130,16 +130,8 @@ async function startServer() {
       AlertService.initialize();
       logger.info('Alert service initialized');
 
-      // Inicializar WhatsApp Web automáticamente
-      logger.info('Initializing WhatsApp Web service...');
-      try {
-        const { WhatsAppWebService } = await import('./services/WhatsAppWebService');
-        await WhatsAppWebService.initialize();
-        logger.info('✅ WhatsApp Web initialization completed');
-      } catch (whatsappError) {
-        logger.error('❌ Error initializing WhatsApp Web:', whatsappError);
-        logger.warn('⚠️  WhatsApp Web can be started manually from dashboard');
-      }
+      // WhatsApp Web removed - using Twilio WhatsApp API instead
+      logger.info('✅ WhatsApp configured via Twilio API (no QR codes needed)');
 
       // Inicializar limpieza de eventos de seguridad
       setInterval(() => {
