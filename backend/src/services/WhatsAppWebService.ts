@@ -228,7 +228,9 @@ export class WhatsAppWebService {
       logger.info('ID:', message.id.id);
 
       // 🔍 DETECTAR SI EL MENSAJE VIENE DEL NÚMERO DE LA CLÍNICA
+      // ⚠️ TEMPORALMENTE DESHABILITADO PARA DEBUGGING
       // Si es así, activar control humano automáticamente
+      /* COMENTADO TEMPORALMENTE PARA DEBUGGING
       const { CompanySettingsModel } = await import('../models/CompanySettings');
       const companySettings = await CompanySettingsModel.getSettings();
       
@@ -278,6 +280,9 @@ export class WhatsAppWebService {
           return;
         }
       }
+      FIN DEL COMENTARIO TEMPORAL */
+      
+      logger.info('🤖 Control humano deshabilitado temporalmente - Bot responderá a todos los mensajes');
 
       // Obtener información del contacto (con fallback por errores de versión de WA)
       let contact: any;
