@@ -99,13 +99,30 @@ export default function ConversationsPage() {
     
     try {
       setSending(true)
+      
+      // Primero tomar control de la conversación si no está escalada
+      if (selectedConversation.status !== 'escalated') {
+        console.log('Tomando control de la conversación...')
+        await apiService.post(`/takeover/${selectedConversation.id}/start`)
+        // Actualizar el estado local de la conversación
+        setSelectedConversation({
+          ...selectedConversation,
+          status: 'escalated'
+        })
+      }
+      
+      // Luego enviar el mensaje
+      console.log('Enviando mensaje:', newMessage)
       await apiService.post(`/takeover/${selectedConversation.id}/message`, {
         content: newMessage
       })
+      
       setNewMessage('')
       fetchConversationMessages(selectedConversation.id)
-    } catch (error) {
+      fetchConversations() // Actualizar lista de conversaciones
+    } catch (error: any) {
       console.error('Error sending message:', error)
+      alert(`Error al enviar mensaje: ${error.message || 'Error desconocido'}`)
     } finally {
       setSending(false)
     }
@@ -296,7 +313,9 @@ export default function ConversationsPage() {
                 {selectedConversation.client?.name || 'Cliente desconocido'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {selectedConversation.client?.phone || 'Sin teléfono'}
+                {selectedConversation.status === 'escalated' 
+                  ? '🟢 Control humano activo' 
+                  : selectedConversation.client?.phone || 'Sin teléfono'}
               </Typography>
             </Box>
             <Chip 
@@ -375,45 +394,54 @@ export default function ConversationsPage() {
             sx={{ 
               p: 1.5, 
               display: 'flex', 
-              gap: 1, 
-              alignItems: 'flex-end',
+              flexDirection: 'column',
+              gap: 1,
               borderRadius: 0,
               bgcolor: '#f0f2f5',
             }}
           >
-            <TextField
-              fullWidth
-              multiline
-              maxRows={4}
-              placeholder="Escribe un mensaje..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={sending}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'white',
-                  borderRadius: 3,
-                },
-              }}
-            />
-            <IconButton
-              color="primary"
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim() || sending}
-              sx={{
-                bgcolor: '#00a884',
-                color: 'white',
-                '&:hover': {
-                  bgcolor: '#008f6f',
-                },
-                '&.Mui-disabled': {
-                  bgcolor: '#e0e0e0',
-                },
-              }}
-            >
-              <SendIcon />
-            </IconButton>
+            {selectedConversation.status !== 'escalated' && (
+              <Box sx={{ px: 1, py: 0.5, bgcolor: '#fff3cd', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  💡 Al enviar un mensaje, tomarás control de esta conversación automáticamente
+                </Typography>
+              </Box>
+            )}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+              <TextField
+                fullWidth
+                multiline
+                maxRows={4}
+                placeholder={sending ? "Enviando..." : "Escribe un mensaje..."}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={sending}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'white',
+                    borderRadius: 3,
+                  },
+                }}
+              />
+              <IconButton
+                color="primary"
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || sending}
+                sx={{
+                  bgcolor: '#00a884',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: '#008f6f',
+                  },
+                  '&.Mui-disabled': {
+                    bgcolor: '#e0e0e0',
+                  },
+                }}
+              >
+                <SendIcon />
+              </IconButton>
+            </Box>
           </Paper>
         </Box>
       ) : (
