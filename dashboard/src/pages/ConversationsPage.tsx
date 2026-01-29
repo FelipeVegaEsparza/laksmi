@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
-  Grid,
   Chip,
   TextField,
   MenuItem,
@@ -11,17 +10,13 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
+  ListItemButton,
   Avatar,
   Divider,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Tabs,
-  Tab,
+  IconButton,
   Paper,
+  Badge,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -30,72 +25,39 @@ import {
   Person as PersonIcon,
   SmartToy as AIIcon,
   Support as SupportIcon,
-  Refresh as RefreshIcon,
-  Warning as WarningIcon,
-  Stop as StopIcon,
-  Dashboard as DashboardIcon,
-  Chat as ChatIcon,
+  Send as SendIcon,
+  MoreVert as MoreVertIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material'
-import { format } from 'date-fns'
+import { format, isToday, isYesterday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Conversation, Message } from '@/types'
 import { apiService } from '@/services/apiService'
-import { useNotifications } from '@/contexts/NotificationContext'
-import { useConversationMonitor } from '@/hooks/useConversationMonitor'
-import DataTable, { Column } from '@/components/DataTable'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import ConversationMetrics from '@/components/ConversationMetrics'
-import ConversationAlerts from '@/components/ConversationAlerts'
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [total, setTotal] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [channelFilter, setChannelFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('active')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversationMessages, setConversationMessages] = useState<Message[]>([])
-  const [detailModalOpen, setDetailModalOpen] = useState(false)
-  const [takeoverModalOpen, setTakeoverModalOpen] = useState(false)
   const [newMessage, setNewMessage] = useState('')
-  const [currentTab, setCurrentTab] = useState(0)
-  
-  // Hook del monitor de conversaciones
-  const {
-    alerts,
-    clearAlerts,
-    removeAlert,
-  } = useConversationMonitor({
-    autoConnect: true,
-    refreshInterval: 30000
-  })
-  
-  useNotifications() // For future use
-  
-  const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    console.log(`${type.toUpperCase()}: ${message}`)
-  }
+  const [sending, setSending] = useState(false)
 
   const fetchConversations = async () => {
     try {
       setLoading(true)
       const params = {
-        page: page + 1,
-        limit: rowsPerPage,
         search: searchTerm,
         status: statusFilter,
-        channel: channelFilter,
+        limit: 100,
       }
       
       const response = await apiService.getConversations(params)
       setConversations(response?.data || [])
-      setTotal(response?.total || 0)
     } catch (error) {
       console.error('Error fetching conversations:', error)
-      showNotification('Error al cargar conversaciones', 'error')
     } finally {
       setLoading(false)
     }
@@ -107,251 +69,100 @@ export default function ConversationsPage() {
       setConversationMessages(Array.isArray(messages) ? messages : [])
     } catch (error) {
       console.error('Error fetching conversation messages:', error)
-      showNotification('Error al cargar mensajes', 'error')
       setConversationMessages([])
     }
   }
 
   useEffect(() => {
     fetchConversations()
-  }, [page, rowsPerPage, searchTerm, statusFilter, channelFilter])
+    const interval = setInterval(fetchConversations, 10000) // Refresh every 10s
+    return () => clearInterval(interval)
+  }, [searchTerm, statusFilter])
 
-  const handleViewConversation = (conversation: Conversation) => {
+  useEffect(() => {
+    if (selectedConversation) {
+      fetchConversationMessages(selectedConversation.id)
+      const interval = setInterval(() => {
+        fetchConversationMessages(selectedConversation.id)
+      }, 5000) // Refresh messages every 5s
+      return () => clearInterval(interval)
+    }
+  }, [selectedConversation])
+
+  const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation)
     fetchConversationMessages(conversation.id)
-    setDetailModalOpen(true)
-  }
-
-  const handleTakeoverConversation = (conversation: Conversation) => {
-    setSelectedConversation(conversation)
-    setTakeoverModalOpen(true)
-  }
-
-  const handleConfirmTakeover = async () => {
-    if (!selectedConversation) return
-    
-    try {
-      await apiService.post(`/takeover/${selectedConversation.id}/start`)
-      showNotification('Control de conversación tomado exitosamente', 'success')
-      setTakeoverModalOpen(false)
-      fetchConversations()
-    } catch (error) {
-      console.error('Error taking over conversation:', error)
-      showNotification('Error al tomar control de la conversación', 'error')
-    }
-  }
-
-  const handleEscalateConversation = async (conversation: Conversation, reason: string, priority: string) => {
-    try {
-      await apiService.post(`/escalations/conversation/${conversation.id}`, {
-        reason,
-        priority,
-        summary: `Escalación manual de conversación con ${conversation.client?.name}`
-      })
-      showNotification('Conversación escalada exitosamente', 'success')
-      fetchConversations()
-    } catch (error) {
-      console.error('Error escalating conversation:', error)
-      showNotification('Error al escalar conversación', 'error')
-    }
   }
 
   const handleSendMessage = async () => {
-    if (!selectedConversation || !newMessage.trim()) return
+    if (!selectedConversation || !newMessage.trim() || sending) return
     
     try {
+      setSending(true)
       await apiService.post(`/takeover/${selectedConversation.id}/message`, {
         content: newMessage
       })
       setNewMessage('')
       fetchConversationMessages(selectedConversation.id)
-      showNotification('Mensaje enviado correctamente', 'success')
     } catch (error) {
       console.error('Error sending message:', error)
-      showNotification('Error al enviar mensaje', 'error')
+    } finally {
+      setSending(false)
     }
   }
 
-  const handleEndTakeover = async () => {
-    if (!selectedConversation) return
-    
-    try {
-      await apiService.post(`/takeover/${selectedConversation.id}/end`, {
-        resolution: 'Conversación resuelta por agente humano'
-      })
-      showNotification('Control devuelto al sistema IA', 'success')
-      setDetailModalOpen(false)
-      fetchConversations()
-    } catch (error) {
-      console.error('Error ending takeover:', error)
-      showNotification('Error al finalizar control', 'error')
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
   }
 
-  const getStatusColor = (status: Conversation['status']) => {
-    switch (status) {
-      case 'active':
-        return 'success'
-      case 'closed':
-        return 'default'
-      case 'escalated':
-        return 'warning'
-      default:
-        return 'default'
+  const formatMessageTime = (date: Date) => {
+    const messageDate = new Date(date)
+    if (isToday(messageDate)) {
+      return format(messageDate, 'HH:mm', { locale: es })
+    } else if (isYesterday(messageDate)) {
+      return 'Ayer'
+    } else {
+      return format(messageDate, 'dd/MM/yyyy', { locale: es })
     }
   }
 
-  const getStatusLabel = (status: Conversation['status']) => {
-    switch (status) {
-      case 'active':
-        return 'Activa'
-      case 'closed':
-        return 'Cerrada'
-      case 'escalated':
-        return 'Escalada'
-      default:
-        return status
-    }
+  const getLastMessage = (conversation: Conversation) => {
+    // This would ideally come from the API
+    return 'Último mensaje...'
   }
-
-  const getChannelIcon = (channel: Conversation['channel']) => {
-    return channel === 'whatsapp' ? <WhatsAppIcon /> : <WebIcon />
-  }
-
-  const getSenderIcon = (senderType: Message['senderType']) => {
-    switch (senderType) {
-      case 'client':
-        return <PersonIcon />
-      case 'ai':
-        return <AIIcon />
-      case 'human':
-        return <SupportIcon />
-      default:
-        return <PersonIcon />
-    }
-  }
-
-  const columns: Column<Conversation>[] = [
-    {
-      id: 'client',
-      label: 'Cliente',
-      minWidth: 200,
-      format: (value: any) => value?.name || 'Cliente desconocido',
-    },
-    {
-      id: 'channel',
-      label: 'Canal',
-      minWidth: 100,
-      align: 'center',
-      format: (value: Conversation['channel']) => (
-        <Chip
-          icon={getChannelIcon(value)}
-          label={value === 'whatsapp' ? 'WhatsApp' : 'Web'}
-          size="small"
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Estado',
-      minWidth: 120,
-      align: 'center',
-      format: (value: Conversation['status']) => (
-        <Chip
-          label={getStatusLabel(value)}
-          color={getStatusColor(value)}
-          size="small"
-        />
-      ),
-    },
-    {
-      id: 'lastActivity',
-      label: 'Última Actividad',
-      minWidth: 180,
-      format: (value: Date) => format(new Date(value), 'dd/MM/yyyy HH:mm', { locale: es }),
-    },
-    {
-      id: 'createdAt',
-      label: 'Iniciada',
-      minWidth: 120,
-      format: (value: Date) => format(new Date(value), 'dd/MM/yyyy', { locale: es }),
-    },
-  ]
 
   if (loading && conversations.length === 0) {
     return <LoadingSpinner message="Cargando conversaciones..." />
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Monitor de Conversaciones
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={fetchConversations}
-        >
-          Actualizar
-        </Button>
-      </Box>
-
-      {/* Tabs para alternar entre métricas y conversaciones */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={currentTab}
-          onChange={(_, newValue) => setCurrentTab(newValue)}
-          indicatorColor="primary"
-          textColor="primary"
-        >
-          <Tab
-            icon={<DashboardIcon />}
-            label="Métricas en Tiempo Real"
-            iconPosition="start"
-          />
-          <Tab
-            icon={<ChatIcon />}
-            label="Lista de Conversaciones"
-            iconPosition="start"
-          />
-        </Tabs>
-      </Paper>
-
-      {/* Contenido según tab seleccionado */}
-      {currentTab === 0 && (
-        <Box>
-          {/* Alertas del sistema */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
-              <ConversationAlerts
-                alerts={alerts}
-                onRemoveAlert={removeAlert}
-                onClearAlerts={clearAlerts}
-                onAlertClick={() => {
-                  // Cambiar a tab de conversaciones y filtrar por la conversación
-                  setCurrentTab(1)
-                  // Aquí podrías agregar lógica para filtrar por conversación específica
-                }}
-              />
-            </Grid>
-          </Grid>
-
-          {/* Métricas en tiempo real */}
-          <ConversationMetrics refreshInterval={30000} />
+    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', bgcolor: '#f0f2f5' }}>
+      {/* Lista de Conversaciones (Izquierda) */}
+      <Paper 
+        sx={{ 
+          width: { xs: '100%', md: selectedConversation ? '35%' : '100%' },
+          display: { xs: selectedConversation ? 'none' : 'flex', md: 'flex' },
+          flexDirection: 'column',
+          borderRadius: 0,
+          borderRight: '1px solid #e0e0e0',
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ p: 2, bgcolor: '#00a884', color: 'white' }}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            Conversaciones
+          </Typography>
         </Box>
-      )}
 
-      {currentTab === 1 && (
-        <Box>
-
-      {/* Filters */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
+        {/* Filtros */}
+        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
           <TextField
             fullWidth
-            placeholder="Buscar conversaciones..."
+            size="small"
+            placeholder="Buscar conversación..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -361,226 +172,271 @@ export default function ConversationsPage() {
                 </InputAdornment>
               ),
             }}
+            sx={{ mb: 1 }}
           />
-        </Grid>
-        <Grid item xs={12} md={3}>
           <TextField
             fullWidth
+            size="small"
             select
-            label="Estado"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <MenuItem value="">Todos los estados</MenuItem>
-            <MenuItem value="active">Activa</MenuItem>
-            <MenuItem value="closed">Cerrada</MenuItem>
-            <MenuItem value="escalated">Escalada</MenuItem>
+            <MenuItem value="active">Activas</MenuItem>
+            <MenuItem value="escalated">Escaladas</MenuItem>
+            <MenuItem value="closed">Cerradas</MenuItem>
+            <MenuItem value="">Todas</MenuItem>
           </TextField>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <TextField
-            fullWidth
-            select
-            label="Canal"
-            value={channelFilter}
-            onChange={(e) => setChannelFilter(e.target.value)}
-          >
-            <MenuItem value="">Todos los canales</MenuItem>
-            <MenuItem value="whatsapp">WhatsApp</MenuItem>
-            <MenuItem value="web">Web</MenuItem>
-          </TextField>
-        </Grid>
-      </Grid>
-
-        {/* Conversations Table */}
-        <DataTable
-          columns={columns}
-          data={conversations}
-          total={total}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setPage}
-          onRowsPerPageChange={setRowsPerPage}
-          onView={handleViewConversation}
-          onEdit={handleTakeoverConversation}
-          loading={loading}
-          emptyMessage="No se encontraron conversaciones"
-          getRowId={(conversation) => conversation.id}
-        />
         </Box>
-      )}
 
-      {/* Conversation Detail Modal */}
-      <Dialog
-        open={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {selectedConversation && getChannelIcon(selectedConversation.channel)}
-              <Typography variant="h6">
-                Conversación con {selectedConversation?.client?.name}
+        {/* Lista de Conversaciones */}
+        <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
+          {conversations.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No hay conversaciones {statusFilter && `${statusFilter === 'active' ? 'activas' : statusFilter}`}
               </Typography>
             </Box>
-            {selectedConversation && (
-              <Chip
-                label={getStatusLabel(selectedConversation.status)}
-                color={getStatusColor(selectedConversation.status)}
-                size="small"
-              />
-            )}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ height: 400, overflow: 'auto', mb: 2 }}>
-            <List>
-              {conversationMessages.map((message, index) => (
-                <React.Fragment key={message.id}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: message.senderType === 'client' ? 'primary.main' : 'secondary.main' }}>
-                        {getSenderIcon(message.senderType)}
+          ) : (
+            conversations.map((conversation) => (
+              <React.Fragment key={conversation.id}>
+                <ListItemButton
+                  selected={selectedConversation?.id === conversation.id}
+                  onClick={() => handleSelectConversation(conversation)}
+                  sx={{
+                    py: 2,
+                    px: 2,
+                    '&.Mui-selected': {
+                      bgcolor: '#f0f2f5',
+                    },
+                    '&:hover': {
+                      bgcolor: '#f5f6f6',
+                    },
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Badge
+                      color={conversation.status === 'active' ? 'success' : conversation.status === 'escalated' ? 'warning' : 'default'}
+                      variant="dot"
+                      overlap="circular"
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    >
+                      <Avatar sx={{ bgcolor: '#00a884' }}>
+                        {conversation.channel === 'whatsapp' ? <WhatsAppIcon /> : <WebIcon />}
                       </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="subtitle2">
-                            {message.senderType === 'client' ? 'Cliente' : 
-                             message.senderType === 'ai' ? 'IA' : 'Agente Humano'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
+                    </Badge>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                          {conversation.client?.name || 'Cliente desconocido'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatMessageTime(conversation.lastActivity || conversation.createdAt)}
+                        </Typography>
+                      </Box>
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" noWrap>
+                          {getLastMessage(conversation)}
+                        </Typography>
+                        {conversation.status === 'escalated' && (
+                          <Chip 
+                            label="Escalada" 
+                            size="small" 
+                            color="warning" 
+                            sx={{ mt: 0.5, height: 20 }}
+                          />
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItemButton>
+                <Divider />
+              </React.Fragment>
+            ))
+          )}
+        </List>
+      </Paper>
+
+      {/* Chat (Derecha) */}
+      {selectedConversation ? (
+        <Box 
+          sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            bgcolor: '#efeae2',
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h100v100H0z\' fill=\'%23efeae2\'/%3E%3Cpath d=\'M0 0L50 50M50 50L100 0M0 100L50 50M50 50L100 100\' stroke=\'%23d9d9d9\' stroke-width=\'0.5\' opacity=\'0.1\'/%3E%3C/svg%3E")',
+          }}
+        >
+          {/* Chat Header */}
+          <Paper 
+            sx={{ 
+              p: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2,
+              borderRadius: 0,
+              bgcolor: '#f0f2f5',
+            }}
+          >
+            <IconButton 
+              sx={{ display: { xs: 'block', md: 'none' } }}
+              onClick={() => setSelectedConversation(null)}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Avatar sx={{ bgcolor: '#00a884' }}>
+              {selectedConversation.channel === 'whatsapp' ? <WhatsAppIcon /> : <WebIcon />}
+            </Avatar>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                {selectedConversation.client?.name || 'Cliente desconocido'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {selectedConversation.client?.phone || 'Sin teléfono'}
+              </Typography>
+            </Box>
+            <Chip 
+              label={selectedConversation.status === 'active' ? 'Activa' : selectedConversation.status === 'escalated' ? 'Escalada' : 'Cerrada'}
+              color={selectedConversation.status === 'active' ? 'success' : selectedConversation.status === 'escalated' ? 'warning' : 'default'}
+              size="small"
+            />
+            <IconButton>
+              <MoreVertIcon />
+            </IconButton>
+          </Paper>
+
+          {/* Mensajes */}
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            {conversationMessages.length === 0 ? (
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Typography color="text.secondary">
+                  No hay mensajes en esta conversación
+                </Typography>
+              </Box>
+            ) : (
+              conversationMessages.map((message) => {
+                const isClient = message.senderType === 'client'
+                const isAI = message.senderType === 'ai'
+                
+                return (
+                  <Box
+                    key={message.id}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: isClient ? 'flex-start' : 'flex-end',
+                      mb: 1,
+                    }}
+                  >
+                    <Paper
+                      sx={{
+                        maxWidth: '70%',
+                        p: 1.5,
+                        bgcolor: isClient ? 'white' : '#d9fdd3',
+                        borderRadius: 2,
+                        boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+                      }}
+                    >
+                      {!isClient && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          {isAI ? <AIIcon sx={{ fontSize: 14, color: '#00a884' }} /> : <SupportIcon sx={{ fontSize: 14, color: '#00a884' }} />}
+                          <Typography variant="caption" sx={{ color: '#00a884', fontWeight: 500 }}>
+                            {isAI ? 'Bot IA' : 'Agente'}
                           </Typography>
                         </Box>
-                      }
-                      secondary={
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {message.content}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                  {index < conversationMessages.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
+                      )}
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {message.content}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          display: 'block', 
+                          textAlign: 'right', 
+                          color: 'text.secondary',
+                          mt: 0.5,
+                          fontSize: '0.7rem',
+                        }}
+                      >
+                        {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                )
+              })
+            )}
           </Box>
-          
-          {selectedConversation?.status === 'escalated' && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-              <TextField
-                fullWidth
-                multiline
-                rows={2}
-                placeholder="Escribir mensaje..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
-              <Button
-                variant="contained"
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim()}
-                sx={{ minWidth: 100 }}
-              >
-                Enviar
-              </Button>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailModalOpen(false)}>Cerrar</Button>
-          
-          {/* Mostrar botones según el estado de la conversación */}
-          {selectedConversation?.status === 'active' && (
-            <>
-              <Button
-                color="warning"
-                startIcon={<WarningIcon />}
-                onClick={() => {
-                  handleEscalateConversation(selectedConversation, 'complex_request', 'medium')
-                  setDetailModalOpen(false)
-                }}
-              >
-                Escalar
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<SupportIcon />}
-                onClick={() => {
-                  setDetailModalOpen(false)
-                  handleTakeoverConversation(selectedConversation)
-                }}
-              >
-                Tomar Control
-              </Button>
-            </>
-          )}
-          
-          {/* Si está escalada, permitir tomar control o finalizar si ya lo tienes */}
-          {selectedConversation?.status === 'escalated' && (
-            <>
-              <Button
-                variant="contained"
-                startIcon={<SupportIcon />}
-                onClick={() => {
-                  setDetailModalOpen(false)
-                  handleTakeoverConversation(selectedConversation)
-                }}
-              >
-                Tomar Control
-              </Button>
-              <Button
-                color="success"
-                startIcon={<StopIcon />}
-                onClick={handleEndTakeover}
-              >
-                Finalizar Control
-              </Button>
-            </>
-          )}
-        </DialogActions>
-      </Dialog>
 
-      {/* Takeover Confirmation Modal */}
-      <Dialog
-        open={takeoverModalOpen}
-        onClose={() => setTakeoverModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <WarningIcon color="warning" />
-            Tomar Control de Conversación
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Al tomar control de esta conversación, el agente IA se desactivará y podrás responder directamente al cliente.
-          </Alert>
-          <Typography variant="body1">
-            ¿Estás seguro de que quieres tomar control de la conversación con{' '}
-            <strong>{selectedConversation?.client?.name}</strong>?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTakeoverModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={handleConfirmTakeover}
-            startIcon={<SupportIcon />}
+          {/* Input de Mensaje */}
+          <Paper 
+            sx={{ 
+              p: 1.5, 
+              display: 'flex', 
+              gap: 1, 
+              alignItems: 'flex-end',
+              borderRadius: 0,
+              bgcolor: '#f0f2f5',
+            }}
           >
-            Tomar Control
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={4}
+              placeholder="Escribe un mensaje..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={sending}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'white',
+                  borderRadius: 3,
+                },
+              }}
+            />
+            <IconButton
+              color="primary"
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sending}
+              sx={{
+                bgcolor: '#00a884',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: '#008f6f',
+                },
+                '&.Mui-disabled': {
+                  bgcolor: '#e0e0e0',
+                },
+              }}
+            >
+              <SendIcon />
+            </IconButton>
+          </Paper>
+        </Box>
+      ) : (
+        <Box 
+          sx={{ 
+            flex: 1,
+            display: { xs: 'none', md: 'flex' },
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#f8f9fa',
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <WhatsAppIcon sx={{ fontSize: 120, color: '#00a884', opacity: 0.3, mb: 2 }} />
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              Selecciona una conversación
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Elige una conversación de la lista para ver los mensajes
+            </Typography>
+          </Box>
+        </Box>
+      )}
     </Box>
   )
 }
