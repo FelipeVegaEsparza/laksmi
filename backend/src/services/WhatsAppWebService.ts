@@ -11,15 +11,38 @@ export class WhatsAppWebService {
   private static qrCode: string = '';
   private static connectionStatus: 'disconnected' | 'qr' | 'connected' | 'error' = 'disconnected';
   private static statusMessage: string = '';
+  private static readyTimeout: NodeJS.Timeout | null = null;
+  private static initializationAttempts: number = 0;
+  private static readonly MAX_INIT_ATTEMPTS = 3;
+  private static readonly READY_TIMEOUT_MS = 120000; // 2 minutos
 
   /**
    * Inicializar cliente de WhatsApp Web
    */
   static async initialize(): Promise<void> {
     try {
+      this.initializationAttempts++;
       logger.info('🚀 ========== INICIALIZANDO WHATSAPP WEB ==========');
       logger.info('Environment:', process.env.NODE_ENV);
       logger.info('Puppeteer path:', process.env.PUPPETEER_EXECUTABLE_PATH);
+      logger.info('Intento de inicialización:', this.initializationAttempts);
+
+      // Si ya hay un cliente, destruirlo primero
+      if (this.client) {
+        logger.info('Destruyendo cliente existente...');
+        try {
+          await this.client.destroy();
+        } catch (e) {
+          logger.warn('Error al destruir cliente existente:', e);
+        }
+        this.client = null;
+      }
+
+      // Limpiar timeout anterior si existe
+      if (this.readyTimeout) {
+        clearTimeout(this.readyTimeout);
+        this.readyTimeout = null;
+      }
 
       logger.info('Creating WhatsApp Client...');
       this.client = new Client({
@@ -66,6 +89,9 @@ export class WhatsAppWebService {
         // Mostrar QR en consola para debugging
         qrcode.generate(qr, { small: true });
         logger.info('==========================================');
+
+        // Iniciar timeout para detectar si nunca llega el evento "ready"
+        this.startReadyTimeout();
       });
 
       // Evento: Cliente autenticado (se dispara DESPUÉS de escanear el QR)
@@ -73,8 +99,11 @@ export class WhatsAppWebService {
         logger.info('🔐 ========== WHATSAPP AUTENTICADO ==========');
         logger.info('QR escaneado exitosamente, esperando conexión...');
         this.connectionStatus = 'connected';
-        this.statusMessage = 'Autenticación exitosa';
+        this.statusMessage = 'Autenticación exitosa, conectando...';
         logger.info('==========================================');
+
+        // Reiniciar timeout después de autenticación
+        this.startReadyTimeout();
       });
 
       // Evento: Cliente listo (se dispara cuando está completamente conectado)
@@ -82,6 +111,15 @@ export class WhatsAppWebService {
         logger.info('✅ ========== WHATSAPP WEB READY ==========');
         logger.info('Client is now ready to send and receive messages');
         logger.info('Message listener is active and waiting for messages');
+        
+        // Limpiar timeout ya que llegamos al estado ready
+        if (this.readyTimeout) {
+          clearTimeout(this.readyTimeout);
+          this.readyTimeout = null;
+        }
+
+        // Resetear contador de intentos
+        this.initializationAttempts = 0;
         
         // 🔧 PARCHE: Deshabilitar sendSeen para evitar errores con WhatsApp Web actualizado
         try {
@@ -124,6 +162,12 @@ export class WhatsAppWebService {
         this.connectionStatus = 'disconnected';
         this.statusMessage = `Desconectado: ${reason}`;
         this.qrCode = '';
+        
+        // Limpiar timeout
+        if (this.readyTimeout) {
+          clearTimeout(this.readyTimeout);
+          this.readyTimeout = null;
+        }
       });
 
       // Evento: Error de autenticación
@@ -131,6 +175,12 @@ export class WhatsAppWebService {
         logger.error('❌ Error de autenticación:', msg);
         this.connectionStatus = 'error';
         this.statusMessage = 'Error de autenticación. Intenta reconectar.';
+        
+        // Limpiar timeout
+        if (this.readyTimeout) {
+          clearTimeout(this.readyTimeout);
+          this.readyTimeout = null;
+        }
       });
 
       // Evento: Mensaje recibido
@@ -150,8 +200,59 @@ export class WhatsAppWebService {
       logger.error('❌ Error inicializando WhatsApp Web:', error);
       this.connectionStatus = 'error';
       this.statusMessage = 'Error al inicializar WhatsApp';
-      throw error;
+      
+      // Limpiar timeout
+      if (this.readyTimeout) {
+        clearTimeout(this.readyTimeout);
+        this.readyTimeout = null;
+      }
+
+      // Si no hemos alcanzado el máximo de intentos, intentar de nuevo
+      if (this.initializationAttempts < this.MAX_INIT_ATTEMPTS) {
+        logger.info(`🔄 Reintentando inicialización en 10 segundos... (Intento ${this.initializationAttempts}/${this.MAX_INIT_ATTEMPTS})`);
+        setTimeout(() => {
+          this.initialize().catch(err => {
+            logger.error('Error en reintento de inicialización:', err);
+          });
+        }, 10000);
+      } else {
+        logger.error('❌ Máximo de intentos de inicialización alcanzado. Por favor, revisa la configuración.');
+        throw error;
+      }
     }
+  }
+
+  /**
+   * Iniciar timeout para detectar si el evento "ready" nunca llega
+   */
+  private static startReadyTimeout(): void {
+    // Limpiar timeout anterior si existe
+    if (this.readyTimeout) {
+      clearTimeout(this.readyTimeout);
+    }
+
+    this.readyTimeout = setTimeout(() => {
+      if (!this.isReady) {
+        logger.error('⏰ ========== TIMEOUT: READY EVENT NEVER FIRED ==========');
+        logger.error('El cliente se autenticó pero nunca llegó al estado "ready"');
+        logger.error('Esto puede indicar:');
+        logger.error('1. Versión incompatible de whatsapp-web.js');
+        logger.error('2. Problemas con Puppeteer/Chromium en Docker');
+        logger.error('3. Sesión corrupta que necesita ser eliminada');
+        logger.error('========================================================');
+
+        this.connectionStatus = 'error';
+        this.statusMessage = 'Timeout: No se pudo conectar completamente. Intenta eliminar la sesión y reconectar.';
+
+        // Intentar reconectar automáticamente
+        if (this.initializationAttempts < this.MAX_INIT_ATTEMPTS) {
+          logger.info('🔄 Intentando reconexión automática...');
+          this.reconnect().catch(err => {
+            logger.error('Error en reconexión automática:', err);
+          });
+        }
+      }
+    }, this.READY_TIMEOUT_MS);
   }
 
   /**
@@ -417,6 +518,12 @@ export class WhatsAppWebService {
     try {
       logger.info('🔌 Desconectando WhatsApp...');
 
+      // Limpiar timeout si existe
+      if (this.readyTimeout) {
+        clearTimeout(this.readyTimeout);
+        this.readyTimeout = null;
+      }
+
       if (this.client) {
         logger.info('Destroying client...');
         await this.client.destroy();
@@ -428,6 +535,7 @@ export class WhatsAppWebService {
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado manualmente';
       this.qrCode = '';
+      this.initializationAttempts = 0;
 
       // Eliminar la sesión guardada para permitir conectar con otro número
       try {
@@ -453,11 +561,17 @@ export class WhatsAppWebService {
       });
 
       // Forzar desconexión aunque haya error
+      if (this.readyTimeout) {
+        clearTimeout(this.readyTimeout);
+        this.readyTimeout = null;
+      }
+      
       this.client = null;
       this.isReady = false;
       this.connectionStatus = 'disconnected';
       this.statusMessage = 'Desconectado (con errores)';
       this.qrCode = '';
+      this.initializationAttempts = 0;
 
       // Intentar eliminar sesión de todas formas
       try {
