@@ -167,33 +167,80 @@ export class HumanTakeoverService {
       // 📤 ENVIAR MENSAJE AL CLIENTE POR EL CANAL CORRESPONDIENTE
       if (conversation.channel === 'whatsapp') {
         try {
+          logger.info(`📤 Attempting to send human message via WhatsApp for conversation ${conversationId}`, {
+            conversationId,
+            clientId: conversation.clientId,
+            messageLength: content.length
+          });
+          
           const { TwilioService } = await import('../TwilioService');
           const { ClientModel } = await import('../../models/Client');
+          
+          // Verificar que TwilioService esté inicializado
+          const twilioConfig = TwilioService.getConfig();
+          logger.info(`🔧 Twilio config check:`, {
+            hasAccountSid: !!twilioConfig.accountSid,
+            accountSidPrefix: twilioConfig.accountSid?.substring(0, 5),
+            hasPhoneNumber: !!twilioConfig.phoneNumber,
+            phoneNumber: twilioConfig.phoneNumber
+          });
           
           // Obtener el cliente para conseguir su número de teléfono
           const client = await ClientModel.findById(conversation.clientId);
           
-          if (client && client.phone) {
-            logger.info(`Sending human message via Twilio to ${client.phone}`);
-            
-            const twilioResult = await TwilioService.sendWhatsAppMessage({
-              to: client.phone,
-              body: content,
-              mediaUrl
-            });
-            
-            if (!twilioResult.success) {
-              logger.error(`Failed to send WhatsApp message via Twilio: ${twilioResult.error}`);
-              // No fallar completamente, el mensaje ya está guardado en BD
-            } else {
-              logger.info(`WhatsApp message sent successfully via Twilio: ${twilioResult.messageSid}`);
-            }
-          } else {
-            logger.warn(`No phone number found for client ${conversation.clientId}`);
+          if (!client) {
+            logger.error(`❌ Client not found: ${conversation.clientId}`);
+            return {
+              success: false,
+              message: 'Cliente no encontrado - no se pudo enviar WhatsApp'
+            };
           }
-        } catch (twilioError) {
-          logger.error('Error sending message via Twilio:', twilioError);
-          // No fallar completamente, el mensaje ya está guardado en BD
+          
+          if (!client.phone) {
+            logger.error(`❌ Client ${conversation.clientId} has no phone number`);
+            return {
+              success: false,
+              message: 'Cliente sin número de teléfono - no se pudo enviar WhatsApp'
+            };
+          }
+          
+          logger.info(`📞 Sending WhatsApp message to client`, {
+            clientId: client.id,
+            clientName: client.name,
+            clientPhone: client.phone,
+            messagePreview: content.substring(0, 30) + '...'
+          });
+          
+          const twilioResult = await TwilioService.sendWhatsAppMessage({
+            to: client.phone,
+            body: content,
+            mediaUrl
+          });
+          
+          if (!twilioResult.success) {
+            logger.error(`❌ Failed to send WhatsApp message via Twilio:`, {
+              error: twilioResult.error,
+              clientPhone: client.phone,
+              clientId: client.id,
+              messageContent: content.substring(0, 50)
+            });
+            // No retornar error aquí, el mensaje ya se guardó en BD
+          } else {
+            logger.info(`✅ WhatsApp message sent successfully via Twilio`, {
+              messageSid: twilioResult.messageSid,
+              clientPhone: client.phone,
+              clientId: client.id,
+              clientName: client.name
+            });
+          }
+        } catch (twilioError: any) {
+          logger.error('❌ Error sending message via Twilio:', {
+            error: twilioError.message,
+            stack: twilioError.stack,
+            conversationId,
+            clientId: conversation.clientId
+          });
+          // No retornar error aquí, el mensaje ya se guardó en BD
         }
       }
 

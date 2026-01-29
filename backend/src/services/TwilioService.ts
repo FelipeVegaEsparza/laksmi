@@ -113,7 +113,15 @@ export class TwilioService {
     messageSid?: string;
     error?: string;
   }> {
+    logger.info('🔵 sendWhatsAppMessage called', {
+      to: message.to,
+      bodyLength: message.body.length,
+      hasMediaUrl: !!message.mediaUrl,
+      hasClient: !!this.client
+    });
+
     if (!this.client) {
+      logger.error('❌ Twilio client not initialized');
       return {
         success: false,
         error: 'Twilio client not initialized'
@@ -122,6 +130,7 @@ export class TwilioService {
 
     // Verificar rate limiting
     if (!this.checkRateLimit(message.to)) {
+      logger.warn('⚠️ Rate limit exceeded', { to: message.to });
       return {
         success: false,
         error: 'Rate limit exceeded for this number'
@@ -131,6 +140,13 @@ export class TwilioService {
     // Formatear número de teléfono
     const formattedTo = this.formatPhoneNumber(message.to);
     const formattedFrom = this.formatPhoneNumber(this.config.phoneNumber);
+
+    logger.info('📱 Phone numbers formatted', {
+      originalTo: message.to,
+      formattedTo,
+      originalFrom: this.config.phoneNumber,
+      formattedFrom
+    });
 
     let attempt = 0;
     while (attempt < this.RETRY_ATTEMPTS) {
@@ -146,12 +162,19 @@ export class TwilioService {
           messageOptions.mediaUrl = [message.mediaUrl];
         }
 
+        logger.info(`📤 Sending to Twilio API (attempt ${attempt + 1}/${this.RETRY_ATTEMPTS})`, {
+          from: messageOptions.from,
+          to: messageOptions.to,
+          bodyPreview: message.body.substring(0, 50) + '...'
+        });
+
         const twilioMessage = await this.client.messages.create(messageOptions);
 
-        logger.info(`WhatsApp message sent successfully: ${twilioMessage.sid}`, {
+        logger.info(`✅ WhatsApp message sent successfully: ${twilioMessage.sid}`, {
           to: formattedTo,
           messageLength: message.body.length,
-          hasMedia: !!message.mediaUrl
+          hasMedia: !!message.mediaUrl,
+          status: twilioMessage.status
         });
 
         return {
@@ -161,16 +184,19 @@ export class TwilioService {
 
       } catch (error: any) {
         attempt++;
-        logger.error(`Attempt ${attempt} failed to send WhatsApp message:`, {
+        logger.error(`❌ Attempt ${attempt} failed to send WhatsApp message:`, {
           error: error.message,
           code: error.code,
-          to: formattedTo
+          status: error.status,
+          moreInfo: error.moreInfo,
+          to: formattedTo,
+          attempt: `${attempt}/${this.RETRY_ATTEMPTS}`
         });
 
         if (attempt >= this.RETRY_ATTEMPTS) {
           return {
             success: false,
-            error: `Failed after ${this.RETRY_ATTEMPTS} attempts: ${error.message}`
+            error: `Failed after ${this.RETRY_ATTEMPTS} attempts: ${error.message} (Code: ${error.code || 'unknown'})`
           };
         }
 
@@ -422,10 +448,21 @@ export class TwilioService {
     
     // Agregar código de país si no está presente
     if (!formatted.startsWith('+')) {
-      if (formatted.startsWith('1')) {
+      // Si empieza con 56 (Chile), agregar +
+      if (formatted.startsWith('56')) {
         formatted = '+' + formatted;
-      } else {
-        formatted = '+1' + formatted; // Asumir US por defecto
+      }
+      // Si empieza con 9 (número móvil chileno sin código de país)
+      else if (formatted.startsWith('9') && formatted.length === 9) {
+        formatted = '+56' + formatted;
+      }
+      // Si empieza con 1 (US/Canada)
+      else if (formatted.startsWith('1')) {
+        formatted = '+' + formatted;
+      }
+      // Por defecto, asumir Chile
+      else {
+        formatted = '+56' + formatted;
       }
     }
     
