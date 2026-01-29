@@ -144,6 +144,15 @@ export class HumanTakeoverService {
         };
       }
 
+      // Obtener información de la conversación para enviar por el canal correcto
+      const conversation = await ConversationModel.findById(conversationId);
+      if (!conversation) {
+        return {
+          success: false,
+          message: 'Conversación no encontrada'
+        };
+      }
+
       // Enviar mensaje
       const savedMessage = await ConversationModel.addMessage(conversationId, {
         senderType: 'human',
@@ -154,6 +163,39 @@ export class HumanTakeoverService {
           timestamp: new Date().toISOString()
         }
       });
+
+      // 📤 ENVIAR MENSAJE AL CLIENTE POR EL CANAL CORRESPONDIENTE
+      if (conversation.channel === 'whatsapp') {
+        try {
+          const { TwilioService } = await import('../TwilioService');
+          const { ClientModel } = await import('../../models/Client');
+          
+          // Obtener el cliente para conseguir su número de teléfono
+          const client = await ClientModel.findById(conversation.clientId);
+          
+          if (client && client.phone) {
+            logger.info(`Sending human message via Twilio to ${client.phone}`);
+            
+            const twilioResult = await TwilioService.sendWhatsAppMessage({
+              to: client.phone,
+              body: content,
+              mediaUrl
+            });
+            
+            if (!twilioResult.success) {
+              logger.error(`Failed to send WhatsApp message via Twilio: ${twilioResult.error}`);
+              // No fallar completamente, el mensaje ya está guardado en BD
+            } else {
+              logger.info(`WhatsApp message sent successfully via Twilio: ${twilioResult.messageSid}`);
+            }
+          } else {
+            logger.warn(`No phone number found for client ${conversation.clientId}`);
+          }
+        } catch (twilioError) {
+          logger.error('Error sending message via Twilio:', twilioError);
+          // No fallar completamente, el mensaje ya está guardado en BD
+        }
+      }
 
       // Actualizar contexto con el nuevo mensaje
       const updatedContext = await ContextManager.addMessageToContext(conversationId, savedMessage);
@@ -168,7 +210,8 @@ export class HumanTakeoverService {
         humanAgentId,
         messageLength: content.length,
         hasMedia: !!mediaUrl,
-        lastHumanMessageTime: session.lastHumanMessageTime
+        lastHumanMessageTime: session.lastHumanMessageTime,
+        channel: conversation.channel
       });
 
       return {
