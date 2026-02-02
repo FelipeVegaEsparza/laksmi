@@ -31,12 +31,16 @@ import {
   Send as SendIcon,
   MoreVert as MoreVertIcon,
   ArrowBack as ArrowBackIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material'
 import { format, isToday, isYesterday } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Conversation, Message } from '@/types'
+import { Conversation, Message, Client, ClientFormData } from '@/types'
 import { apiService } from '@/services/apiService'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ClientForm from '@/components/ClientForm'
+import FormModal from '@/components/FormModal'
+import { useNotifications } from '@/contexts/NotificationContext'
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -50,6 +54,12 @@ export default function ConversationsPage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const originalTitleRef = React.useRef<string>('')
   const [aiEnabled, setAiEnabled] = useState<Record<string, boolean>>({}) // Track AI status per conversation
+
+  // Client editing state
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [clientModalOpen, setClientModalOpen] = useState(false)
+
+  const { showNotification } = useNotifications()
 
   // Guardar el título original al montar
   useEffect(() => {
@@ -148,17 +158,50 @@ export default function ConversationsPage() {
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation)
-    fetchConversationMessages(conversation.id)
+    setConversationMessages([])
 
-    // Inicializar estado de AI basado en el status de la conversación
-    // Si está escalada, significa que hay control humano activo (AI desactivada)
-    if (!(conversation.id in aiEnabled)) {
-      setAiEnabled(prev => ({
-        ...prev,
-        [conversation.id]: conversation.status !== 'escalated'
-      }))
+    // Resetear contador de no leídos al seleccionar conversación
+    setUnreadCount(0)
+  }
+
+  const handleEditClient = () => {
+    if (selectedConversation?.client) {
+      setEditingClient(selectedConversation.client)
+      setClientModalOpen(true)
     }
   }
+
+  const handleSaveClient = async (formData: ClientFormData) => {
+    try {
+      if (editingClient) {
+        await apiService.put(`/clients/${editingClient.id}`, formData)
+        showNotification('Cliente actualizado correctamente', 'success')
+
+        // Actualizar conversación seleccionada con los nuevos datos
+        if (selectedConversation && selectedConversation.client?.id === editingClient.id) {
+          const updatedClient = {
+            ...selectedConversation.client,
+            ...formData,
+            // Asegurarse de parsear arrays si el backend los devuelve como tal
+            allergies: Array.isArray(formData.allergies) ? formData.allergies : [],
+            preferences: Array.isArray(formData.preferences) ? formData.preferences : []
+          }
+
+          setSelectedConversation({
+            ...selectedConversation,
+            client: updatedClient as Client
+          })
+        }
+
+        setClientModalOpen(false)
+        fetchConversations() // Recargar lista para ver cambios
+      }
+    } catch (error) {
+      console.error('Error saving client:', error)
+      showNotification('Error al actualizar cliente', 'error')
+    }
+  }
+
 
   const handleToggleAI = async (conversationId: string, enabled: boolean) => {
     try {
@@ -362,6 +405,11 @@ export default function ConversationsPage() {
                     }
                     secondary={
                       <Box>
+                        {conversation.client?.phone && (
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                            {conversation.client.phone}
+                          </Typography>
+                        )}
                         <Typography variant="body2" color="text.secondary" noWrap>
                           {getLastMessage(conversation)}
                         </Typography>
@@ -416,13 +464,17 @@ export default function ConversationsPage() {
               {selectedConversation.channel === 'whatsapp' ? <WhatsAppIcon /> : <WebIcon />}
             </Avatar>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                {selectedConversation.client?.name || 'Cliente desconocido'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                  {selectedConversation.client?.name || 'Cliente desconocido'}
+                </Typography>
+                <IconButton size="small" onClick={handleEditClient}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
               <Typography variant="caption" color="text.secondary">
-                {selectedConversation.status === 'escalated'
-                  ? '🙋 Control humano activo'
-                  : selectedConversation.client?.phone || 'Sin teléfono'}
+                {selectedConversation.status === 'escalated' ? '🙋 Control humano activo' : '🤖 IA activa'}
+                {selectedConversation.client?.phone && ` • ${selectedConversation.client.phone}`}
               </Typography>
             </Box>
 
@@ -595,6 +647,20 @@ export default function ConversationsPage() {
           </Box>
         </Box>
       )}
+
+      {/* Edit Client Modal */}
+      <FormModal
+        open={clientModalOpen}
+        onClose={() => setClientModalOpen(false)}
+        title="Editar Cliente"
+        maxWidth="md"
+      >
+        <ClientForm
+          client={editingClient}
+          onSave={handleSaveClient}
+          onCancel={() => setClientModalOpen(false)}
+        />
+      </FormModal>
     </Box>
   )
 }

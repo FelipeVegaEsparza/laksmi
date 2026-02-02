@@ -9,6 +9,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => void
   markAllAsRead: () => void
   clearNotification: (id: string) => void
+  showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -128,6 +129,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dispatch({ type: 'CLEAR_NOTIFICATION', payload: id })
   }
 
+  const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const notification: Notification = {
+      id: Date.now().toString(),
+      type: type as 'info' | 'warning' | 'success' | 'error',
+      title: type === 'error' ? 'Error' : type === 'warning' ? 'Advertencia' : type === 'success' ? 'Éxito' : 'Información',
+      message,
+      timestamp: new Date(),
+      read: false,
+    }
+    dispatch({ type: 'ADD_NOTIFICATION', payload: notification })
+  }
+
   const unreadCount = state.notifications.filter(n => !n.read).length
 
   const value: NotificationContextType = {
@@ -136,6 +149,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     markAsRead,
     markAllAsRead,
     clearNotification,
+    showNotification,
   }
 
   return (
