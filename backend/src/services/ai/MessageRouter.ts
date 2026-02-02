@@ -541,6 +541,7 @@ export class MessageRouter {
       return {
         response: aiResponse,
         conversationId: conversation.id,
+        clientId: client.id, // Devolver el clientId real de la BD
         messageId: aiMessage.id,
         processingTime
       };

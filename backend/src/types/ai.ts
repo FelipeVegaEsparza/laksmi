@@ -184,6 +184,7 @@ export interface ProcessMessageRequest {
 export interface ProcessMessageResponse {
   response: AIResponse;
   conversationId: string;
+  clientId: string; // ID real del cliente en la BD
   messageId: string;
   processingTime: number;
 }

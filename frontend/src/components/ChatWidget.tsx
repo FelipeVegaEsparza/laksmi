@@ -217,7 +217,7 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La API devuelve { response: { message: string, ... }, conversationId, messageId, processingTime }
+        // La API devuelve { response: { message: string, ... }, conversationId, clientId, messageId, processingTime }
         if ((response as any).response?.message) {
           messageContent = (response as any).response.message;
           console.log('✅ Extracted message:', messageContent);
@@ -233,6 +233,18 @@ const ChatWidget = () => {
         if (convId) {
           setConversationId(convId);
           console.log('💬 Conversation ID set:', convId);
+        }
+
+        // Guardar clientId real si viene en la respuesta
+        const realClientId = (response as any).data?.clientId || (response as any).clientId;
+        if (realClientId && realClientId !== clientId) {
+          console.log('🔄 Updating clientId from temporary to real:', { old: clientId, new: realClientId });
+          localStorage.setItem('chat_client_id', realClientId);
+          // Actualizar el contexto si está disponible
+          if (chatContext?.clientId !== realClientId) {
+            // El contexto se actualizará en el próximo render
+            window.location.reload(); // Recargar para actualizar el contexto
+          }
         }
       }
       
@@ -289,7 +301,7 @@ const ChatWidget = () => {
       if (typeof response === 'string') {
         messageContent = response;
       } else if (response && typeof response === 'object') {
-        // La API devuelve { response: { message: string, ... }, conversationId, messageId, processingTime }
+        // La API devuelve { response: { message: string, ... }, conversationId, clientId, messageId, processingTime }
         if ((response as any).response?.message) {
           messageContent = (response as any).response.message;
         } else if ((response as any).data?.response?.message) {
@@ -303,6 +315,13 @@ const ChatWidget = () => {
         if (convId) {
           setConversationId(convId);
           console.log('💬 Conversation ID set:', convId);
+        }
+
+        // Guardar clientId real si viene en la respuesta
+        const realClientId = (response as any).data?.clientId || (response as any).clientId;
+        if (realClientId && realClientId !== clientId) {
+          console.log('🔄 Updating clientId from temporary to real:', { old: clientId, new: realClientId });
+          localStorage.setItem('chat_client_id', realClientId);
         }
       }
       
