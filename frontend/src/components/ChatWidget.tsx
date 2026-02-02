@@ -30,6 +30,37 @@ const ChatWidget = () => {
   const [lastMessageTimestamp, setLastMessageTimestamp] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const originalTitleRef = useRef<string>('');
+
+  // Guardar el título original al montar
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      originalTitleRef.current = document.title;
+    }
+  }, []);
+
+  // Actualizar título de la pestaña cuando hay mensajes no leídos
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    if (unreadCount > 0 && (!isOpen || isMinimized)) {
+      document.title = `(${unreadCount}) ${originalTitleRef.current}`;
+    } else {
+      document.title = originalTitleRef.current;
+    }
+
+    return () => {
+      document.title = originalTitleRef.current;
+    };
+  }, [unreadCount, isOpen, isMinimized]);
+
+  // Resetear contador cuando se abre el chat
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      setUnreadCount(0);
+    }
+  }, [isOpen, isMinimized]);
 
   // Función para convertir URLs en links clicables
   const linkifyText = (text: string): string => {
@@ -98,6 +129,12 @@ const ChatWidget = () => {
             
             if (uniqueNewMessages.length > 0) {
               console.log('📨 New messages received from polling:', uniqueNewMessages.length);
+              
+              // Incrementar contador de no leídos si el chat está cerrado o minimizado
+              if (!isOpen || isMinimized) {
+                setUnreadCount(prev => prev + uniqueNewMessages.length);
+              }
+              
               // Actualizar timestamp del último mensaje
               const latestMessage = uniqueNewMessages[uniqueNewMessages.length - 1];
               setLastMessageTimestamp(latestMessage.timestamp.toISOString());
@@ -374,13 +411,21 @@ const ChatWidget = () => {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={toggleChat}
-          className="text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110"
+          className="text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 relative"
           style={{ backgroundColor: themeColors.primary }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = themeColors.primaryHover}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = themeColors.primary}
           aria-label="Abrir chat"
         >
           <MessageCircle className="h-6 w-6" />
+          {unreadCount > 0 && (
+            <span 
+              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+              style={{ minWidth: '20px' }}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
       </div>
     );

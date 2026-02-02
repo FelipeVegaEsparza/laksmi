@@ -44,6 +44,58 @@ export default function ConversationsPage() {
   const [conversationMessages, setConversationMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [previousMessageCount, setPreviousMessageCount] = useState(0)
+  const originalTitleRef = React.useRef<string>('')
+
+  // Guardar el título original al montar
+  useEffect(() => {
+    originalTitleRef.current = document.title
+  }, [])
+
+  // Actualizar título de la pestaña cuando hay mensajes no leídos
+  useEffect(() => {
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) ${originalTitleRef.current}`
+    } else {
+      document.title = originalTitleRef.current
+    }
+
+    return () => {
+      document.title = originalTitleRef.current
+    }
+  }, [unreadCount])
+
+  // Detectar nuevos mensajes en la conversación seleccionada
+  useEffect(() => {
+    if (conversationMessages.length > previousMessageCount && previousMessageCount > 0) {
+      const newMessagesCount = conversationMessages.length - previousMessageCount
+      // Solo contar mensajes del cliente o AI como no leídos
+      const newClientMessages = conversationMessages
+        .slice(-newMessagesCount)
+        .filter(msg => msg.senderType === 'client' || msg.senderType === 'ai')
+      
+      if (newClientMessages.length > 0) {
+        setUnreadCount(prev => prev + newClientMessages.length)
+      }
+    }
+    setPreviousMessageCount(conversationMessages.length)
+  }, [conversationMessages])
+
+  // Resetear contador cuando el usuario interactúa con la página
+  useEffect(() => {
+    const resetUnreadCount = () => {
+      setUnreadCount(0)
+    }
+
+    window.addEventListener('focus', resetUnreadCount)
+    window.addEventListener('click', resetUnreadCount)
+    
+    return () => {
+      window.removeEventListener('focus', resetUnreadCount)
+      window.removeEventListener('click', resetUnreadCount)
+    }
+  }, [])
 
   const fetchConversations = async () => {
     try {
