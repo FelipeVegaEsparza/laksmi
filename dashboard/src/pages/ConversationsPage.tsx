@@ -45,7 +45,6 @@ export default function ConversationsPage() {
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [previousMessageCount, setPreviousMessageCount] = useState(0)
   const originalTitleRef = React.useRef<string>('')
 
   // Guardar el título original al montar
@@ -65,22 +64,6 @@ export default function ConversationsPage() {
       document.title = originalTitleRef.current
     }
   }, [unreadCount])
-
-  // Detectar nuevos mensajes en la conversación seleccionada
-  useEffect(() => {
-    if (conversationMessages.length > previousMessageCount && previousMessageCount > 0) {
-      const newMessagesCount = conversationMessages.length - previousMessageCount
-      // Solo contar mensajes del cliente o AI como no leídos
-      const newClientMessages = conversationMessages
-        .slice(-newMessagesCount)
-        .filter(msg => msg.senderType === 'client' || msg.senderType === 'ai')
-      
-      if (newClientMessages.length > 0) {
-        setUnreadCount(prev => prev + newClientMessages.length)
-      }
-    }
-    setPreviousMessageCount(conversationMessages.length)
-  }, [conversationMessages])
 
   // Resetear contador cuando el usuario interactúa con la página
   useEffect(() => {
@@ -118,7 +101,25 @@ export default function ConversationsPage() {
   const fetchConversationMessages = async (conversationId: string) => {
     try {
       const messages = await apiService.get<Message[]>(`/conversations/${conversationId}/messages`)
-      setConversationMessages(Array.isArray(messages) ? messages : [])
+      const newMessages = Array.isArray(messages) ? messages : []
+      
+      // Detectar mensajes nuevos comparando con el estado anterior
+      if (conversationMessages.length > 0 && newMessages.length > conversationMessages.length) {
+        const newMessagesCount = newMessages.length - conversationMessages.length
+        const recentMessages = newMessages.slice(-newMessagesCount)
+        
+        // Solo contar mensajes del cliente o AI como no leídos (no los del agente)
+        const unreadMessages = recentMessages.filter(msg => 
+          msg.senderType === 'client' || msg.senderType === 'ai'
+        )
+        
+        if (unreadMessages.length > 0) {
+          console.log('🔔 New unread messages detected:', unreadMessages.length)
+          setUnreadCount(prev => prev + unreadMessages.length)
+        }
+      }
+      
+      setConversationMessages(newMessages)
     } catch (error) {
       console.error('Error fetching conversation messages:', error)
       setConversationMessages([])

@@ -99,8 +99,8 @@ const ChatWidget = () => {
 
   // Polling para obtener mensajes nuevos cuando hay una conversación activa
   useEffect(() => {
-    if (!conversationId || !isOpen || isMinimized) {
-      // Limpiar polling si no hay conversación o el chat está cerrado/minimizado
+    if (!conversationId) {
+      // Limpiar polling si no hay conversación
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
@@ -129,10 +129,14 @@ const ChatWidget = () => {
             
             if (uniqueNewMessages.length > 0) {
               console.log('📨 New messages received from polling:', uniqueNewMessages.length);
+              console.log('📊 Chat state - isOpen:', isOpen, 'isMinimized:', isMinimized);
               
               // Incrementar contador de no leídos si el chat está cerrado o minimizado
-              if (!isOpen || isMinimized) {
-                setUnreadCount(prev => prev + uniqueNewMessages.length);
+              // Solo contar mensajes del AI/agente, no los del usuario
+              const aiMessages = uniqueNewMessages.filter(m => m.sender === 'ai');
+              if ((!isOpen || isMinimized) && aiMessages.length > 0) {
+                console.log('🔔 Incrementing unread count by:', aiMessages.length);
+                setUnreadCount(prev => prev + aiMessages.length);
               }
               
               // Actualizar timestamp del último mensaje
@@ -160,7 +164,7 @@ const ChatWidget = () => {
         pollingIntervalRef.current = null;
       }
     };
-  }, [conversationId, isOpen, isMinimized, lastMessageTimestamp]);
+  }, [conversationId, lastMessageTimestamp, isOpen, isMinimized]);
 
   const loadConversationHistory = async (clientId: string) => {
     try {
