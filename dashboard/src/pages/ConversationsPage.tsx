@@ -17,6 +17,9 @@ import {
   IconButton,
   Paper,
   Badge,
+  Switch,
+  FormControlLabel,
+  Tooltip,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -46,6 +49,7 @@ export default function ConversationsPage() {
   const [sending, setSending] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const originalTitleRef = React.useRef<string>('')
+  const [aiEnabled, setAiEnabled] = useState<Record<string, boolean>>({}) // Track AI status per conversation
 
   // Guardar el título original al montar
   useEffect(() => {
@@ -145,6 +149,49 @@ export default function ConversationsPage() {
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation)
     fetchConversationMessages(conversation.id)
+    
+    // Inicializar estado de AI basado en el status de la conversación
+    // Si está escalada, significa que hay control humano activo (AI desactivada)
+    if (!(conversation.id in aiEnabled)) {
+      setAiEnabled(prev => ({
+        ...prev,
+        [conversation.id]: conversation.status !== 'escalated'
+      }))
+    }
+  }
+
+  const handleToggleAI = async (conversationId: string, enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Activar AI - liberar control humano
+        await apiService.post(`/takeover/${conversationId}/release`)
+        console.log('✅ AI activada para conversación:', conversationId)
+      } else {
+        // Desactivar AI - tomar control humano
+        await apiService.post(`/takeover/${conversationId}/start`)
+        console.log('🙋 Control humano activado para conversación:', conversationId)
+      }
+      
+      // Actualizar estado local
+      setAiEnabled(prev => ({
+        ...prev,
+        [conversationId]: enabled
+      }))
+      
+      // Actualizar la conversación en la lista
+      if (selectedConversation && selectedConversation.id === conversationId) {
+        setSelectedConversation({
+          ...selectedConversation,
+          status: enabled ? 'active' : 'escalated'
+        })
+      }
+      
+      // Refrescar lista de conversaciones
+      fetchConversations()
+    } catch (error) {
+      console.error('Error toggling AI:', error)
+      alert('Error al cambiar el estado de la IA')
+    }
   }
 
   const handleSendMessage = async () => {
@@ -162,6 +209,11 @@ export default function ConversationsPage() {
           ...selectedConversation,
           status: 'escalated'
         })
+        // Desactivar AI automáticamente
+        setAiEnabled(prev => ({
+          ...prev,
+          [selectedConversation.id]: false
+        }))
       }
       
       // Luego enviar el mensaje
@@ -367,10 +419,33 @@ export default function ConversationsPage() {
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {selectedConversation.status === 'escalated' 
-                  ? '🟢 Control humano activo' 
+                  ? '🙋 Control humano activo' 
                   : selectedConversation.client?.phone || 'Sin teléfono'}
               </Typography>
             </Box>
+            
+            {/* AI Toggle Switch */}
+            <Tooltip title={aiEnabled[selectedConversation.id] ? "La IA está respondiendo automáticamente" : "Control humano activo - La IA no responderá"}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={aiEnabled[selectedConversation.id] ?? (selectedConversation.status !== 'escalated')}
+                    onChange={(e) => handleToggleAI(selectedConversation.id, e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                      {aiEnabled[selectedConversation.id] ?? (selectedConversation.status !== 'escalated') ? '🤖 IA' : '🙋 Humano'}
+                    </Typography>
+                  </Box>
+                }
+                labelPlacement="start"
+                sx={{ m: 0 }}
+              />
+            </Tooltip>
+            
             <Chip 
               label={selectedConversation.status === 'active' ? 'Activa' : selectedConversation.status === 'escalated' ? 'Escalada' : 'Cerrada'}
               color={selectedConversation.status === 'active' ? 'success' : selectedConversation.status === 'escalated' ? 'warning' : 'default'}
