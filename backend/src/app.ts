@@ -46,6 +46,7 @@ import contactRoutes from './routes/contact';
 import settingsRoutes from './routes/settings';
 import legalPagesRoutes from './routes/legalPages';
 import popupRoutes from './routes/popups';
+import diagnosticoRoutes from './routes/diagnostico';
 
 console.log('🚨🚨🚨 APP MODULE LOADED 🚨🚨🚨');
 
@@ -165,6 +166,7 @@ app.use(`/api/${config.apiVersion}/contact`, contactRoutes);
 app.use(`/api/${config.apiVersion}/settings`, settingsRoutes);
 app.use(`/api/${config.apiVersion}/legal-pages`, legalPagesRoutes);
 app.use(`/api/${config.apiVersion}/popups`, popupRoutes);
+app.use(`/api/${config.apiVersion}/diagnostico`, diagnosticoRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {
