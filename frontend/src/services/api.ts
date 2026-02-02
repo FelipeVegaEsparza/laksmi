@@ -141,7 +141,7 @@ export const chatApi = {
     return response.data.data || response.data;
   },
 
-  getMessages: async (conversationId: string, since?: string): Promise<{ messages: Array<{ id: string; content: string; senderType: string; createdAt: string }>; conversationStatus: string }> => {
+  getMessages: async (conversationId: string, since?: string): Promise<{ messages: Array<{ id: string; content: string; senderType: string; timestamp: string }>; conversationStatus: string }> => {
     const url = since 
       ? `/ai/messages/${conversationId}?since=${encodeURIComponent(since)}`
       : `/ai/messages/${conversationId}`;

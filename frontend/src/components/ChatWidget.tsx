@@ -88,7 +88,7 @@ const ChatWidget = () => {
             id: msg.id,
             content: msg.content,
             sender: msg.senderType === 'client' ? 'user' : 'ai',
-            timestamp: new Date(msg.createdAt)
+            timestamp: new Date(msg.timestamp)
           }));
 
           // Agregar solo mensajes que no existen ya

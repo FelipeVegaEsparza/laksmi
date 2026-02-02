@@ -51,7 +51,7 @@ export class AIController {
       // Filtrar por timestamp si se proporciona
       if (since) {
         const sinceDate = new Date(since as string);
-        messages = messages.filter(msg => new Date(msg.createdAt) > sinceDate);
+        messages = messages.filter(msg => new Date(msg.timestamp) > sinceDate);
       }
 
       res.json({
