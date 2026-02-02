@@ -188,9 +188,10 @@ const ChatWidget = () => {
         }
 
         // Guardar conversationId para polling
-        if ((response as any).conversationId) {
-          setConversationId((response as any).conversationId);
-          console.log('💬 Conversation ID set:', (response as any).conversationId);
+        const convId = (response as any).data?.conversationId || (response as any).conversationId;
+        if (convId) {
+          setConversationId(convId);
+          console.log('💬 Conversation ID set:', convId);
         }
       }
       
@@ -257,9 +258,10 @@ const ChatWidget = () => {
         }
 
         // Guardar conversationId para polling
-        if ((response as any).conversationId) {
-          setConversationId((response as any).conversationId);
-          console.log('💬 Conversation ID set:', (response as any).conversationId);
+        const convId = (response as any).data?.conversationId || (response as any).conversationId;
+        if (convId) {
+          setConversationId(convId);
+          console.log('💬 Conversation ID set:', convId);
         }
       }
       
