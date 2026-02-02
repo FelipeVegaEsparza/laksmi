@@ -181,40 +181,15 @@ export default function Home() {
                         </div>
 
                         {/* Benefits */}
-                        {service.benefits && (() => {
-                          try {
-                            const benefitsList = typeof service.benefits === 'string' 
-                              ? JSON.parse(service.benefits) 
-                              : service.benefits;
-                            
-                            if (Array.isArray(benefitsList) && benefitsList.length > 0) {
-                              return (
-                                <div className="mb-6">
-                                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Beneficios:</h3>
-                                  <ul className="space-y-2">
-                                    {benefitsList.slice(0, 4).map((benefit: string, idx: number) => (
-                                      <li key={idx} className="flex items-start">
-                                        <svg 
-                                          className="h-6 w-6 mr-2 flex-shrink-0 mt-0.5" 
-                                          fill="none" 
-                                          viewBox="0 0 24 24" 
-                                          stroke="currentColor"
-                                          style={{ color: themeColors.primary }}
-                                        >
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span className="text-gray-700">{benefit}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              );
-                            }
-                          } catch (e) {
-                            console.error('Error parsing benefits:', e);
-                          }
-                          return null;
-                        })()}
+                        {service.benefits && (
+                          <div className="mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-3">Beneficios:</h3>
+                            <div 
+                              className="prose prose-lg max-w-none text-gray-700"
+                              dangerouslySetInnerHTML={{ __html: service.benefits }}
+                            />
+                          </div>
+                        )}
 
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b">
                           <div>
