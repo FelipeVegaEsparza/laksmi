@@ -168,8 +168,49 @@ const ChatWidget = () => {
 
   const loadConversationHistory = async (clientId: string) => {
     try {
-      // Por ahora, no cargar historial ya que requiere autenticación
-      // En el futuro, esto se puede implementar con tokens de sesión
+      console.log('📚 Loading conversation history for client:', clientId);
+      
+      // Usar el nuevo endpoint público para obtener la conversación del cliente
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/ai/conversation/client/${clientId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          const { conversation, messages: loadedMessages } = data.data;
+          
+          setConversationId(conversation.id);
+          console.log('💬 Found existing conversation:', conversation.id);
+
+          if (loadedMessages && loadedMessages.length > 0) {
+            const formattedMessages: Message[] = loadedMessages.map((msg: any) => ({
+              id: msg.id,
+              content: msg.content,
+              sender: msg.senderType === 'client' ? 'user' : 'ai',
+              timestamp: new Date(msg.timestamp)
+            }));
+
+            console.log('📨 Loaded', formattedMessages.length, 'messages from history');
+            setMessages(formattedMessages);
+            
+            // Actualizar timestamp del último mensaje
+            if (formattedMessages.length > 0) {
+              const lastMsg = formattedMessages[formattedMessages.length - 1];
+              setLastMessageTimestamp(lastMsg.timestamp.toISOString());
+            }
+            
+            return;
+          }
+        }
+      }
+
+      // Si no hay conversación o mensajes, mostrar mensaje de bienvenida
+      console.log('👋 No previous conversation found, showing welcome message');
       setMessages([{
         id: '0',
         content: '¡Hola! Soy tu asistente virtual de la Clínica de Belleza. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre servicios, reservar citas o responder cualquier pregunta.',

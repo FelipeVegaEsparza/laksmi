@@ -35,6 +35,13 @@ router.post('/webhook/twilio', AIController.twilioWebhook);
  */
 router.post('/analyze', validateRequest(analyzeMessageSchema), AIController.analyzeMessage);
 
+/**
+ * @route GET /api/v1/ai/conversation/client/:clientId
+ * @desc Obtener conversación activa de un cliente (para chat web)
+ * @access Public
+ */
+router.get('/conversation/client/:clientId', AIController.getClientConversation);
+
 // Aplicar autenticación a todas las rutas siguientes
 router.use(authenticateToken);
 router.use(requireAnyRole);

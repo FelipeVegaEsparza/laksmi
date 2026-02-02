@@ -71,6 +71,43 @@ export class AIController {
     }
   }
 
+  // Obtener conversación activa de un cliente (público para chat web)
+  static async getClientConversation(req: Request, res: Response): Promise<void> {
+    try {
+      const { clientId } = req.params;
+      const channel = 'web'; // Solo para canal web
+      
+      // Buscar conversación activa del cliente en el canal web
+      const conversation = await ConversationModel.findByClientAndChannel(clientId, channel);
+      
+      if (!conversation) {
+        res.status(404).json({
+          success: false,
+          error: 'No se encontró conversación activa'
+        });
+        return;
+      }
+
+      // Obtener mensajes de la conversación
+      const messages = await ConversationModel.getMessages(conversation.id, 100);
+
+      res.json({
+        success: true,
+        message: 'Conversación obtenida exitosamente',
+        data: {
+          conversation,
+          messages
+        }
+      });
+    } catch (error: any) {
+      logger.error('Get client conversation error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al obtener conversación'
+      });
+    }
+  }
+
   // Webhook de Twilio WhatsApp
   static async twilioWebhook(req: Request, res: Response): Promise<void> {
     try {
