@@ -52,6 +52,7 @@ export class MessageRouter {
             metadata: { maintenanceMode: true }
           },
           conversationId: 'maintenance',
+          clientId: request.clientId, // Usar el clientId del request
           messageId: 'maintenance',
           processingTime
         };
@@ -161,6 +162,7 @@ export class MessageRouter {
             }
           },
           conversationId: conversation.id,
+          clientId: client.id,
           messageId: clientMessage.id,
           processingTime
         };
@@ -206,6 +208,7 @@ export class MessageRouter {
             }
           },
           conversationId: conversation.id,
+          clientId: client.id,
           messageId: aiMessage.id,
           processingTime
         };
@@ -247,6 +250,7 @@ export class MessageRouter {
             }
           },
           conversationId: conversation.id,
+          clientId: client.id,
           messageId: aiMessage.id,
           processingTime
         };
@@ -285,6 +289,7 @@ export class MessageRouter {
             }
           },
           conversationId: conversation.id,
+          clientId: client.id,
           messageId: aiMessage.id,
           processingTime
         };
@@ -327,6 +332,7 @@ export class MessageRouter {
             }
           },
           conversationId: conversation.id,
+          clientId: client.id,
           messageId: aiMessage.id,
           processingTime
         };
@@ -567,6 +573,7 @@ export class MessageRouter {
       return {
         response: fallbackResponse,
         conversationId: 'error',
+        clientId: request.clientId, // Usar el clientId del request
         messageId: 'error',
         processingTime
       };
