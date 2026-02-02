@@ -30,6 +30,47 @@ export class AIController {
     }
   }
 
+  // Obtener mensajes de conversación (público para polling del chat web)
+  static async getConversationMessages(req: Request, res: Response): Promise<void> {
+    try {
+      const { conversationId } = req.params;
+      const { since } = req.query; // Timestamp para obtener solo mensajes nuevos
+      
+      const conversation = await ConversationModel.findById(conversationId);
+      if (!conversation) {
+        res.status(404).json({
+          success: false,
+          error: 'Conversación no encontrada'
+        });
+        return;
+      }
+
+      // Obtener mensajes
+      let messages = await ConversationModel.getMessages(conversationId, 100);
+      
+      // Filtrar por timestamp si se proporciona
+      if (since) {
+        const sinceDate = new Date(since as string);
+        messages = messages.filter(msg => new Date(msg.createdAt) > sinceDate);
+      }
+
+      res.json({
+        success: true,
+        message: 'Mensajes obtenidos exitosamente',
+        data: {
+          messages,
+          conversationStatus: conversation.status
+        }
+      });
+    } catch (error: any) {
+      logger.error('Get conversation messages error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al obtener mensajes'
+      });
+    }
+  }
+
   // Webhook de Twilio WhatsApp
   static async twilioWebhook(req: Request, res: Response): Promise<void> {
     try {

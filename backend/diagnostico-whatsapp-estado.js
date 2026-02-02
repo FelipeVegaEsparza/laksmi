@@ -8,7 +8,7 @@
  */
 
 const mysql = require('mysql2/promise');
-require('dotenv').config({ path: './backend/.env' });
+require('dotenv').config();
 
 async function diagnosticar() {
   console.log('🔍 Iniciando diagnóstico del sistema WhatsApp con Twilio...\n');
@@ -118,7 +118,7 @@ async function diagnosticar() {
     }
 
     // 5. Estadísticas generales
-    console.log('\n� 5. Estadísticas generales:');
+    console.log('\n📊 5. Estadísticas generales:');
     const [stats] = await connection.execute(`
       SELECT 
         (SELECT COUNT(*) FROM conversations WHERE status = 'active') as conversaciones_activas,

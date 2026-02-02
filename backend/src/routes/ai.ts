@@ -15,6 +15,13 @@ const router = Router();
 router.post('/message', validateRequest(processMessageSchema), AIController.processMessage);
 
 /**
+ * @route GET /api/v1/ai/messages/:conversationId
+ * @desc Obtener mensajes de una conversación (para polling del chat web)
+ * @access Public
+ */
+router.get('/messages/:conversationId', AIController.getConversationMessages);
+
+/**
  * @route POST /api/v1/ai/webhook/twilio
  * @desc Webhook para mensajes de Twilio WhatsApp
  * @access Public (Twilio)

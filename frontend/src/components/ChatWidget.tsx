@@ -26,7 +26,10 @@ const ChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [hasAutoSentMessage, setHasAutoSentMessage] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Función para convertir URLs en links clicables
   const linkifyText = (text: string): string => {
@@ -62,6 +65,65 @@ const ChatWidget = () => {
       setHasAutoSentMessage(false);
     }
   }, [serviceContext]);
+
+  // Polling para obtener mensajes nuevos cuando hay una conversación activa
+  useEffect(() => {
+    if (!conversationId || !isOpen || isMinimized) {
+      // Limpiar polling si no hay conversación o el chat está cerrado/minimizado
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Función para obtener mensajes nuevos
+    const pollMessages = async () => {
+      try {
+        const result = await chatApi.getMessages(conversationId, lastMessageTimestamp || undefined);
+        
+        if (result.messages && result.messages.length > 0) {
+          // Convertir mensajes del backend al formato del frontend
+          const newMessages: Message[] = result.messages.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            sender: msg.senderType === 'client' ? 'user' : 'ai',
+            timestamp: new Date(msg.createdAt)
+          }));
+
+          // Agregar solo mensajes que no existen ya
+          setMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+            
+            if (uniqueNewMessages.length > 0) {
+              console.log('📨 New messages received from polling:', uniqueNewMessages.length);
+              // Actualizar timestamp del último mensaje
+              const latestMessage = uniqueNewMessages[uniqueNewMessages.length - 1];
+              setLastMessageTimestamp(latestMessage.timestamp.toISOString());
+              
+              return [...prev, ...uniqueNewMessages];
+            }
+            
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('Error polling messages:', error);
+      }
+    };
+
+    // Iniciar polling cada 3 segundos
+    pollingIntervalRef.current = setInterval(pollMessages, 3000);
+
+    // Limpiar al desmontar
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [conversationId, isOpen, isMinimized, lastMessageTimestamp]);
 
   const loadConversationHistory = async (clientId: string) => {
     try {
@@ -124,6 +186,12 @@ const ChatWidget = () => {
         } else if ((response as any).message) {
           messageContent = (response as any).message;
         }
+
+        // Guardar conversationId para polling
+        if ((response as any).conversationId) {
+          setConversationId((response as any).conversationId);
+          console.log('💬 Conversation ID set:', (response as any).conversationId);
+        }
       }
       
       console.log('📨 Final message to display:', messageContent);
@@ -136,6 +204,9 @@ const ChatWidget = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Actualizar timestamp del último mensaje
+      setLastMessageTimestamp(aiMessage.timestamp.toISOString());
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -184,6 +255,12 @@ const ChatWidget = () => {
         } else if ((response as any).message) {
           messageContent = (response as any).message;
         }
+
+        // Guardar conversationId para polling
+        if ((response as any).conversationId) {
+          setConversationId((response as any).conversationId);
+          console.log('💬 Conversation ID set:', (response as any).conversationId);
+        }
       }
       
       const aiMessage: Message = {
@@ -194,6 +271,9 @@ const ChatWidget = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Actualizar timestamp del último mensaje
+      setLastMessageTimestamp(aiMessage.timestamp.toISOString());
     } catch (error) {
       console.error('Error sending message:', error);
       

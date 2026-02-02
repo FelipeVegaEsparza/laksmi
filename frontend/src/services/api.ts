@@ -140,6 +140,14 @@ export const chatApi = {
     const response = await api.get(`/ai/conversations/${clientId}`);
     return response.data.data || response.data;
   },
+
+  getMessages: async (conversationId: string, since?: string): Promise<{ messages: Array<{ id: string; content: string; senderType: string; createdAt: string }>; conversationStatus: string }> => {
+    const url = since 
+      ? `/ai/messages/${conversationId}?since=${encodeURIComponent(since)}`
+      : `/ai/messages/${conversationId}`;
+    const response = await api.get(url);
+    return response.data.data || response.data;
+  },
 };
 
 export default api;
