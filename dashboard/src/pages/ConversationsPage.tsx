@@ -163,8 +163,10 @@ export default function ConversationsPage() {
   const handleToggleAI = async (conversationId: string, enabled: boolean) => {
     try {
       if (enabled) {
-        // Activar AI - liberar control humano
-        await apiService.post(`/takeover/${conversationId}/release`)
+        // Activar AI - finalizar control humano
+        await apiService.post(`/takeover/${conversationId}/end`, {
+          resolution: 'Control devuelto a IA por el agente'
+        })
         console.log('✅ AI activada para conversación:', conversationId)
       } else {
         // Desactivar AI - tomar control humano
