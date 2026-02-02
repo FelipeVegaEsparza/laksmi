@@ -178,6 +178,121 @@ export class ConversationModel {
     return this.updateStatus(id, 'escalated');
   }
 
+  /**
+   * Set or clear human takeover state for a conversation
+   * @param conversationId - The conversation ID
+   * @param agentId - The human agent ID taking control
+   * @param active - Whether to activate (true) or deactivate (false) takeover
+   */
+  static async setHumanTakeover(
+    conversationId: string,
+    agentId: string,
+    active: boolean
+  ): Promise<void> {
+    await db('conversations')
+      .where({ id: conversationId })
+      .update({
+        human_takeover_active: active,
+        human_takeover_agent_id: active ? agentId : null,
+        last_human_message_time: active ? new Date() : null,
+        updated_at: new Date()
+      });
+  }
+
+  /**
+   * Update the last human message timestamp for a conversation
+   * This is called whenever a human agent sends a message during an active takeover session
+   * to maintain the 1-hour timeout functionality
+   * @param conversationId - The conversation ID
+   */
+  static async updateLastHumanMessageTime(
+    conversationId: string
+  ): Promise<void> {
+    await db('conversations')
+      .where({ id: conversationId })
+      .update({
+        last_human_message_time: new Date(),
+        updated_at: new Date()
+      });
+  }
+
+  /**
+   * Get the current human takeover state for a conversation
+   * @param conversationId - The conversation ID
+   * @returns The takeover state (active, agentId, lastMessageTime) or null if conversation not found
+   */
+  static async getHumanTakeoverState(
+    conversationId: string
+  ): Promise<{
+    active: boolean;
+    agentId: string | null;
+    lastMessageTime: Date | null;
+  } | null> {
+    const conversation = await db('conversations')
+      .where({ id: conversationId })
+      .select(
+        'human_takeover_active',
+        'human_takeover_agent_id',
+        'last_human_message_time'
+      )
+      .first();
+
+    if (!conversation) return null;
+
+    return {
+      active: conversation.human_takeover_active,
+      agentId: conversation.human_takeover_agent_id,
+      lastMessageTime: conversation.last_human_message_time
+    };
+  }
+
+  /**
+   * Clear expired human takeover sessions (older than 1 hour)
+   * This method finds all conversations with active takeover where the last human message
+   * was sent more than 1 hour ago, and deactivates them automatically
+   * @returns The number of takeover sessions that were cleared
+   */
+  static async clearExpiredTakeovers(): Promise<number> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    
+    const result = await db('conversations')
+      .where('human_takeover_active', true)
+      .where('last_human_message_time', '<', oneHourAgo)
+      .update({
+        human_takeover_active: false,
+        human_takeover_agent_id: null,
+        updated_at: new Date()
+      });
+
+    return result;
+  }
+
+  /**
+   * Find all conversations with active human takeover
+   * @returns Array of conversations with active takeover sessions
+   */
+  static async findAllWithActiveTakeover(): Promise<Conversation[]> {
+    const conversations = await db('conversations')
+      .where('human_takeover_active', true)
+      .orderBy('last_human_message_time', 'desc');
+
+    return conversations.map(conversation => this.formatConversation(conversation));
+  }
+
+  /**
+   * Find all conversations with active takeover by a specific human agent
+   * @param humanAgentId - The human agent ID
+   * @returns Array of conversations controlled by the specified agent
+   */
+  static async findByHumanAgent(humanAgentId: string): Promise<Conversation[]> {
+    const conversations = await db('conversations')
+      .where('human_takeover_active', true)
+      .where('human_takeover_agent_id', humanAgentId)
+      .orderBy('last_human_message_time', 'desc');
+
+    return conversations.map(conversation => this.formatConversation(conversation));
+  }
+
   static async cleanupInactiveConversations(hoursInactive: number = 24): Promise<number> {
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - hoursInactive);
@@ -493,7 +608,10 @@ export class ConversationModel {
       context,
       lastActivity: new Date(dbConversation.last_activity),
       createdAt: dbConversation.created_at,
-      updatedAt: dbConversation.updated_at
+      updatedAt: dbConversation.updated_at,
+      humanTakeoverActive: dbConversation.human_takeover_active || false,
+      humanTakeoverAgentId: dbConversation.human_takeover_agent_id || null,
+      lastHumanMessageTime: dbConversation.last_human_message_time ? new Date(dbConversation.last_human_message_time) : null
     };
   }
 

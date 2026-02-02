@@ -372,7 +372,7 @@ export class HumanTakeoverController {
     try {
       const { conversationId } = req.params;
 
-      const isUnderControl = HumanTakeoverService.isUnderHumanControl(conversationId);
+      const isUnderControl = await HumanTakeoverService.isUnderHumanControl(conversationId);
       const session = HumanTakeoverService.getActiveSession(conversationId);
 
       res.json({

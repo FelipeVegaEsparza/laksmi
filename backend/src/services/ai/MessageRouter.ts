@@ -133,7 +133,7 @@ export class MessageRouter {
       // VERIFICAR SI HAY CONTROL HUMANO ACTIVO
       // ============================================
       const { HumanTakeoverService } = await import('./HumanTakeoverService');
-      const isUnderHumanControl = HumanTakeoverService.isUnderHumanControl(conversation.id);
+      const isUnderHumanControl = await HumanTakeoverService.isUnderHumanControl(conversation.id);
 
       if (isUnderHumanControl) {
         const session = HumanTakeoverService.getActiveSession(conversation.id);

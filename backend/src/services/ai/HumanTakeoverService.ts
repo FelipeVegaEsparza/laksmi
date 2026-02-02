@@ -18,9 +18,6 @@ export interface HumanTakeoverSession {
 }
 
 export class HumanTakeoverService {
-  // Sesiones activas de control humano
-  private static activeSessions = new Map<string, HumanTakeoverSession>();
-
   /**
    * Iniciar toma de control manual de una conversación
    */
@@ -44,17 +41,28 @@ export class HumanTakeoverService {
         };
       }
 
-      // Verificar si ya hay una sesión activa
-      const existingSession = Array.from(this.activeSessions.values())
-        .find(session => session.conversationId === conversationId && session.status === 'active');
-
-      if (existingSession) {
-        if (existingSession.humanAgentId === humanAgentId) {
+      // Check if already under human control (from database)
+      const existingState = await ConversationModel.getHumanTakeoverState(conversationId);
+      if (existingState?.active) {
+        if (existingState.agentId === humanAgentId) {
+          // Build session object for backward compatibility
+          const session: HumanTakeoverSession = {
+            conversationId,
+            humanAgentId,
+            escalationId,
+            startTime: existingState.lastMessageTime || new Date(),
+            lastHumanMessageTime: existingState.lastMessageTime || undefined,
+            status: 'active',
+            clientId: conversation.clientId,
+            channel: conversation.channel,
+            context: conversation.context
+          };
+          
           return {
             success: true,
-            sessionId: existingSession.conversationId,
+            sessionId: conversationId,
             message: 'Ya tienes control de esta conversación',
-            session: existingSession
+            session
           };
         } else {
           return {
@@ -64,19 +72,8 @@ export class HumanTakeoverService {
         }
       }
 
-      // Crear nueva sesión de control
-      const session: HumanTakeoverSession = {
-        conversationId,
-        humanAgentId,
-        escalationId,
-        startTime: new Date(),
-        status: 'active',
-        clientId: conversation.clientId,
-        channel: conversation.channel,
-        context: conversation.context
-      };
-
-      this.activeSessions.set(conversationId, session);
+      // Persist to database
+      await ConversationModel.setHumanTakeover(conversationId, humanAgentId, true);
 
       // Actualizar el contexto de la conversación
       const updatedContext: ConversationContext = {
@@ -104,6 +101,18 @@ export class HumanTakeoverService {
         clientId: conversation.clientId,
         channel: conversation.channel
       });
+
+      // Build session object for backward compatibility
+      const session: HumanTakeoverSession = {
+        conversationId,
+        humanAgentId,
+        escalationId,
+        startTime: new Date(),
+        status: 'active',
+        clientId: conversation.clientId,
+        channel: conversation.channel,
+        context: updatedContext
+      };
 
       return {
         success: true,
@@ -135,9 +144,10 @@ export class HumanTakeoverService {
     messageId?: string;
   }> {
     try {
-      const session = this.activeSessions.get(conversationId);
+      // Check database for takeover state
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
-      if (!session || session.humanAgentId !== humanAgentId || session.status !== 'active') {
+      if (!state || !state.active || state.agentId !== humanAgentId) {
         return {
           success: false,
           message: 'No tienes control activo de esta conversación'
@@ -245,19 +255,16 @@ export class HumanTakeoverService {
       }
 
       // Actualizar contexto con el nuevo mensaje
-      const updatedContext = await ContextManager.addMessageToContext(conversationId, savedMessage);
-      session.context = updatedContext;
+      await ContextManager.addMessageToContext(conversationId, savedMessage);
 
-      // ⏰ ACTUALIZAR TIMESTAMP DEL ÚLTIMO MENSAJE HUMANO
+      // ⏰ ACTUALIZAR TIMESTAMP DEL ÚLTIMO MENSAJE HUMANO EN LA BASE DE DATOS
       // Esto hará que el bot no responda por 1 hora
-      session.lastHumanMessageTime = new Date();
-      this.activeSessions.set(conversationId, session);
+      await ConversationModel.updateLastHumanMessageTime(conversationId);
 
       logger.info(`Human message sent: ${conversationId}`, {
         humanAgentId,
         messageLength: content.length,
         hasMedia: !!mediaUrl,
-        lastHumanMessageTime: session.lastHumanMessageTime,
         channel: conversation.channel
       });
 
@@ -287,17 +294,18 @@ export class HumanTakeoverService {
     message: string;
   }> {
     try {
-      const session = this.activeSessions.get(conversationId);
+      // Check database for takeover state
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
-      if (!session || session.humanAgentId !== humanAgentId) {
+      if (!state || !state.active || state.agentId !== humanAgentId) {
         return {
           success: false,
           message: 'No tienes control de esta conversación'
         };
       }
 
-      session.status = 'paused';
-      this.activeSessions.set(conversationId, session);
+      // Deactivate takeover in database (pause = deactivate)
+      await ConversationModel.setHumanTakeover(conversationId, humanAgentId, false);
 
       // Actualizar estado de la conversación
       await ConversationModel.updateStatus(conversationId, 'active');
@@ -340,17 +348,17 @@ export class HumanTakeoverService {
     message: string;
   }> {
     try {
-      const session = this.activeSessions.get(conversationId);
-      
-      if (!session || session.humanAgentId !== humanAgentId) {
+      // Check if conversation exists
+      const conversation = await ConversationModel.findById(conversationId);
+      if (!conversation) {
         return {
           success: false,
-          message: 'No tienes una sesión de control para esta conversación'
+          message: 'Conversación no encontrada'
         };
       }
 
-      session.status = 'active';
-      this.activeSessions.set(conversationId, session);
+      // Reactivate takeover in database
+      await ConversationModel.setHumanTakeover(conversationId, humanAgentId, true);
 
       // Actualizar estado de la conversación
       await ConversationModel.updateStatus(conversationId, 'escalated');
@@ -394,18 +402,18 @@ export class HumanTakeoverService {
     message: string;
   }> {
     try {
-      const session = this.activeSessions.get(conversationId);
+      // Check database for takeover state
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
-      if (!session || session.humanAgentId !== humanAgentId) {
+      if (!state || !state.active || state.agentId !== humanAgentId) {
         return {
           success: false,
           message: 'No tienes control de esta conversación'
         };
       }
 
-      // Marcar sesión como finalizada
-      session.status = 'ended';
-      this.activeSessions.set(conversationId, session);
+      // Clear takeover state in database
+      await ConversationModel.setHumanTakeover(conversationId, humanAgentId, false);
 
       // Actualizar contexto de la conversación
       const conversation = await ConversationModel.findById(conversationId);
@@ -420,13 +428,17 @@ export class HumanTakeoverService {
         await ConversationModel.updateStatus(conversationId, 'active');
       }
 
-      // Resolver escalación si existe
-      if (session.escalationId) {
-        await EscalationService.resolveEscalation(
-          session.escalationId,
-          resolution || 'Conversación resuelta por agente humano',
-          humanAgentId
-        );
+      // Resolver escalación si existe (check from conversation context)
+      if (conversation?.context.escalationReason) {
+        // Try to find escalation ID from context or messages
+        const escalationId = conversation.context.escalationReason;
+        if (escalationId && escalationId !== 'human_takeover') {
+          await EscalationService.resolveEscalation(
+            escalationId,
+            resolution || 'Conversación resuelta por agente humano',
+            humanAgentId
+          );
+        }
       }
 
       // Mensaje del sistema
@@ -441,13 +453,7 @@ export class HumanTakeoverService {
         }
       });
 
-      // Limpiar sesión después de un tiempo
-      setTimeout(() => {
-        this.activeSessions.delete(conversationId);
-      }, 60 * 60 * 1000); // 1 hora
-
       logger.info(`Human takeover ended: ${conversationId} by ${humanAgentId}`, {
-        duration: Date.now() - session.startTime.getTime(),
         resolution: resolution?.substring(0, 100)
       });
 
@@ -468,54 +474,108 @@ export class HumanTakeoverService {
   /**
    * Obtener sesión activa de un agente
    */
-  static getActiveSession(conversationId: string): HumanTakeoverSession | null {
-    return this.activeSessions.get(conversationId) || null;
+  static async getActiveSession(conversationId: string): Promise<HumanTakeoverSession | null> {
+    try {
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
+      
+      if (!state || !state.active) {
+        return null;
+      }
+
+      // Get full conversation details to build session object
+      const conversation = await ConversationModel.findById(conversationId);
+      if (!conversation) {
+        return null;
+      }
+
+      return {
+        conversationId,
+        humanAgentId: state.agentId!,
+        startTime: state.lastMessageTime || new Date(),
+        lastHumanMessageTime: state.lastMessageTime || undefined,
+        status: 'active',
+        clientId: conversation.clientId,
+        channel: conversation.channel,
+        context: conversation.context
+      };
+    } catch (error) {
+      logger.error('Error getting active session:', error);
+      return null;
+    }
   }
 
   /**
    * Obtener todas las sesiones activas de un agente
    */
-  static getAgentSessions(humanAgentId: string): HumanTakeoverSession[] {
-    return Array.from(this.activeSessions.values())
-      .filter(session => session.humanAgentId === humanAgentId && session.status === 'active');
+  static async getAgentSessions(humanAgentId: string): Promise<HumanTakeoverSession[]> {
+    try {
+      // Query database for all conversations with active takeover by this agent
+      const conversations = await ConversationModel.findByHumanAgent(humanAgentId);
+      
+      return conversations.map(conversation => ({
+        conversationId: conversation.id,
+        humanAgentId,
+        startTime: conversation.lastHumanMessageTime || new Date(),
+        lastHumanMessageTime: conversation.lastHumanMessageTime || undefined,
+        status: 'active' as const,
+        clientId: conversation.clientId,
+        channel: conversation.channel,
+        context: conversation.context
+      }));
+    } catch (error) {
+      logger.error('Error getting agent sessions:', error);
+      return [];
+    }
   }
 
   /**
    * Obtener estadísticas de sesiones
    */
-  static getSessionStats(): {
+  static async getSessionStats(): Promise<{
     activeSessions: number;
     pausedSessions: number;
     totalSessions: number;
     sessionsByAgent: Record<string, number>;
     averageSessionDuration: number;
-  } {
-    const sessions = Array.from(this.activeSessions.values());
-    
-    const stats = {
-      activeSessions: sessions.filter(s => s.status === 'active').length,
-      pausedSessions: sessions.filter(s => s.status === 'paused').length,
-      totalSessions: sessions.length,
-      sessionsByAgent: {} as Record<string, number>,
-      averageSessionDuration: 0
-    };
+  }> {
+    try {
+      // Query database for all active takeover sessions
+      const activeConversations = await ConversationModel.findAllWithActiveTakeover();
+      
+      const stats = {
+        activeSessions: activeConversations.length,
+        pausedSessions: 0, // No longer tracking paused state separately
+        totalSessions: activeConversations.length,
+        sessionsByAgent: {} as Record<string, number>,
+        averageSessionDuration: 0
+      };
 
-    // Contar por agente
-    sessions.forEach(session => {
-      stats.sessionsByAgent[session.humanAgentId] = 
-        (stats.sessionsByAgent[session.humanAgentId] || 0) + 1;
-    });
+      // Count by agent
+      activeConversations.forEach(conversation => {
+        const agentId = conversation.humanTakeoverAgentId!;
+        stats.sessionsByAgent[agentId] = (stats.sessionsByAgent[agentId] || 0) + 1;
+      });
 
-    // Calcular duración promedio de sesiones finalizadas
-    const endedSessions = sessions.filter(s => s.status === 'ended');
-    if (endedSessions.length > 0) {
-      const totalDuration = endedSessions.reduce((sum, session) => {
-        return sum + (Date.now() - session.startTime.getTime());
-      }, 0);
-      stats.averageSessionDuration = totalDuration / endedSessions.length;
+      // Calculate average session duration
+      if (activeConversations.length > 0) {
+        const totalDuration = activeConversations.reduce((sum, conversation) => {
+          const startTime = conversation.lastHumanMessageTime || new Date();
+          return sum + (Date.now() - startTime.getTime());
+        }, 0);
+        stats.averageSessionDuration = totalDuration / activeConversations.length;
+      }
+
+      return stats;
+    } catch (error) {
+      logger.error('Error getting session stats:', error);
+      return {
+        activeSessions: 0,
+        pausedSessions: 0,
+        totalSessions: 0,
+        sessionsByAgent: {},
+        averageSessionDuration: 0
+      };
     }
-
-    return stats;
   }
 
   /**
@@ -524,54 +584,61 @@ export class HumanTakeoverService {
    * 1. Hay una sesión activa Y
    * 2. El humano escribió hace menos de 1 hora
    */
-  static isUnderHumanControl(conversationId: string): boolean {
-    const session = this.activeSessions.get(conversationId);
-    
-    if (!session || session.status !== 'active') {
+  static async isUnderHumanControl(conversationId: string): Promise<boolean> {
+    try {
+      // Query database for takeover state
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
+      
+      if (!state || !state.active) {
+        return false;
+      }
+
+      // Si el humano nunca ha escrito, considerar que está bajo control
+      if (!state.lastMessageTime) {
+        return true;
+      }
+
+      // Verificar si ha pasado más de 1 hora desde el último mensaje humano
+      const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hora en milisegundos
+      const timeSinceLastMessage = Date.now() - state.lastMessageTime.getTime();
+
+      if (timeSinceLastMessage > ONE_HOUR_MS) {
+        logger.info(`🤖 Bot reactivated: 1 hour passed since last human message`, {
+          conversationId,
+          timeSinceLastMessage: Math.round(timeSinceLastMessage / 1000 / 60) + ' minutes',
+          lastHumanMessageTime: state.lastMessageTime
+        });
+        
+        // Auto-deactivate takeover in database
+        await ConversationModel.setHumanTakeover(conversationId, state.agentId!, false);
+        return false; // Ha pasado más de 1 hora, el bot puede responder
+      }
+
+      return true; // Aún está bajo control humano
+    } catch (error) {
+      logger.error('Database error checking human takeover state:', error);
+      // Default to false to allow AI responses on database errors
       return false;
     }
-
-    // Si el humano nunca ha escrito, considerar que está bajo control
-    if (!session.lastHumanMessageTime) {
-      return true;
-    }
-
-    // Verificar si ha pasado más de 1 hora desde el último mensaje humano
-    const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hora en milisegundos
-    const timeSinceLastMessage = Date.now() - session.lastHumanMessageTime.getTime();
-
-    if (timeSinceLastMessage > ONE_HOUR_MS) {
-      logger.info(`🤖 Bot reactivated: 1 hour passed since last human message`, {
-        conversationId,
-        timeSinceLastMessage: Math.round(timeSinceLastMessage / 1000 / 60) + ' minutes',
-        lastHumanMessageTime: session.lastHumanMessageTime
-      });
-      return false; // Ha pasado más de 1 hora, el bot puede responder
-    }
-
-    return true; // Aún está bajo control humano
   }
 
   /**
    * Limpiar sesiones inactivas
    */
-  static cleanupInactiveSessions(hoursInactive: number = 24): number {
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - hoursInactive);
+  static async cleanupInactiveSessions(hoursInactive: number = 24): Promise<number> {
+    try {
+      // Use database cleanup for expired sessions
+      const cleanedCount = await ConversationModel.clearExpiredTakeovers();
 
-    let cleanedCount = 0;
-    for (const [conversationId, session] of this.activeSessions.entries()) {
-      if (session.startTime < cutoffTime && session.status === 'ended') {
-        this.activeSessions.delete(conversationId);
-        cleanedCount++;
+      if (cleanedCount > 0) {
+        logger.info(`Cleaned up ${cleanedCount} inactive human takeover sessions`);
       }
-    }
 
-    if (cleanedCount > 0) {
-      logger.info(`Cleaned up ${cleanedCount} inactive human takeover sessions`);
+      return cleanedCount;
+    } catch (error) {
+      logger.error('Error cleaning up inactive sessions:', error);
+      return 0;
     }
-
-    return cleanedCount;
   }
 
   /**
@@ -587,18 +654,18 @@ export class HumanTakeoverService {
     message: string;
   }> {
     try {
-      const session = this.activeSessions.get(conversationId);
+      // Check database for takeover state
+      const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
-      if (!session || session.humanAgentId !== fromAgentId || session.status !== 'active') {
+      if (!state || !state.active || state.agentId !== fromAgentId) {
         return {
           success: false,
           message: 'No tienes control activo de esta conversación'
         };
       }
 
-      // Actualizar sesión
-      session.humanAgentId = toAgentId;
-      this.activeSessions.set(conversationId, session);
+      // Update takeover to new agent in database
+      await ConversationModel.setHumanTakeover(conversationId, toAgentId, true);
 
       // Actualizar contexto de la conversación
       const conversation = await ConversationModel.findById(conversationId);

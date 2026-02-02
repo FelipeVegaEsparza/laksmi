@@ -17,6 +17,9 @@ export interface Conversation {
   lastActivity: Date;
   createdAt: Date;
   updatedAt: Date;
+  humanTakeoverActive?: boolean;
+  humanTakeoverAgentId?: string | null;
+  lastHumanMessageTime?: Date | null;
 }
 
 export interface ConversationContext {
