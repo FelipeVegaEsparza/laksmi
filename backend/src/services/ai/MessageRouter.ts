@@ -136,7 +136,7 @@ export class MessageRouter {
       const isUnderHumanControl = await HumanTakeoverService.isUnderHumanControl(conversation.id);
 
       if (isUnderHumanControl) {
-        const session = HumanTakeoverService.getActiveSession(conversation.id);
+        const session = await HumanTakeoverService.getActiveSession(conversation.id);
         
         logger.info('🙋 Message received but conversation is under human control - Bot will NOT respond', {
           conversationId: conversation.id,
