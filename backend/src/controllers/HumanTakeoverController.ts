@@ -231,7 +231,7 @@ export class HumanTakeoverController {
     try {
       const { conversationId } = req.params;
 
-      const session = HumanTakeoverService.getActiveSession(conversationId);
+      const session = await HumanTakeoverService.getActiveSession(conversationId);
 
       if (!session) {
         res.status(404).json({
@@ -276,7 +276,7 @@ export class HumanTakeoverController {
         return;
       }
 
-      const sessions = HumanTakeoverService.getAgentSessions(humanAgentId);
+      const sessions = await HumanTakeoverService.getAgentSessions(humanAgentId);
 
       res.json({
         success: true,
@@ -349,7 +349,7 @@ export class HumanTakeoverController {
    */
   static async getSessionStats(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const stats = HumanTakeoverService.getSessionStats();
+      const stats = await HumanTakeoverService.getSessionStats();
 
       res.json({
         success: true,
@@ -373,7 +373,7 @@ export class HumanTakeoverController {
       const { conversationId } = req.params;
 
       const isUnderControl = await HumanTakeoverService.isUnderHumanControl(conversationId);
-      const session = HumanTakeoverService.getActiveSession(conversationId);
+      const session = await HumanTakeoverService.getActiveSession(conversationId);
 
       res.json({
         success: true,
@@ -399,7 +399,7 @@ export class HumanTakeoverController {
     try {
       const { hoursInactive = 24 } = req.body;
 
-      const cleanedCount = HumanTakeoverService.cleanupInactiveSessions(hoursInactive);
+      const cleanedCount = await HumanTakeoverService.cleanupInactiveSessions(hoursInactive);
 
       res.json({
         success: true,
