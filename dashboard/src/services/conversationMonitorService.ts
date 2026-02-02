@@ -56,7 +56,7 @@ class ConversationMonitorService {
     this.eventSource.onerror = (error) => {
       console.error('SSE connection error:', error)
       this.isConnected = false
-      
+
       // Reconectar después de 5 segundos
       setTimeout(() => {
         if (!this.isConnected) {
@@ -99,7 +99,7 @@ class ConversationMonitorService {
    */
   onAlert(callback: (alert: ConversationAlert) => void): () => void {
     this.alertCallbacks.push(callback)
-    
+
     return () => {
       const index = this.alertCallbacks.indexOf(callback)
       if (index > -1) {
@@ -113,7 +113,7 @@ class ConversationMonitorService {
    */
   onStats(callback: (stats: MonitorStats) => void): () => void {
     this.statsCallbacks.push(callback)
-    
+
     return () => {
       const index = this.statsCallbacks.indexOf(callback)
       if (index > -1) {
@@ -162,7 +162,7 @@ class ConversationMonitorService {
     const params = new URLSearchParams()
     if (dateFrom) params.append('dateFrom', dateFrom.toISOString())
     if (dateTo) params.append('dateTo', dateTo.toISOString())
-    
+
     return apiService.get(`/v1/conversations/metrics?${params.toString()}`)
   }
 
@@ -173,7 +173,7 @@ class ConversationMonitorService {
     const params = new URLSearchParams()
     if (dateFrom) params.append('dateFrom', dateFrom.toISOString())
     if (dateTo) params.append('dateTo', dateTo.toISOString())
-    
+
     return apiService.get(`/v1/conversations/analytics/channels?${params.toString()}`)
   }
 
@@ -185,7 +185,7 @@ class ConversationMonitorService {
     if (dateFrom) params.append('dateFrom', dateFrom.toISOString())
     if (dateTo) params.append('dateTo', dateTo.toISOString())
     if (channel) params.append('channel', channel)
-    
+
     return apiService.get(`/v1/conversations/analytics/response-time?${params.toString()}`)
   }
 
@@ -193,29 +193,29 @@ class ConversationMonitorService {
    * Tomar control de una conversación
    */
   async takeoverConversation(conversationId: string): Promise<void> {
-    return apiService.post(`/v1/takeover/${conversationId}/start`)
+    return apiService.post(`/v1/human-takeover/${conversationId}/start`)
   }
 
   /**
    * Enviar mensaje en conversación controlada
    */
   async sendMessage(conversationId: string, content: string): Promise<void> {
-    return apiService.post(`/v1/takeover/${conversationId}/message`, { content })
+    return apiService.post(`/v1/human-takeover/${conversationId}/message`, { content })
   }
 
   /**
    * Finalizar control de conversación
    */
   async endTakeover(conversationId: string, resolution?: string): Promise<void> {
-    return apiService.post(`/v1/takeover/${conversationId}/end`, { resolution })
+    return apiService.post(`/v1/human-takeover/${conversationId}/end`, { resolution })
   }
 
   /**
    * Escalar conversación
    */
   async escalateConversation(
-    conversationId: string, 
-    reason: string, 
+    conversationId: string,
+    reason: string,
     priority: string = 'medium'
   ): Promise<void> {
     return apiService.post(`/v1/escalations/conversation/${conversationId}`, {

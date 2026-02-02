@@ -77,7 +77,7 @@ export default function ConversationsPage() {
 
     window.addEventListener('focus', resetUnreadCount)
     window.addEventListener('click', resetUnreadCount)
-    
+
     return () => {
       window.removeEventListener('focus', resetUnreadCount)
       window.removeEventListener('click', resetUnreadCount)
@@ -92,7 +92,7 @@ export default function ConversationsPage() {
         status: statusFilter,
         limit: 100,
       }
-      
+
       const response = await apiService.getConversations(params)
       setConversations(response?.data || [])
     } catch (error) {
@@ -106,23 +106,23 @@ export default function ConversationsPage() {
     try {
       const messages = await apiService.get<Message[]>(`/conversations/${conversationId}/messages`)
       const newMessages = Array.isArray(messages) ? messages : []
-      
+
       // Detectar mensajes nuevos comparando con el estado anterior
       if (conversationMessages.length > 0 && newMessages.length > conversationMessages.length) {
         const newMessagesCount = newMessages.length - conversationMessages.length
         const recentMessages = newMessages.slice(-newMessagesCount)
-        
+
         // Solo contar mensajes del cliente o AI como no leídos (no los del agente)
-        const unreadMessages = recentMessages.filter(msg => 
+        const unreadMessages = recentMessages.filter(msg =>
           msg.senderType === 'client' || msg.senderType === 'ai'
         )
-        
+
         if (unreadMessages.length > 0) {
           console.log('🔔 New unread messages detected:', unreadMessages.length)
           setUnreadCount(prev => prev + unreadMessages.length)
         }
       }
-      
+
       setConversationMessages(newMessages)
     } catch (error) {
       console.error('Error fetching conversation messages:', error)
@@ -149,7 +149,7 @@ export default function ConversationsPage() {
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation)
     fetchConversationMessages(conversation.id)
-    
+
     // Inicializar estado de AI basado en el status de la conversación
     // Si está escalada, significa que hay control humano activo (AI desactivada)
     if (!(conversation.id in aiEnabled)) {
@@ -164,22 +164,22 @@ export default function ConversationsPage() {
     try {
       if (enabled) {
         // Activar AI - finalizar control humano
-        await apiService.post(`/takeover/${conversationId}/end`, {
+        await apiService.post(`/v1/human-takeover/${conversationId}/end`, {
           resolution: 'Control devuelto a IA por el agente'
         })
         console.log('✅ AI activada para conversación:', conversationId)
       } else {
         // Desactivar AI - tomar control humano
-        await apiService.post(`/takeover/${conversationId}/start`)
+        await apiService.post(`/v1/human-takeover/${conversationId}/start`)
         console.log('🙋 Control humano activado para conversación:', conversationId)
       }
-      
+
       // Actualizar estado local
       setAiEnabled(prev => ({
         ...prev,
         [conversationId]: enabled
       }))
-      
+
       // Actualizar la conversación en la lista
       if (selectedConversation && selectedConversation.id === conversationId) {
         setSelectedConversation({
@@ -187,7 +187,7 @@ export default function ConversationsPage() {
           status: enabled ? 'active' : 'escalated'
         })
       }
-      
+
       // Refrescar lista de conversaciones
       fetchConversations()
     } catch (error) {
@@ -198,14 +198,14 @@ export default function ConversationsPage() {
 
   const handleSendMessage = async () => {
     if (!selectedConversation || !newMessage.trim() || sending) return
-    
+
     try {
       setSending(true)
-      
+
       // Primero tomar control de la conversación si no está escalada
       if (selectedConversation.status !== 'escalated') {
         console.log('Tomando control de la conversación...')
-        await apiService.post(`/takeover/${selectedConversation.id}/start`)
+        await apiService.post(`/v1/human-takeover/${selectedConversation.id}/start`)
         // Actualizar el estado local de la conversación
         setSelectedConversation({
           ...selectedConversation,
@@ -217,13 +217,13 @@ export default function ConversationsPage() {
           [selectedConversation.id]: false
         }))
       }
-      
+
       // Luego enviar el mensaje
       console.log('Enviando mensaje:', newMessage)
-      await apiService.post(`/takeover/${selectedConversation.id}/message`, {
+      await apiService.post(`/v1/human-takeover/${selectedConversation.id}/message`, {
         content: newMessage
       })
-      
+
       setNewMessage('')
       fetchConversationMessages(selectedConversation.id)
       fetchConversations() // Actualizar lista de conversaciones
@@ -265,8 +265,8 @@ export default function ConversationsPage() {
   return (
     <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', bgcolor: '#f0f2f5' }}>
       {/* Lista de Conversaciones (Izquierda) */}
-      <Paper 
-        sx={{ 
+      <Paper
+        sx={{
           width: { xs: '100%', md: selectedConversation ? '35%' : '100%' },
           display: { xs: selectedConversation ? 'none' : 'flex', md: 'flex' },
           flexDirection: 'column',
@@ -366,10 +366,10 @@ export default function ConversationsPage() {
                           {getLastMessage(conversation)}
                         </Typography>
                         {conversation.status === 'escalated' && (
-                          <Chip 
-                            label="Escalada" 
-                            size="small" 
-                            color="warning" 
+                          <Chip
+                            label="Escalada"
+                            size="small"
+                            color="warning"
                             sx={{ mt: 0.5, height: 20 }}
                           />
                         )}
@@ -386,8 +386,8 @@ export default function ConversationsPage() {
 
       {/* Chat (Derecha) */}
       {selectedConversation ? (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
@@ -396,17 +396,17 @@ export default function ConversationsPage() {
           }}
         >
           {/* Chat Header */}
-          <Paper 
-            sx={{ 
-              p: 2, 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Paper
+            sx={{
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
               gap: 2,
               borderRadius: 0,
               bgcolor: '#f0f2f5',
             }}
           >
-            <IconButton 
+            <IconButton
               sx={{ display: { xs: 'block', md: 'none' } }}
               onClick={() => setSelectedConversation(null)}
             >
@@ -420,12 +420,12 @@ export default function ConversationsPage() {
                 {selectedConversation.client?.name || 'Cliente desconocido'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {selectedConversation.status === 'escalated' 
-                  ? '🙋 Control humano activo' 
+                {selectedConversation.status === 'escalated'
+                  ? '🙋 Control humano activo'
                   : selectedConversation.client?.phone || 'Sin teléfono'}
               </Typography>
             </Box>
-            
+
             {/* AI Toggle Switch */}
             <Tooltip title={aiEnabled[selectedConversation.id] ? "La IA está respondiendo automáticamente" : "Control humano activo - La IA no responderá"}>
               <FormControlLabel
@@ -447,8 +447,8 @@ export default function ConversationsPage() {
                 sx={{ m: 0 }}
               />
             </Tooltip>
-            
-            <Chip 
+
+            <Chip
               label={selectedConversation.status === 'active' ? 'Activa' : selectedConversation.status === 'escalated' ? 'Escalada' : 'Cerrada'}
               color={selectedConversation.status === 'active' ? 'success' : selectedConversation.status === 'escalated' ? 'warning' : 'default'}
               size="small"
@@ -470,7 +470,7 @@ export default function ConversationsPage() {
               conversationMessages.map((message) => {
                 const isClient = message.senderType === 'client'
                 const isAI = message.senderType === 'ai'
-                
+
                 return (
                   <Box
                     key={message.id}
@@ -500,11 +500,11 @@ export default function ConversationsPage() {
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         {message.content}
                       </Typography>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          display: 'block', 
-                          textAlign: 'right', 
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          textAlign: 'right',
                           color: 'text.secondary',
                           mt: 0.5,
                           fontSize: '0.7rem',
@@ -520,10 +520,10 @@ export default function ConversationsPage() {
           </Box>
 
           {/* Input de Mensaje */}
-          <Paper 
-            sx={{ 
-              p: 1.5, 
-              display: 'flex', 
+          <Paper
+            sx={{
+              p: 1.5,
+              display: 'flex',
               flexDirection: 'column',
               gap: 1,
               borderRadius: 0,
@@ -575,8 +575,8 @@ export default function ConversationsPage() {
           </Paper>
         </Box>
       ) : (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             flex: 1,
             display: { xs: 'none', md: 'flex' },
             alignItems: 'center',
