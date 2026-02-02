@@ -4,11 +4,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import config from './config';
 import logger from './utils/logger';
-import { 
-  securityHeaders, 
-  apiRateLimit, 
-  sanitizeInput, 
-  validateInput, 
+import {
+  securityHeaders,
+  apiRateLimit,
+  sanitizeInput,
+  validateInput,
   securityAuditLog,
   requestSizeLimit
 } from './middleware/security';
@@ -52,12 +52,12 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', '*');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
+
   next();
 });
 
@@ -68,8 +68,8 @@ app.get('/test-upload', (req: any, res: any) => {
 
 // SIMPLE UPLOAD WITHOUT MULTER FIRST
 app.post('/simple-upload/:type', (req: any, res: any) => {
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     message: 'Simple upload endpoint works',
     data: { files: [], urls: [] }
   });
@@ -86,7 +86,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Permitir requests sin origin (como Postman, aplicaciones móviles, etc.)
     if (!origin) return callback(null, true);
-    
+
     // En desarrollo, ser más permisivo
     if (config.nodeEnv === 'development') {
       // Permitir localhost en cualquier puerto
@@ -94,12 +94,12 @@ app.use(cors({
         return callback(null, true);
       }
     }
-    
+
     // Verificar origins configurados
     if (config.frontend.corsOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
+
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -133,13 +133,13 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Expose-Headers', '*');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  
+
   // Manejar preflight requests
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
+
   next();
 }, express.static('uploads'));
 
@@ -163,7 +163,7 @@ app.use(`/api/${config.apiVersion}/notifications`, notificationRoutes);
 app.use(`/api/${config.apiVersion}/ai`, aiRoutes);
 app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
-app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
+app.use(`/api/${config.apiVersion}/human-takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
 app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
@@ -184,7 +184,7 @@ app.post(`/api/${config.apiVersion}/upload-direct-bypass/:type`, uploadDirect.ar
   try {
     const files = req.files;
     const { type } = req.params;
-    
+
     if (!files || files.length === 0) {
       return res.json({ success: false, message: 'No files received' });
     }

@@ -4,11 +4,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import config from './config';
 import logger from './utils/logger';
-import { 
-  securityHeaders, 
-  apiRateLimit, 
-  sanitizeInput, 
-  validateInput, 
+import {
+  securityHeaders,
+  apiRateLimit,
+  sanitizeInput,
+  validateInput,
   securityAuditLog,
   requestSizeLimit
 } from './middleware/security';
@@ -36,7 +36,7 @@ const app: express.Application = express();
 
 // CONFIGURACIÓN CORS LIMPIA - UNA SOLA VEZ
 const corsConfig = {
-  origin: config.nodeEnv === 'development' 
+  origin: config.nodeEnv === 'development'
     ? ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000']
     : config.frontend.corsOrigins,
   credentials: true,
@@ -108,7 +108,7 @@ app.use(`/api/${config.apiVersion}/notifications`, notificationRoutes);
 app.use(`/api/${config.apiVersion}/ai`, aiRoutes);
 app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
-app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
+app.use(`/api/${config.apiVersion}/human-takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
 app.use(`/api/${config.apiVersion}/gdpr`, gdprRoutes);
@@ -186,15 +186,15 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   // Error genérico
   return res.status(err.status || 500).json({
     success: false,
-    error: config.nodeEnv === 'production' 
-      ? 'Error interno del servidor' 
+    error: config.nodeEnv === 'production'
+      ? 'Error interno del servidor'
       : err.message
   });
 });
 
 // 13. Manejo de rutas no encontradas
 app.use('*', (req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     success: false,
     error: 'Ruta no encontrada',
     path: req.originalUrl

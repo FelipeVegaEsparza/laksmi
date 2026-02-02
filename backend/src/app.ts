@@ -150,7 +150,7 @@ app.use(`/api/${config.apiVersion}/notifications`, notificationRoutes);
 app.use(`/api/${config.apiVersion}/ai`, aiRoutes);
 app.use(`/api/${config.apiVersion}/conversations`, conversationRoutes);
 app.use(`/api/${config.apiVersion}/escalations`, escalationRoutes);
-app.use(`/api/${config.apiVersion}/takeover`, humanTakeoverRoutes);
+app.use(`/api/${config.apiVersion}/human-takeover`, humanTakeoverRoutes);
 app.use(`/api/${config.apiVersion}/twilio`, twilioRoutes);
 // WhatsApp Web routes removed - using Twilio WhatsApp API instead
 app.use(`/api/${config.apiVersion}/security`, securityRoutes);
@@ -183,7 +183,7 @@ app.get(`/api/${config.apiVersion}`, (req, res) => {
       notifications: '/notifications',
       conversations: '/conversations',
       escalations: '/escalations',
-      takeover: '/takeover',
+      takeover: '/human-takeover',
       twilio: '/twilio',
       loyalty: '/loyalty',
       ai: '/ai',
