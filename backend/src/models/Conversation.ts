@@ -6,18 +6,19 @@ export class ConversationModel {
   static async findById(id: string): Promise<Conversation | null> {
     const conversation = await db('conversations').where({ id }).first();
     if (!conversation) return null;
-    
+
     return this.formatConversation(conversation);
   }
 
   static async findByClientAndChannel(clientId: string, channel: ConversationChannel): Promise<Conversation | null> {
     const conversation = await db('conversations')
-      .where({ client_id: clientId, channel, status: 'active' })
+      .where({ client_id: clientId, channel })
+      .whereIn('status', ['active', 'escalated'])
       .orderBy('last_activity', 'desc')
       .first();
-    
+
     if (!conversation) return null;
-    
+
     return this.formatConversation(conversation);
   }
 
@@ -43,7 +44,7 @@ export class ConversationModel {
       .where({ client_id: clientId, channel })
       .orderBy('created_at', 'desc')
       .first();
-    
+
     if (!conversation) {
       throw new Error('Error creating conversation');
     }
@@ -54,7 +55,7 @@ export class ConversationModel {
   static async updateContext(id: string, context: ConversationContext): Promise<Conversation | null> {
     // Asegurarse de que context es un objeto antes de stringify
     const contextToSave = typeof context === 'string' ? context : JSON.stringify(context);
-    
+
     const updateData = {
       context: contextToSave,
       last_activity: new Date(),
@@ -62,7 +63,7 @@ export class ConversationModel {
     };
 
     const result = await db('conversations').where({ id }).update(updateData);
-    
+
     if (result === 0) {
       return null;
     }
@@ -78,7 +79,7 @@ export class ConversationModel {
     };
 
     const result = await db('conversations').where({ id }).update(updateData);
-    
+
     if (result === 0) {
       return null;
     }
@@ -92,7 +93,7 @@ export class ConversationModel {
     if (message.metadata) {
       metadataToSave = typeof message.metadata === 'string' ? message.metadata : JSON.stringify(message.metadata);
     }
-    
+
     const messageData = {
       conversation_id: conversationId,
       sender_type: message.senderType,
@@ -108,7 +109,7 @@ export class ConversationModel {
       .where({ conversation_id: conversationId })
       .orderBy('timestamp', 'desc')
       .first();
-    
+
     if (!savedMessage) {
       throw new Error('Error saving message');
     }
@@ -254,7 +255,7 @@ export class ConversationModel {
    */
   static async clearExpiredTakeovers(): Promise<number> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
+
     const result = await db('conversations')
       .where('human_takeover_active', true)
       .where('last_human_message_time', '<', oneHourAgo)
@@ -317,11 +318,11 @@ export class ConversationModel {
     channelStats: Record<ConversationChannel, number>;
   }> {
     let query = db('conversations');
-    
+
     if (dateFrom) {
       query = query.where('created_at', '>=', dateFrom);
     }
-    
+
     if (dateTo) {
       query = query.where('created_at', '<=', dateTo);
     }
@@ -356,7 +357,7 @@ export class ConversationModel {
     const [avgResult] = await db('conversations')
       .join('messages', 'conversations.id', 'messages.conversation_id')
       .avg('messages.id as avg_messages');
-    
+
     const averageMessageCount = parseFloat(avgResult.avg_messages as string) || 0;
 
     return {
@@ -391,11 +392,11 @@ export class ConversationModel {
     peakHours: Array<{ hour: number; count: number }>;
   }> {
     let query = db('conversations');
-    
+
     if (dateFrom) {
       query = query.where('created_at', '>=', dateFrom);
     }
-    
+
     if (dateTo) {
       query = query.where('created_at', '<=', dateTo);
     }
@@ -480,11 +481,11 @@ export class ConversationModel {
     whatsapp: { conversations: number; messages: number; avgDuration: number };
   }> {
     let query = db('conversations');
-    
+
     if (dateFrom) {
       query = query.where('created_at', '>=', dateFrom);
     }
-    
+
     if (dateTo) {
       query = query.where('created_at', '<=', dateTo);
     }
@@ -599,7 +600,7 @@ export class ConversationModel {
         context = dbConversation.context;
       }
     }
-    
+
     return {
       id: dbConversation.id,
       clientId: dbConversation.client_id,
@@ -630,7 +631,7 @@ export class ConversationModel {
         metadata = dbMessage.metadata;
       }
     }
-    
+
     return {
       id: dbMessage.id,
       conversationId: dbMessage.conversation_id,
