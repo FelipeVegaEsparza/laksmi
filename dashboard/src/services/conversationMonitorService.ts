@@ -193,21 +193,21 @@ class ConversationMonitorService {
    * Tomar control de una conversación
    */
   async takeoverConversation(conversationId: string): Promise<void> {
-    return apiService.post(`/v1/human-takeover/${conversationId}/start`)
+    return apiService.post(`/human-takeover/${conversationId}/start`)
   }
 
   /**
    * Enviar mensaje en conversación controlada
    */
   async sendMessage(conversationId: string, content: string): Promise<void> {
-    return apiService.post(`/v1/human-takeover/${conversationId}/message`, { content })
+    return apiService.post(`/human-takeover/${conversationId}/message`, { content })
   }
 
   /**
    * Finalizar control de conversación
    */
   async endTakeover(conversationId: string, resolution?: string): Promise<void> {
-    return apiService.post(`/v1/human-takeover/${conversationId}/end`, { resolution })
+    return apiService.post(`/human-takeover/${conversationId}/end`, { resolution })
   }
 
   /**

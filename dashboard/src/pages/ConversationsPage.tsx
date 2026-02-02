@@ -164,13 +164,13 @@ export default function ConversationsPage() {
     try {
       if (enabled) {
         // Activar AI - finalizar control humano
-        await apiService.post(`/v1/human-takeover/${conversationId}/end`, {
+        await apiService.post(`/human-takeover/${conversationId}/end`, {
           resolution: 'Control devuelto a IA por el agente'
         })
         console.log('✅ AI activada para conversación:', conversationId)
       } else {
         // Desactivar AI - tomar control humano
-        await apiService.post(`/v1/human-takeover/${conversationId}/start`)
+        await apiService.post(`/human-takeover/${conversationId}/start`)
         console.log('🙋 Control humano activado para conversación:', conversationId)
       }
 
@@ -205,7 +205,7 @@ export default function ConversationsPage() {
       // Primero tomar control de la conversación si no está escalada
       if (selectedConversation.status !== 'escalated') {
         console.log('Tomando control de la conversación...')
-        await apiService.post(`/v1/human-takeover/${selectedConversation.id}/start`)
+        await apiService.post(`/human-takeover/${selectedConversation.id}/start`)
         // Actualizar el estado local de la conversación
         setSelectedConversation({
           ...selectedConversation,
@@ -220,7 +220,7 @@ export default function ConversationsPage() {
 
       // Luego enviar el mensaje
       console.log('Enviando mensaje:', newMessage)
-      await apiService.post(`/v1/human-takeover/${selectedConversation.id}/message`, {
+      await apiService.post(`/human-takeover/${selectedConversation.id}/message`, {
         content: newMessage
       })
 
