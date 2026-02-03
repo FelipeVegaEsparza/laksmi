@@ -51,10 +51,10 @@ export class ConversationController {
 
       // Búsqueda por nombre de cliente
       if (search) {
-        query = query.where(function() {
+        query = query.where(function () {
           this.where('clients.name', 'like', `%${search}%`)
-              .orWhere('clients.phone', 'like', `%${search}%`)
-              .orWhere('clients.email', 'like', `%${search}%`);
+            .orWhere('clients.phone', 'like', `%${search}%`)
+            .orWhere('clients.email', 'like', `%${search}%`);
         });
       }
 
@@ -82,7 +82,7 @@ export class ConversationController {
             context = conv.context;
           }
         }
-        
+
         return {
           id: conv.id,
           clientId: conv.client_id,
@@ -100,11 +100,23 @@ export class ConversationController {
         };
       });
 
+      // AGREGA DEDUPLICACIÓN POR CLIENTE
+      // Mantener solo la última conversación encontrada por cliente
+      const uniqueClientConversations: any[] = [];
+      const seenClientIds = new Set();
+
+      for (const conv of formattedConversations) {
+        if (!seenClientIds.has(conv.clientId)) {
+          seenClientIds.add(conv.clientId);
+          uniqueClientConversations.push(conv);
+        }
+      }
+
       res.json({
         success: true,
         message: 'Conversaciones obtenidas exitosamente',
-        data: formattedConversations,
-        total: parseInt(total as string),
+        data: uniqueClientConversations, // Devolver lista deduplicada
+        total: parseInt(total as string), // El total sigue siendo el conteo de rows, advertencia: paginación podría ser inexacta por la deduplicación
         page: pageNum,
         limit: limitNum,
         totalPages: Math.ceil(parseInt(total as string) / limitNum)
@@ -140,7 +152,11 @@ export class ConversationController {
 
       let messages: any[] = [];
       if (includeMessages === 'true') {
-        messages = await ConversationModel.getMessages(id, parseInt(messageLimit as string));
+        // CAMBIO: Obtener historial completo del cliente, no solo de esta conversación ID
+        messages = await ConversationModel.getClientMessages(
+          conversation.clientId,
+          parseInt(messageLimit as string)
+        );
       }
 
       res.json({
@@ -178,8 +194,9 @@ export class ConversationController {
         return;
       }
 
-      const messages = await ConversationModel.getMessages(
-        id, 
+      // CAMBIO: Obtener historial completo del cliente
+      const messages = await ConversationModel.getClientMessages(
+        conversation.clientId,
         parseInt(limit as string),
         parseInt(offset as string)
       );
@@ -213,8 +230,8 @@ export class ConversationController {
 
       // Métricas adicionales para el monitor
       const additionalMetrics = await ConversationModel.getMonitorMetrics(
-        dateFromObj, 
-        dateToObj, 
+        dateFromObj,
+        dateToObj,
         channel as string
       );
 
@@ -300,8 +317,8 @@ export class ConversationController {
       const dateToObj = dateTo ? new Date(dateTo as string) : undefined;
 
       const stats = await ConversationModel.getResponseTimeStats(
-        dateFromObj, 
-        dateToObj, 
+        dateFromObj,
+        dateToObj,
         channel as string
       );
 
@@ -328,7 +345,7 @@ export class ConversationController {
       const { reason } = req.body;
 
       const conversation = await ConversationModel.closeConversation(id, reason);
-      
+
       if (!conversation) {
         res.status(404).json({
           success: false,
@@ -359,7 +376,7 @@ export class ConversationController {
       const { id } = req.params;
 
       const conversation = await ConversationModel.updateStatus(id, 'active');
-      
+
       if (!conversation) {
         res.status(404).json({
           success: false,

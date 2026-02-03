@@ -132,6 +132,18 @@ export class ConversationModel {
     return messages.map(message => this.formatMessage(message)).reverse();
   }
 
+  static async getClientMessages(clientId: string, limit: number = 50, offset: number = 0): Promise<Message[]> {
+    const messages = await db('messages')
+      .join('conversations', 'messages.conversation_id', 'conversations.id')
+      .where('conversations.client_id', clientId)
+      .select('messages.*')
+      .orderBy('messages.timestamp', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    return messages.map(message => this.formatMessage(message)).reverse();
+  }
+
   static async getActiveConversations(limit: number = 100): Promise<Conversation[]> {
     const conversations = await db('conversations')
       .where({ status: 'active' })
