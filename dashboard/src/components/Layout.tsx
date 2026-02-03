@@ -60,7 +60,6 @@ const menuItems = [
   { text: 'Órdenes de Productos', icon: <InventoryIcon />, path: '/product-orders' },
   { text: 'Categorías', icon: <CategoryIcon />, path: '/categories' },
   { text: 'Conversaciones', icon: <ChatIcon />, path: '/conversations' },
-  { text: 'Escalaciones', icon: <WarningIcon />, path: '/escalations' },
   { text: 'Base de Conocimientos', icon: <KnowledgeIcon />, path: '/knowledge' },
   { text: 'Banner Principal', icon: <BusinessIcon />, path: '/banners' },
   { text: 'Imágenes Destacadas', icon: <BusinessIcon />, path: '/featured-images' },
@@ -78,13 +77,13 @@ export default function Layout({ children }: LayoutProps) {
   const [logoError, setLogoError] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [loadingMaintenance, setLoadingMaintenance] = useState(false)
-  
+
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
   const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
-  
+
   console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError)
 
   // Cargar estado inicial del modo mantenimiento
@@ -119,9 +118,9 @@ export default function Layout({ children }: LayoutProps) {
         },
         body: JSON.stringify({ maintenanceMode: !maintenanceMode })
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         setMaintenanceMode(!maintenanceMode)
       } else {
@@ -167,11 +166,11 @@ export default function Layout({ children }: LayoutProps) {
         background: 'linear-gradient(180deg, #1a237e 0%, #283593 100%)',
       }}
     >
-      <Toolbar 
-        sx={{ 
-          display: 'flex', 
+      <Toolbar
+        sx={{
+          display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center', 
+          alignItems: 'center',
           justifyContent: 'center',
           gap: 1,
           py: 3,
@@ -196,11 +195,11 @@ export default function Layout({ children }: LayoutProps) {
             }}
           />
         ) : (
-          <Typography 
-            variant="h5" 
-            component="div" 
-            sx={{ 
-              color: '#1a237e', 
+          <Typography
+            variant="h5"
+            component="div"
+            sx={{
+              color: '#1a237e',
               fontWeight: 700,
               textAlign: 'center',
               px: 2,
@@ -211,9 +210,9 @@ export default function Layout({ children }: LayoutProps) {
           </Typography>
         )}
       </Toolbar>
-      
+
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
-      
+
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
@@ -265,7 +264,7 @@ export default function Layout({ children }: LayoutProps) {
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 primary={item.text}
                 primaryTypographyProps={{
                   fontSize: '0.9rem',
@@ -276,7 +275,7 @@ export default function Layout({ children }: LayoutProps) {
           </ListItem>
         ))}
       </List>
-      
+
       <Box
         sx={{
           p: 2,
@@ -321,7 +320,7 @@ export default function Layout({ children }: LayoutProps) {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Dashboard Administrativo
           </Typography>
-          
+
           {/* Maintenance Mode Toggle */}
           <Box
             sx={{
@@ -338,9 +337,9 @@ export default function Layout({ children }: LayoutProps) {
           >
             <Tooltip title={maintenanceMode ? "El sitio está en mantenimiento. Click para activar" : "El sitio está activo. Click para poner en mantenimiento"}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
+                <Typography
+                  variant="body2"
+                  sx={{
                     color: maintenanceMode ? '#e65100' : '#2e7d32',
                     fontWeight: 600,
                     fontSize: '0.875rem',
@@ -366,9 +365,9 @@ export default function Layout({ children }: LayoutProps) {
                     },
                   }}
                 />
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
+                <Typography
+                  variant="body2"
+                  sx={{
                     color: maintenanceMode ? '#e65100' : '#2e7d32',
                     fontWeight: 700,
                     fontSize: '0.875rem',
@@ -381,10 +380,10 @@ export default function Layout({ children }: LayoutProps) {
               </Box>
             </Tooltip>
           </Box>
-          
+
           {/* Connection Status */}
           <ConnectionStatus />
-          
+
           {/* Notifications */}
           <IconButton
             size="large"
@@ -411,7 +410,7 @@ export default function Layout({ children }: LayoutProps) {
               {user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </Avatar>
           </IconButton>
-          
+
           <Menu
             id="menu-appbar"
             anchorEl={anchorEl}
@@ -455,7 +454,7 @@ export default function Layout({ children }: LayoutProps) {
           />
         </Toolbar>
       </AppBar>
-      
+
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
@@ -470,8 +469,8 @@ export default function Layout({ children }: LayoutProps) {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
               border: 'none',
             },
@@ -483,8 +482,8 @@ export default function Layout({ children }: LayoutProps) {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
               border: 'none',
               boxShadow: '4px 0 24px rgba(0, 0, 0, 0.12)',
@@ -495,7 +494,7 @@ export default function Layout({ children }: LayoutProps) {
           {drawer}
         </Drawer>
       </Box>
-      
+
       <Box
         component="main"
         sx={{
