@@ -31,11 +31,11 @@ export default function ClientForm({ client, onSave, onCancel }: ClientFormProps
   useEffect(() => {
     if (client) {
       setFormData({
-        name: client.name,
-        phone: client.phone,
+        name: client.name || '',
+        phone: client.phone || '',
         email: client.email || '',
-        allergies: client.allergies,
-        preferences: client.preferences,
+        allergies: Array.isArray(client.allergies) ? client.allergies : [],
+        preferences: Array.isArray(client.preferences) ? client.preferences : [],
       })
     }
   }, [client])
@@ -72,7 +72,7 @@ export default function ClientForm({ client, onSave, onCancel }: ClientFormProps
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -141,7 +141,7 @@ export default function ClientForm({ client, onSave, onCancel }: ClientFormProps
             required
           />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -190,7 +190,7 @@ export default function ClientForm({ client, onSave, onCancel }: ClientFormProps
               Agregar
             </Button>
           </Box>
-          
+
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {formData.allergies.map((allergy, index) => (
               <Chip
@@ -227,7 +227,7 @@ export default function ClientForm({ client, onSave, onCancel }: ClientFormProps
               Agregar
             </Button>
           </Box>
-          
+
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {formData.preferences.map((preference, index) => (
               <Chip
