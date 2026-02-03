@@ -438,9 +438,10 @@ export class ConversationController {
     try {
       const { id } = req.params;
 
-      const success = await ConversationModel.deleteConversation(id);
+      // 1. Buscar la conversación para obtener el clientId
+      const conversation = await ConversationModel.findById(id);
 
-      if (!success) {
+      if (!conversation) {
         res.status(404).json({
           success: false,
           error: 'Conversación no encontrada'
@@ -448,9 +449,17 @@ export class ConversationController {
         return;
       }
 
+      // 2. Eliminar TODAS las conversaciones de ese cliente (para limpiar el historial unificado)
+      const success = await ConversationModel.deleteClientConversations(conversation.clientId);
+
+      if (!success) {
+        // Fallback: intentar eliminar solo esta si por alguna razón falló lo anterior
+        await ConversationModel.deleteConversation(id);
+      }
+
       res.json({
         success: true,
-        message: 'Conversación eliminada exitosamente'
+        message: 'Conversación e historial eliminados exitosamente'
       });
     } catch (error: any) {
       logger.error('Delete conversation error:', error);

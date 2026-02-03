@@ -187,6 +187,22 @@ export class ConversationModel {
     return result > 0;
   }
 
+  static async deleteClientConversations(clientId: string): Promise<boolean> {
+    // 1. Obtener todos los IDs de conversación del cliente
+    const conversations = await db('conversations').where({ client_id: clientId }).select('id');
+    const conversationIds = conversations.map(c => c.id);
+
+    if (conversationIds.length === 0) return false;
+
+    // 2. Eliminar mensajes de todas esas conversaciones
+    await db('messages').whereIn('conversation_id', conversationIds).delete();
+
+    // 3. Eliminar las conversaciones
+    const result = await db('conversations').whereIn('id', conversationIds).delete();
+
+    return result > 0;
+  }
+
   static async escalateConversation(id: string, reason: string, humanAgentId?: string): Promise<Conversation | null> {
     const conversation = await this.findById(id);
     if (!conversation) return null;
