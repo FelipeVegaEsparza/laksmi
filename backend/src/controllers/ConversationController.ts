@@ -100,14 +100,18 @@ export class ConversationController {
         };
       });
 
-      // AGREGA DEDUPLICACIÓN POR CLIENTE
-      // Mantener solo la última conversación encontrada por cliente
+      // AGREGA DEDUPLICACIÓN POR CLIENTE (Mejorada)
+      // Agrupar principalmente por TELÉFONO para evitar duplicados si existen múltiples clientes con el mismo número
+      // Si no hay teléfono, usar ID de cliente
       const uniqueClientConversations: any[] = [];
-      const seenClientIds = new Set();
+      const seenKeys = new Set();
 
       for (const conv of formattedConversations) {
-        if (!seenClientIds.has(conv.clientId)) {
-          seenClientIds.add(conv.clientId);
+        // Usar teléfono como clave principal si existe, sino el ID del cliente
+        const key = conv.client?.phone || conv.clientId;
+
+        if (key && !seenKeys.has(key)) {
+          seenKeys.add(key);
           uniqueClientConversations.push(conv);
         }
       }
