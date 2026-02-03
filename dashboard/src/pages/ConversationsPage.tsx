@@ -247,20 +247,37 @@ export default function ConversationsPage() {
     try {
       setSending(true)
 
-      // Primero tomar control de la conversación si no está escalada
-      if (selectedConversation.status !== 'escalated') {
-        console.log('Tomando control de la conversación...')
+      // SIEMPRE intentar asegurar el control humano antes de enviar.
+      // Esto maneja casos donde:
+      // 1. La IA escaló la conversación (status='escalated') pero ningún agente tiene el control asignado.
+      // 2. La sesión previa expiró.
+      // 3. El estado local está desincronizado.
+      // El backend maneja la idempotencia: si ya tengo control, devuelve éxito.
+      try {
         await apiService.post(`/human-takeover/${selectedConversation.id}/start`)
-        // Actualizar el estado local de la conversación
-        setSelectedConversation({
-          ...selectedConversation,
-          status: 'escalated'
-        })
-        // Desactivar AI automáticamente
+
+        // Actualizar estado local para reflejar que tenemos el control
+        setSelectedConversation(prev => prev ? ({
+          ...prev,
+          status: 'escalated',
+          humanTakeoverActive: true
+        }) : null)
+
+        // Desactivar AI
         setAiEnabled(prev => ({
           ...prev,
           [selectedConversation.id]: false
         }))
+      } catch (error: any) {
+        // Si el error es porque otro agente tiene el control, mostrarlo y salir
+        if (error.response?.data?.error?.includes('otro agente')) {
+          showNotification('Otro agente tiene el control de esta conversación', 'error')
+          setSending(false)
+          return
+        }
+        // Si falla por otra razón, intentamos enviar el mensaje de todas formas 
+        // (el backend validará nuevamente) o dejamos que el siguiente bloque falle.
+        console.warn('Advertencia al tomar control:', error)
       }
 
       // Luego enviar el mensaje
@@ -274,7 +291,7 @@ export default function ConversationsPage() {
       fetchConversations() // Actualizar lista de conversaciones
     } catch (error: any) {
       console.error('Error sending message:', error)
-      alert(`Error al enviar mensaje: ${error.message || 'Error desconocido'}`)
+      showNotification(`Error al enviar mensaje: ${error.message || 'Error desconocido'}`, 'error')
     } finally {
       setSending(false)
     }
