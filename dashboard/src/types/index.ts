@@ -143,6 +143,7 @@ export interface Conversation {
   messages?: Message[]
   humanTakeoverActive?: boolean
   humanTakeoverAgentId?: string | null
+  lastMessagePreview?: string
 }
 
 export interface Message {

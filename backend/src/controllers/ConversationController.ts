@@ -3,6 +3,7 @@ import { ConversationModel } from '../models/Conversation';
 import { ClientModel } from '../models/Client';
 import { AuthenticatedRequest } from '../middleware/auth';
 import logger from '../utils/logger';
+import db from '../config/database';
 
 export class ConversationController {
   /**
@@ -64,6 +65,7 @@ export class ConversationController {
 
       // Obtener datos paginados
       const conversations = await query
+        .select(db.raw('(SELECT content FROM messages WHERE conversation_id = conversations.id ORDER BY timestamp DESC LIMIT 1) as last_message_content'))
         .orderBy('conversations.last_activity', 'desc')
         .limit(limitNum)
         .offset(offset);
@@ -93,8 +95,10 @@ export class ConversationController {
           createdAt: conv.created_at,
           humanTakeoverActive: conv.human_takeover_active === 1 || conv.human_takeover_active === true,
           humanTakeoverAgentId: conv.human_takeover_agent_id,
+          lastMessagePreview: conv.last_message_content, // Mensaje previo obtenido por subquery
           client: {
             id: conv.client_id,
+
             name: conv.client_name,
             phone: conv.client_phone,
             email: conv.client_email

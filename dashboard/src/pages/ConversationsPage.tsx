@@ -345,7 +345,12 @@ export default function ConversationsPage() {
   }
 
   const getLastMessage = (conversation: Conversation) => {
-    // This would ideally come from the API
+    // Si la conversación tiene una vista previa del último mensaje desde el backend, usarla
+    if (conversation.lastMessagePreview) {
+      return conversation.lastMessagePreview;
+    }
+
+    // Fallback por si acaso
     return 'Último mensaje...'
   }
 
