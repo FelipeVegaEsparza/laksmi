@@ -46,7 +46,7 @@ export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('active')
+  const [statusFilter, setStatusFilter] = useState('') // Default to showing ALL conversations
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversationMessages, setConversationMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -100,13 +100,14 @@ export default function ConversationsPage() {
       const params = {
         search: searchTerm,
         status: statusFilter,
-        limit: 100,
+        limit: 1000, // Increased limit to ensure all conversations are loaded
       }
 
       const response = await apiService.getConversations(params)
       setConversations(response?.data || [])
     } catch (error) {
       console.error('Error fetching conversations:', error)
+      showNotification('Error al cargar conversaciones', 'error')
     } finally {
       setLoading(false)
     }
@@ -114,7 +115,8 @@ export default function ConversationsPage() {
 
   const fetchConversationMessages = async (conversationId: string) => {
     try {
-      const messages = await apiService.get<Message[]>(`/conversations/${conversationId}/messages`)
+      // Fetch specifically with a high limit to show history
+      const messages = await apiService.get<Message[]>(`/conversations/${conversationId}/messages?limit=500`)
       const newMessages = Array.isArray(messages) ? messages : []
 
       // Detectar mensajes nuevos comparando con el estado anterior
