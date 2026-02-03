@@ -141,6 +141,8 @@ export interface Conversation {
   createdAt: Date
   client?: Client
   messages?: Message[]
+  humanTakeoverActive?: boolean
+  humanTakeoverAgentId?: string | null
 }
 
 export interface Message {

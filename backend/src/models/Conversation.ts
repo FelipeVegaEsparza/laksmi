@@ -177,6 +177,16 @@ export class ConversationModel {
     return this.updateStatus(id, 'closed');
   }
 
+  static async deleteConversation(id: string): Promise<boolean> {
+    // Primero eliminar mensajes asociados
+    await db('messages').where({ conversation_id: id }).delete();
+
+    // Luego eliminar la conversación
+    const result = await db('conversations').where({ id }).delete();
+
+    return result > 0;
+  }
+
   static async escalateConversation(id: string, reason: string, humanAgentId?: string): Promise<Conversation | null> {
     const conversation = await this.findById(id);
     if (!conversation) return null;

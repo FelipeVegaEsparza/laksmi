@@ -78,4 +78,7 @@ router.post('/:id/close', ConversationController.closeConversation);
  */
 router.post('/:id/reopen', ConversationController.reopenConversation);
 
+// Eliminar conversación
+router.delete('/:id', ConversationController.deleteConversation);
+
 export default router;

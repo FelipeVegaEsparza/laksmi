@@ -91,6 +91,8 @@ export class ConversationController {
           context,
           lastActivity: conv.last_activity,
           createdAt: conv.created_at,
+          humanTakeoverActive: conv.human_takeover_active === 1 || conv.human_takeover_active === true,
+          humanTakeoverAgentId: conv.human_takeover_agent_id,
           client: {
             id: conv.client_id,
             name: conv.client_name,
@@ -425,6 +427,36 @@ export class ConversationController {
       res.status(500).json({
         success: false,
         error: error.message || 'Error al exportar conversaciones'
+      });
+    }
+  }
+
+  /**
+   * Eliminar conversación
+   */
+  static async deleteConversation(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const success = await ConversationModel.deleteConversation(id);
+
+      if (!success) {
+        res.status(404).json({
+          success: false,
+          error: 'Conversación no encontrada'
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Conversación eliminada exitosamente'
+      });
+    } catch (error: any) {
+      logger.error('Delete conversation error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al eliminar conversación'
       });
     }
   }

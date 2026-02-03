@@ -33,6 +33,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Edit as EditIcon,
   PanTool as PanToolIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material'
 import { format, isToday, isYesterday } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -298,6 +299,22 @@ export default function ConversationsPage() {
     }
   }
 
+  const handleDeleteConversation = async () => {
+    if (!selectedConversation) return
+
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.')) {
+      try {
+        await apiService.delete(`/conversations/${selectedConversation.id}`)
+        showNotification('Conversación eliminada', 'success')
+        setSelectedConversation(null)
+        fetchConversations()
+      } catch (error) {
+        console.error('Error deleting conversation:', error)
+        showNotification('Error al eliminar conversación', 'error')
+      }
+    }
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -390,7 +407,13 @@ export default function ConversationsPage() {
                 >
                   <ListItemAvatar>
                     <Badge
-                      color={conversation.status === 'active' ? 'success' : conversation.status === 'escalated' ? 'warning' : 'default'}
+                      color={
+                        conversation.status === 'active' || (conversation.status === 'escalated' && conversation.humanTakeoverActive)
+                          ? 'success'
+                          : conversation.status === 'escalated'
+                            ? 'warning'
+                            : 'default'
+                      }
                       variant="dot"
                       overlap="circular"
                       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -421,7 +444,7 @@ export default function ConversationsPage() {
                         <Typography variant="body2" color="text.secondary" noWrap>
                           {getLastMessage(conversation)}
                         </Typography>
-                        {conversation.status === 'escalated' && (
+                        {conversation.status === 'escalated' && !conversation.humanTakeoverActive && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: '#f57c00' }}>
                             <PanToolIcon sx={{ fontSize: 16 }} />
                             <Typography variant="caption" sx={{ fontWeight: 600 }}>Solicita atención</Typography>
@@ -508,9 +531,11 @@ export default function ConversationsPage() {
               </Tooltip>
 
 
-              <IconButton>
-                <MoreVertIcon />
-              </IconButton>
+              <Tooltip title="Eliminar conversación">
+                <IconButton onClick={handleDeleteConversation} sx={{ color: '#d32f2f' }}>
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
             </Paper>
 
             {/* Mensajes */}
