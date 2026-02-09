@@ -3,11 +3,30 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ClientProvider from "@/components/ClientProvider";
 import MaintenanceCheck from "@/components/MaintenanceCheck";
+import MetaPixel from "@/components/MetaPixel";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
+
+// Función para obtener el Meta Pixel ID desde el backend
+async function getMetaPixelId(): Promise<string | null> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+    const response = await fetch(`${apiUrl}/api/company-settings`, {
+      cache: 'no-store',
+    })
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    return data.metaPixelId || null
+  } catch (error) {
+    console.error('Error fetching Meta Pixel ID:', error)
+    return null
+  }
+}
 
 export const metadata: Metadata = {
   title: "Clínica de Belleza - Tratamientos y Productos de Belleza",
@@ -15,14 +34,17 @@ export const metadata: Metadata = {
   keywords: "clínica belleza, tratamientos faciales, spa, productos belleza, reserva online",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const metaPixelId = await getMetaPixelId()
+
   return (
     <html lang="es">
       <head>
+        {metaPixelId && <MetaPixel pixelId={metaPixelId} />}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />

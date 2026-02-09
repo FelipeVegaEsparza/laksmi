@@ -47,6 +47,9 @@ export interface CompanySettings {
   tiktokUrl?: string;
   xUrl?: string;
   
+  // Meta Pixel
+  metaPixelId?: string;
+  
   // Horarios del local
   businessHours?: BusinessHours;
   
@@ -88,6 +91,7 @@ export interface UpdateCompanySettingsRequest {
   instagramUrl?: string;
   tiktokUrl?: string;
   xUrl?: string;
+  metaPixelId?: string;
   businessHours?: BusinessHours;
   maintenanceMode?: boolean;
   dashboardPrimaryColor?: string;
@@ -141,6 +145,7 @@ export class CompanySettingsModel {
     if (updates.instagramUrl !== undefined) updateData.instagram_url = updates.instagramUrl;
     if (updates.tiktokUrl !== undefined) updateData.tiktok_url = updates.tiktokUrl;
     if (updates.xUrl !== undefined) updateData.x_url = updates.xUrl;
+    if (updates.metaPixelId !== undefined) updateData.meta_pixel_id = updates.metaPixelId;
     if (updates.businessHours !== undefined) updateData.business_hours = JSON.stringify(updates.businessHours);
     if (updates.maintenanceMode !== undefined) updateData.maintenance_mode = updates.maintenanceMode;
     if (updates.dashboardPrimaryColor !== undefined) updateData.dashboard_primary_color = updates.dashboardPrimaryColor;
@@ -188,6 +193,7 @@ export class CompanySettingsModel {
       instagramUrl: dbSettings.instagram_url,
       tiktokUrl: dbSettings.tiktok_url,
       xUrl: dbSettings.x_url,
+      metaPixelId: dbSettings.meta_pixel_id,
       businessHours: dbSettings.business_hours ? 
         (typeof dbSettings.business_hours === 'string' ? JSON.parse(dbSettings.business_hours) : dbSettings.business_hours) 
         : undefined,

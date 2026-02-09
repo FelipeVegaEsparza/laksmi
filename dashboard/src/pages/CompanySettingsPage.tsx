@@ -68,6 +68,7 @@ interface CompanySettings {
   instagramUrl?: string
   tiktokUrl?: string
   xUrl?: string
+  metaPixelId?: string
   businessHours?: BusinessHours
   dashboardPrimaryColor: string
   dashboardSecondaryColor: string
@@ -452,6 +453,16 @@ export default function CompanySettingsPage() {
                 placeholder="https://x.com/tu-empresa"
                 value={settings.xUrl || ''}
                 onChange={(e) => setSettings({ ...settings, xUrl: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                label="Meta Pixel ID"
+                placeholder="123456789012345"
+                value={settings.metaPixelId || ''}
+                onChange={(e) => setSettings({ ...settings, metaPixelId: e.target.value })}
+                helperText="ID del Meta Pixel (Facebook Pixel) para seguimiento de conversiones. Encuéntralo en Meta Events Manager."
               />
             </CardContent>
           </Card>
