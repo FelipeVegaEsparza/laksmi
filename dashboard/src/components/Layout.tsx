@@ -41,6 +41,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { useEscalationNotification } from '@/hooks/useEscalationNotification'
 import NotificationPanel from './NotificationPanel'
 import ConnectionStatus from './ConnectionStatus'
 import { useCompanySettings } from '@/hooks/useCompanySettings'
@@ -84,6 +85,9 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
   const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
+
+  // Hook para notificaciones de escalación con sonido y título
+  useEscalationNotification(unreadCount)
 
   console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError)
 
