@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { BlockedTimeSlotController } from '../controllers/BlockedTimeSlotController';
-import { authenticateToken, requireManagerOrAdmin } from '../middleware/auth';
+import { authenticateToken, requireAnyRole } from '../middleware/auth';
 
 const router = Router();
 
 router.use(authenticateToken);
-router.use(requireManagerOrAdmin);
+router.use(requireAnyRole);
 
 router.post('/', BlockedTimeSlotController.create);
 router.get('/', BlockedTimeSlotController.getAll);
