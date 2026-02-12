@@ -220,19 +220,38 @@ export default function ConversationsPage() {
 
   const handleToggleAI = async (conversationId: string, enabled: boolean) => {
     console.log('🔄 Intentando cambiar estado de IA:', { conversationId, enabled })
+    
     try {
       if (enabled) {
         // Activar AI - finalizar control humano
         console.log('📤 Enviando petición para activar IA...')
+        
+        // Primero verificar si tenemos control
+        const statusResponse: any = await apiService.get(`/human-takeover/${conversationId}/status`)
+        console.log('📊 Estado actual:', statusResponse)
+        
+        if (!statusResponse?.data?.isUnderHumanControl) {
+          // Ya está en modo IA, solo actualizar UI
+          console.log('ℹ️ La conversación ya está en modo IA')
+          setAiEnabled(prev => ({
+            ...prev,
+            [conversationId]: true
+          }))
+          showNotification('La conversación ya está en modo IA', 'info')
+          return
+        }
+        
         const response = await apiService.post(`/human-takeover/${conversationId}/end`, {
           resolution: 'Control devuelto a IA por el agente'
         })
         console.log('✅ AI activada para conversación:', conversationId, response)
+        showNotification('IA activada correctamente', 'success')
       } else {
         // Desactivar AI - tomar control humano
         console.log('📤 Enviando petición para tomar control humano...')
         const response = await apiService.post(`/human-takeover/${conversationId}/start`)
         console.log('🙋 Control humano activado para conversación:', conversationId, response)
+        showNotification('Control humano activado correctamente', 'success')
       }
 
       // Actualizar estado local
@@ -252,19 +271,30 @@ export default function ConversationsPage() {
       // Refrescar lista de conversaciones
       fetchConversations()
       
-      showNotification(
-        enabled ? 'IA activada correctamente' : 'Control humano activado correctamente',
-        'success'
-      )
     } catch (error: any) {
       console.error('❌ Error toggling AI:', error)
       console.error('❌ Error details:', {
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
+        fullError: error
       })
       
-      const errorMessage = error.response?.data?.error || error.message || 'Error al cambiar el estado de la IA'
+      // Mostrar el error completo del backend
+      let errorMessage = 'Error al cambiar el estado de la IA'
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      console.error('❌ Error message to show:', errorMessage)
       showNotification(errorMessage, 'error')
       
       // Revertir el cambio en el UI
