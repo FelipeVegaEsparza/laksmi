@@ -52,22 +52,22 @@ interface LayoutProps {
 }
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Clientes', icon: <PeopleIcon />, path: '/clients' },
-  { text: 'Citas', icon: <EventNoteIcon />, path: '/bookings' },
-  { text: 'Servicios', icon: <InventoryIcon />, path: '/services' },
-  { text: 'Productos', icon: <InventoryIcon />, path: '/products' },
-  { text: 'Órdenes de Productos', icon: <InventoryIcon />, path: '/product-orders' },
-  { text: 'Categorías', icon: <CategoryIcon />, path: '/categories' },
-  { text: 'Conversaciones', icon: <ChatIcon />, path: '/conversations' },
-  { text: 'Base de Conocimientos', icon: <KnowledgeIcon />, path: '/knowledge' },
-  { text: 'Banner Principal', icon: <BusinessIcon />, path: '/banners' },
-  { text: 'Imágenes Destacadas', icon: <BusinessIcon />, path: '/featured-images' },
-  { text: 'Popups Promocionales', icon: <BusinessIcon />, path: '/popups' },
-  { text: 'Configuración Empresa', icon: <BusinessIcon />, path: '/company-settings' },
-  { text: 'Usuarios', icon: <PeopleIcon />, path: '/users', adminOnly: true },
-  { text: 'Configuración', icon: <SettingsIcon />, path: '/settings' },
-] as Array<{ text: string; icon: JSX.Element; path: string; adminOnly?: boolean }>
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Clientes', icon: <PeopleIcon />, path: '/clients', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Citas', icon: <EventNoteIcon />, path: '/bookings', roles: ['admin', 'manager', 'staff', 'secretaria'] },
+  { text: 'Servicios', icon: <InventoryIcon />, path: '/services', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Productos', icon: <InventoryIcon />, path: '/products', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Órdenes de Productos', icon: <InventoryIcon />, path: '/product-orders', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Categorías', icon: <CategoryIcon />, path: '/categories', roles: ['admin', 'manager'] },
+  { text: 'Conversaciones', icon: <ChatIcon />, path: '/conversations', roles: ['admin', 'manager', 'staff', 'secretaria'] },
+  { text: 'Base de Conocimientos', icon: <KnowledgeIcon />, path: '/knowledge', roles: ['admin', 'manager'] },
+  { text: 'Banner Principal', icon: <BusinessIcon />, path: '/banners', roles: ['admin', 'manager'] },
+  { text: 'Imágenes Destacadas', icon: <BusinessIcon />, path: '/featured-images', roles: ['admin', 'manager'] },
+  { text: 'Popups Promocionales', icon: <BusinessIcon />, path: '/popups', roles: ['admin', 'manager'] },
+  { text: 'Configuración Empresa', icon: <BusinessIcon />, path: '/company-settings', roles: ['admin'] },
+  { text: 'Usuarios', icon: <PeopleIcon />, path: '/users', roles: ['admin'] },
+  { text: 'Configuración', icon: <SettingsIcon />, path: '/settings', roles: ['admin'] },
+] as Array<{ text: string; icon: JSX.Element; path: string; roles: string[] }>
 
 export default function Layout({ children }: LayoutProps) {
   const theme = useTheme()
@@ -216,7 +216,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
         {menuItems
-          .filter((item) => !item.adminOnly || user?.role === 'admin')
+          .filter((item) => item.roles.includes(user?.role || ''))
           .map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton

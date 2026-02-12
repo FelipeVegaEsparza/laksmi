@@ -6,7 +6,7 @@ export interface User {
   username: string;
   email: string;
   passwordHash: string;
-  role: 'admin' | 'manager' | 'staff';
+  role: 'admin' | 'manager' | 'staff' | 'secretaria';
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -57,7 +57,7 @@ export class UserModel {
     username: string;
     email: string;
     password: string;
-    role?: 'admin' | 'manager' | 'staff';
+    role?: 'admin' | 'manager' | 'staff' | 'secretaria';
   }): Promise<User> {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(userData.password, saltRounds);

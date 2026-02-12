@@ -1,22 +1,56 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Users as UsersIcon,
-  Plus,
-  Edit2,
-  Trash2,
-  Key,
-  Shield,
-  UserCheck,
-  UserX,
-  Search
-} from 'lucide-react';
+  Box,
+  Typography,
+  Button,
+  TextField,
+  InputAdornment,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Avatar,
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Key as KeyIcon,
+  Person as PersonIcon,
+  AdminPanelSettings as AdminIcon,
+  ManageAccounts as ManagerIcon,
+  Support as StaffIcon,
+  RecordVoiceOver as SecretariaIcon,
+} from '@mui/icons-material';
 import { apiService } from '@/services/apiService';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface User {
   id: string;
   username: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff';
+  role: 'admin' | 'manager' | 'staff' | 'secretaria';
   isActive: boolean;
   lastLogin?: string;
   createdAt: string;
@@ -31,14 +65,18 @@ const UsersPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    role: 'staff' as 'admin' | 'manager' | 'staff',
+    role: 'staff' as 'admin' | 'manager' | 'staff' | 'secretaria',
     isActive: true
   });
   const [newPassword, setNewPassword] = useState('');
+
+  const { showNotification } = useNotifications();
 
   useEffect(() => {
     fetchUsers();
@@ -56,6 +94,7 @@ const UsersPage = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
+      showNotification('Error al cargar usuarios', 'error');
     } finally {
       setLoading(false);
     }
@@ -85,38 +124,46 @@ const UsersPage = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     try {
       if (selectedUser) {
-        // Actualizar usuario
         await apiService.put(`/users/${selectedUser.id}`, {
           username: formData.username,
           email: formData.email,
           role: formData.role,
           isActive: formData.isActive
         });
+        showNotification('Usuario actualizado correctamente', 'success');
       } else {
-        // Crear usuario
         await apiService.post('/users', formData);
+        showNotification('Usuario creado correctamente', 'success');
       }
       
       setShowModal(false);
       fetchUsers();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al guardar usuario');
+      showNotification(error.response?.data?.error || 'Error al guardar usuario', 'error');
     }
   };
 
-  const handleDelete = async (user: User) => {
-    if (!confirm(`¿Estás seguro de eliminar al usuario ${user.username}?`)) return;
+  const handleDelete = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
     
     try {
-      await apiService.delete(`/users/${user.id}`);
+      await apiService.delete(`/users/${userToDelete.id}`);
+      showNotification('Usuario eliminado correctamente', 'success');
       fetchUsers();
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al eliminar usuario');
+      showNotification(error.response?.data?.error || 'Error al eliminar usuario', 'error');
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -126,9 +173,7 @@ const UsersPage = () => {
     setShowPasswordModal(true);
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handlePasswordSubmit = async () => {
     if (!selectedUser) return;
     
     try {
@@ -137,10 +182,43 @@ const UsersPage = () => {
       });
       
       setShowPasswordModal(false);
-      alert('Contraseña actualizada exitosamente');
+      showNotification('Contraseña actualizada exitosamente', 'success');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al cambiar contraseña');
+      showNotification(error.response?.data?.error || 'Error al cambiar contraseña', 'error');
     }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <AdminIcon />;
+      case 'manager':
+        return <ManagerIcon />;
+      case 'secretaria':
+        return <SecretariaIcon />;
+      default:
+        return <StaffIcon />;
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    const labels = {
+      admin: 'Administrador',
+      manager: 'Gerente',
+      staff: 'Personal',
+      secretaria: 'Secretaria'
+    };
+    return labels[role as keyof typeof labels] || role;
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors = {
+      admin: 'error',
+      manager: 'primary',
+      staff: 'default',
+      secretaria: 'secondary'
+    };
+    return colors[role as keyof typeof colors] || 'default';
   };
 
   const filteredUsers = users.filter(user =>
@@ -148,349 +226,292 @@ const UsersPage = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getRoleBadge = (role: string) => {
-    const colors = {
-      admin: 'bg-red-100 text-red-800',
-      manager: 'bg-blue-100 text-blue-800',
-      staff: 'bg-gray-100 text-gray-800'
-    };
-    
-    const labels = {
-      admin: 'Administrador',
-      manager: 'Gerente',
-      staff: 'Personal'
-    };
-    
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[role as keyof typeof colors]}`}>
-        {labels[role as keyof typeof labels]}
-      </span>
-    );
-  };
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <div className="p-6">
+    <Box>
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <UsersIcon className="h-8 w-8 text-teal-600" />
-              Gestión de Usuarios
-            </h1>
-            <p className="text-gray-600 mt-1">Administra los usuarios del sistema</p>
-          </div>
-          <button
-            onClick={handleCreate}
-            className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 flex items-center gap-2"
-          >
-            <Plus className="h-5 w-5" />
-            Nuevo Usuario
-          </button>
-        </div>
-      </div>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon sx={{ fontSize: 32 }} />
+            Gestión de Usuarios
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Administra los usuarios del sistema
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreate}
+        >
+          Nuevo Usuario
+        </Button>
+      </Box>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Buscar
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre o email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rol
-            </label>
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            >
-              <option value="">Todos los roles</option>
-              <option value="admin">Administrador</option>
-              <option value="manager">Gerente</option>
-              <option value="staff">Personal</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado
-            </label>
-            <select
-              value={filterActive}
-              onChange={(e) => setFilterActive(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            >
-              <option value="">Todos</option>
-              <option value="true">Activos</option>
-              <option value="false">Inactivos</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <TextField
+              placeholder="Buscar por nombre o email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ flexGrow: 1, minWidth: 250 }}
+            />
+            
+            <FormControl sx={{ minWidth: 150 }}>
+              <InputLabel>Rol</InputLabel>
+              <Select
+                value={filterRole}
+                label="Rol"
+                onChange={(e) => setFilterRole(e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="admin">Administrador</MenuItem>
+                <MenuItem value="manager">Gerente</MenuItem>
+                <MenuItem value="staff">Personal</MenuItem>
+                <MenuItem value="secretaria">Secretaria</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl sx={{ minWidth: 150 }}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                value={filterActive}
+                label="Estado"
+                onChange={(e) => setFilterActive(e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="true">Activos</MenuItem>
+                <MenuItem value="false">Inactivos</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando usuarios...</p>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No se encontraron usuarios
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rol
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Último acceso
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-teal-100 rounded-full flex items-center justify-center">
-                          <Shield className="h-5 w-5 text-teal-600" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getRoleBadge(user.role)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.isActive ? (
-                        <span className="flex items-center gap-1 text-green-600">
-                          <UserCheck className="h-4 w-4" />
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-red-600">
-                          <UserX className="h-4 w-4" />
-                          Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.lastLogin
-                        ? new Date(user.lastLogin).toLocaleDateString('es-ES')
-                        : 'Nunca'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Editar"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleChangePassword(user)}
-                          className="text-yellow-600 hover:text-yellow-900"
-                          title="Cambiar contraseña"
-                        >
-                          <Key className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Usuario</TableCell>
+                <TableCell>Rol</TableCell>
+                <TableCell>Estado</TableCell>
+                <TableCell>Último acceso</TableCell>
+                <TableCell align="right">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                      No se encontraron usuarios
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          {user.username.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {user.username}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {user.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={getRoleIcon(user.role)}
+                        label={getRoleLabel(user.role)}
+                        color={getRoleColor(user.role) as any}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.isActive ? 'Activo' : 'Inactivo'}
+                        color={user.isActive ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {user.lastLogin
+                          ? new Date(user.lastLogin).toLocaleDateString('es-ES')
+                          : 'Nunca'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                        <Tooltip title="Editar">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Cambiar contraseña">
+                          <IconButton
+                            size="small"
+                            color="warning"
+                            onClick={() => handleChangePassword(user)}
+                          >
+                            <KeyIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Eliminar">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(user)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
 
-      {/* Modal Create/Edit User */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {selectedUser ? 'Editar Usuario' : 'Nuevo Usuario'}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de usuario
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {!selectedUser && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rol
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  >
-                    <option value="staff">Personal</option>
-                    <option value="manager">Gerente</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                    Usuario activo
-                  </label>
-                </div>
-              </div>
-              
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-                >
-                  {selectedUser ? 'Actualizar' : 'Crear'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Change Password */}
-      {showPasswordModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              Cambiar Contraseña - {selectedUser.username}
-            </h2>
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nueva Contraseña
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  placeholder="Mínimo 6 caracteres"
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {selectedUser ? 'Editar Usuario' : 'Nuevo Usuario'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Nombre de usuario"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              required
+              fullWidth
+            />
+            
+            <TextField
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              fullWidth
+            />
+            
+            {!selectedUser && (
+              <TextField
+                label="Contraseña"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                fullWidth
+                helperText="Mínimo 6 caracteres"
+              />
+            )}
+            
+            <FormControl fullWidth>
+              <InputLabel>Rol</InputLabel>
+              <Select
+                value={formData.role}
+                label="Rol"
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              >
+                <MenuItem value="staff">Personal</MenuItem>
+                <MenuItem value="secretaria">Secretaria</MenuItem>
+                <MenuItem value="manager">Gerente</MenuItem>
+                <MenuItem value="admin">Administrador</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 />
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-                >
-                  Cambiar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              }
+              label="Usuario activo"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowModal(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {selectedUser ? 'Actualizar' : 'Crear'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Change Password Modal */}
+      <Dialog open={showPasswordModal} onClose={() => setShowPasswordModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Cambiar Contraseña - {selectedUser?.username}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Nueva Contraseña"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            fullWidth
+            helperText="Mínimo 6 caracteres"
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowPasswordModal(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handlePasswordSubmit} variant="contained">
+            Cambiar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de eliminar al usuario ${userToDelete?.username}? Esta acción no se puede deshacer.`}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setDeleteDialogOpen(false);
+          setUserToDelete(null);
+        }}
+      />
+    </Box>
   );
 };
 
