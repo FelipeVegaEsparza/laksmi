@@ -199,6 +199,36 @@ export class UserModel {
     };
   }
 
+  static async update(id: string, userData: {
+    username?: string;
+    email?: string;
+    role?: 'admin' | 'manager' | 'staff';
+    isActive?: boolean;
+  }): Promise<boolean> {
+    const updateData: any = {
+      updated_at: new Date()
+    };
+    
+    if (userData.username) updateData.username = userData.username;
+    if (userData.email) updateData.email = userData.email;
+    if (userData.role) updateData.role = userData.role;
+    if (userData.isActive !== undefined) updateData.is_active = userData.isActive;
+    
+    const result = await db('users')
+      .where({ id })
+      .update(updateData);
+    
+    return result > 0;
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    const result = await db('users')
+      .where({ id })
+      .delete();
+    
+    return result > 0;
+  }
+
   private static formatUser(dbUser: any): User {
     return {
       id: dbUser.id,

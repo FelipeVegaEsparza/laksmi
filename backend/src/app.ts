@@ -47,6 +47,7 @@ import settingsRoutes from './routes/settings';
 import legalPagesRoutes from './routes/legalPages';
 import popupRoutes from './routes/popups';
 import diagnosticoRoutes from './routes/diagnostico';
+import userRoutes from './routes/users';
 
 console.log('🚨🚨🚨 APP MODULE LOADED 🚨🚨🚨');
 
@@ -167,6 +168,7 @@ app.use(`/api/${config.apiVersion}/settings`, settingsRoutes);
 app.use(`/api/${config.apiVersion}/legal-pages`, legalPagesRoutes);
 app.use(`/api/${config.apiVersion}/popups`, popupRoutes);
 app.use(`/api/${config.apiVersion}/diagnostico`, diagnosticoRoutes);
+app.use(`/api/${config.apiVersion}/users`, userRoutes);
 
 // 11. API Info endpoint
 app.get(`/api/${config.apiVersion}`, (req, res) => {

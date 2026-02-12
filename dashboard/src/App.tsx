@@ -21,6 +21,7 @@ import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import BannersPage from '@/pages/BannersPage'
 import FeaturedImagesPage from '@/pages/FeaturedImagesPage'
 import PopupsPage from '@/pages/PopupsPage'
+import UsersPage from '@/pages/UsersPage'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -193,6 +194,14 @@ function App() {
         element={
           <ProtectedRoute>
             <DiagnosticsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <UsersPage />
           </ProtectedRoute>
         }
       />
