@@ -89,8 +89,8 @@ const UsersPage = () => {
       if (filterRole) params.append('role', filterRole);
       if (filterActive) params.append('isActive', filterActive);
       
-      const response = await apiService.get<{ success: boolean; data: User[] }>(`/users?${params.toString()}`);
-      setUsers(response.data || []);
+      const users = await apiService.get<User[]>(`/users?${params.toString()}`);
+      setUsers(users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
