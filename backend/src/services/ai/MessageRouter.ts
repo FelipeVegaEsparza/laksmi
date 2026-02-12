@@ -1043,29 +1043,35 @@ export class MessageRouter {
     try {
       const messageLower = userMessage.toLowerCase();
 
-      // REGLA 1: NO generar link en consultas iniciales
-      const initialQueryKeywords = [
-        'me gustaría', 'quisiera', 'quiero información', 'quiero saber',
-        'cuáles son', 'qué opciones', 'opciones de', 'información sobre',
-        'cuánto cuesta', 'precio de', 'cuánto vale'
-      ];
-
-      if (initialQueryKeywords.some(keyword => messageLower.includes(keyword))) {
-        logger.debug('Initial query detected, NOT generating booking link');
-        return null;
-      }
-
-      // REGLA 2: Detectar confirmación EXPLÍCITA de reserva
+      // REGLA 1: Detectar confirmación EXPLÍCITA de reserva (PRIMERO)
       const confirmationKeywords = [
         'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
         'quiero ese', 'quiero esa', 'quiero el', 'quiero la',
         'me interesa ese', 'me interesa esa', 
         'reservar ese', 'agendar ese', 'reservar esa', 'agendar esa',
         'confirmo', 'adelante', 'proceder', 'sí, reservar', 'si, reservar',
-        'quiero reservar', 'quiero agendar', 'agendar', 'reservar'
+        'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
+        'agendar', 'reservar'
       ];
 
-      if (!confirmationKeywords.some(keyword => messageLower.includes(keyword))) {
+      const hasConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
+
+      // REGLA 2: NO generar link en consultas iniciales (SOLO si NO hay confirmación)
+      if (!hasConfirmation) {
+        const initialQueryKeywords = [
+          'me gustaría', 'quisiera', 'quiero información', 'quiero saber',
+          'cuáles son', 'qué opciones', 'opciones de', 'información sobre',
+          'cuánto cuesta', 'precio de', 'cuánto vale'
+        ];
+
+        if (initialQueryKeywords.some(keyword => messageLower.includes(keyword))) {
+          logger.debug('Initial query detected, NOT generating booking link');
+          return null;
+        }
+      }
+
+      // Si no hay confirmación explícita, no generar link
+      if (!hasConfirmation) {
         logger.debug('No explicit confirmation detected, NOT generating booking link');
         return null;
       }
