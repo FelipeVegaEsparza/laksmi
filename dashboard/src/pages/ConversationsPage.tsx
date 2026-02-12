@@ -219,17 +219,20 @@ export default function ConversationsPage() {
 
 
   const handleToggleAI = async (conversationId: string, enabled: boolean) => {
+    console.log('🔄 Intentando cambiar estado de IA:', { conversationId, enabled })
     try {
       if (enabled) {
         // Activar AI - finalizar control humano
-        await apiService.post(`/human-takeover/${conversationId}/end`, {
+        console.log('📤 Enviando petición para activar IA...')
+        const response = await apiService.post(`/human-takeover/${conversationId}/end`, {
           resolution: 'Control devuelto a IA por el agente'
         })
-        console.log('✅ AI activada para conversación:', conversationId)
+        console.log('✅ AI activada para conversación:', conversationId, response)
       } else {
         // Desactivar AI - tomar control humano
-        await apiService.post(`/human-takeover/${conversationId}/start`)
-        console.log('🙋 Control humano activado para conversación:', conversationId)
+        console.log('📤 Enviando petición para tomar control humano...')
+        const response = await apiService.post(`/human-takeover/${conversationId}/start`)
+        console.log('🙋 Control humano activado para conversación:', conversationId, response)
       }
 
       // Actualizar estado local
@@ -248,9 +251,27 @@ export default function ConversationsPage() {
 
       // Refrescar lista de conversaciones
       fetchConversations()
-    } catch (error) {
-      console.error('Error toggling AI:', error)
-      alert('Error al cambiar el estado de la IA')
+      
+      showNotification(
+        enabled ? 'IA activada correctamente' : 'Control humano activado correctamente',
+        'success'
+      )
+    } catch (error: any) {
+      console.error('❌ Error toggling AI:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      })
+      
+      const errorMessage = error.response?.data?.error || error.message || 'Error al cambiar el estado de la IA'
+      showNotification(errorMessage, 'error')
+      
+      // Revertir el cambio en el UI
+      setAiEnabled(prev => ({
+        ...prev,
+        [conversationId]: !enabled
+      }))
     }
   }
 
