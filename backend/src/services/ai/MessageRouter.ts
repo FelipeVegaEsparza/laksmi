@@ -410,6 +410,38 @@ export class MessageRouter {
             usedKnowledgeBase: aiResult.usedKnowledgeBase
           });
 
+          // ⚠️ VALIDACIÓN: Si el AI no incluyó SERVICE_ID pero debería haberlo hecho
+          // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
+          let aiMessage = aiResult.message;
+          if (!aiMessage.includes('[SERVICE_ID:')) {
+            const confirmationKeywords = [
+              'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
+              'sí quiero', 'si quiero', 'quiero ese', 'quiero esa',
+              'me interesa', 'confirmo', 'adelante'
+            ];
+            
+            const messageLower = request.content.toLowerCase();
+            const hasConfirmation = confirmationKeywords.some(kw => messageLower.includes(kw));
+            
+            if (hasConfirmation && conversation.context.lastMessages) {
+              // Buscar SERVICE_ID en los últimos mensajes del AI
+              const recentAIMessages = conversation.context.lastMessages
+                .filter((msg: any) => msg.senderType === 'ai')
+                .slice(-3)
+                .reverse();
+              
+              for (const aiMsg of recentAIMessages) {
+                const serviceIdMatch = aiMsg.content.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
+                if (serviceIdMatch) {
+                  const serviceId = serviceIdMatch[1];
+                  logger.info('✅ AUTO-ADDING SERVICE_ID to AI response', { serviceId });
+                  aiMessage += ` [SERVICE_ID:${serviceId}]`;
+                  break;
+                }
+              }
+            }
+          }
+
           // NOTA: Ya NO detectamos servicios automáticamente de la respuesta del AI
           // Solo confiamos en [SERVICE_ID:xxx] explícito que el AI debe incluir
           // Esto elimina falsos positivos y hace el sistema más confiable
@@ -422,7 +454,7 @@ export class MessageRouter {
           );
 
           // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
-          let finalMessage = aiResult.message.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
+          let finalMessage = aiMessage.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
           
           // Si hay link de reserva, agregarlo al mensaje
           if (bookingLink) {
