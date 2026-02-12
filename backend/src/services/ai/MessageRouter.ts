@@ -1070,11 +1070,11 @@ export class MessageRouter {
         return null;
       }
 
-      // REGLA 3: SOLO buscar [SERVICE_ID:xxx] en mensajes del AI (estrategia única y confiable)
+      // REGLA 3: Buscar SERVICE_ID en mensajes del AI O buscar servicio por nombre
       let serviceId: string | null = null;
 
+      // Estrategia 1: Buscar [SERVICE_ID:xxx] en mensajes anteriores del AI
       if (context.lastMessages && context.lastMessages.length > 0) {
-        // Buscar en los últimos 3 mensajes del AI
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
           .slice(-3)
@@ -1090,9 +1090,51 @@ export class MessageRouter {
         }
       }
 
-      // Si no encontramos SERVICE_ID, NO generar link
+      // Estrategia 2: Si no hay SERVICE_ID, buscar servicio por nombre en el mensaje del usuario
       if (!serviceId) {
-        logger.debug('No SERVICE_ID found in AI messages, NOT generating booking link');
+        logger.info('🔍 No SERVICE_ID found, searching service by name in user message');
+        
+        try {
+          const { ServiceService } = await import('../ServiceService');
+          const result = await ServiceService.getServices({ isActive: true, limit: 200 });
+          
+          // Buscar servicio que coincida con el mensaje del usuario
+          const matchedService = result.services.find((service: any) => {
+            const serviceName = service.name.toLowerCase();
+            const messageWords = messageLower.split(' ');
+            
+            // Verificar si el mensaje contiene palabras clave del servicio
+            // Ejemplo: "depilación láser axilas" debe coincidir con "Depilación Laser Axilas Mujer 8 Sesiones"
+            const serviceWords = serviceName.split(' ').filter((w: string) => w.length > 3);
+            const matchCount = serviceWords.filter((sw: string) => 
+              messageWords.some(mw => mw.includes(sw) || sw.includes(mw))
+            ).length;
+            
+            // Si al menos 2 palabras coinciden, considerarlo un match
+            return matchCount >= 2;
+          });
+          
+          if (matchedService) {
+            serviceId = matchedService.id;
+            logger.info('✅ Service found by name matching:', { 
+              serviceId, 
+              serviceName: matchedService.name,
+              userMessage: userMessage.substring(0, 50)
+            });
+          } else {
+            logger.warn('⚠️ No service matched user message:', { 
+              userMessage: userMessage.substring(0, 50),
+              totalServices: result.services.length
+            });
+          }
+        } catch (error) {
+          logger.error('Error searching service by name:', error);
+        }
+      }
+
+      // Si aún no encontramos servicio, NO generar link
+      if (!serviceId) {
+        logger.debug('No service found, NOT generating booking link');
         return null;
       }
 
