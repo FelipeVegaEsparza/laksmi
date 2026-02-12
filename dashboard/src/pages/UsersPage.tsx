@@ -52,9 +52,10 @@ const UsersPage = () => {
       if (filterActive) params.append('isActive', filterActive);
       
       const response = await apiService.get<{ success: boolean; data: User[] }>(`/users?${params.toString()}`);
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
