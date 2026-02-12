@@ -168,3 +168,114 @@ export class DashboardController {
     }
   }
 }
+
+  // Temporary diagnostic endpoints for WhatsApp channel fix
+  static async checkWhatsAppChannels(req: Request, res: Response): Promise<void> {
+    try {
+      logger.info('🔍 Checking WhatsApp conversation channels...');
+
+      // Get all conversations with their channel info
+      const allConversations = await db('conversations')
+        .select('channel')
+        .count('* as count')
+        .groupBy('channel');
+
+      // Get conversations without channel that should be WhatsApp
+      const conversationsToFix = await db('conversations as c')
+        .join('clients as cl', 'c.client_id', 'cl.id')
+        .select('c.id', 'c.channel', 'cl.name', 'cl.phone', 'c.status')
+        .where(function() {
+          this.whereNull('c.channel').orWhere('c.channel', '!=', 'whatsapp');
+        })
+        .whereNotNull('cl.phone')
+        .where('cl.phone', 'like', '+56%')
+        .limit(50);
+
+      const channelStats = allConversations.reduce((acc, row) => {
+        acc[row.channel || 'NULL'] = Number(row.count);
+        return acc;
+      }, {} as Record<string, number>);
+
+      logger.info('✅ WhatsApp channel check completed', {
+        totalToFix: conversationsToFix.length,
+        channelStats
+      });
+
+      res.json({
+        success: true,
+        data: {
+          channelStats,
+          conversationsToFix: conversationsToFix.length,
+          sampleConversations: conversationsToFix.slice(0, 10).map(c => ({
+            id: c.id.substring(0, 8) + '...',
+            clientName: c.name,
+            phone: c.phone,
+            currentChannel: c.channel || 'NULL',
+            status: c.status
+          })),
+          message: conversationsToFix.length > 0 
+            ? `⚠️ Encontradas ${conversationsToFix.length} conversaciones que necesitan corrección`
+            : '✅ Todas las conversaciones tienen el canal correcto'
+        }
+      });
+    } catch (error: any) {
+      logger.error('Check WhatsApp channels error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error checking WhatsApp channels'
+      });
+    }
+  }
+
+  static async fixWhatsAppChannels(req: Request, res: Response): Promise<void> {
+    try {
+      logger.info('🔧 Fixing WhatsApp conversation channels...');
+
+      // Update conversations that should be WhatsApp
+      const result = await db.raw(`
+        UPDATE conversations c
+        INNER JOIN clients cl ON c.client_id = cl.id
+        SET c.channel = 'whatsapp',
+            c.updated_at = NOW()
+        WHERE (c.channel IS NULL OR c.channel != 'whatsapp')
+          AND cl.phone IS NOT NULL
+          AND cl.phone LIKE '+56%'
+      `);
+
+      const affectedRows = result[0].affectedRows || 0;
+
+      // Get updated stats
+      const updatedStats = await db('conversations')
+        .select('channel')
+        .count('* as count')
+        .groupBy('channel');
+
+      const channelStats = updatedStats.reduce((acc, row) => {
+        acc[row.channel || 'NULL'] = Number(row.count);
+        return acc;
+      }, {} as Record<string, number>);
+
+      logger.info('✅ WhatsApp channels fixed', {
+        affectedRows,
+        channelStats
+      });
+
+      res.json({
+        success: true,
+        data: {
+          conversationsUpdated: affectedRows,
+          channelStats,
+          message: affectedRows > 0
+            ? `✅ Se actualizaron ${affectedRows} conversaciones. Ahora los mensajes del Dashboard se enviarán por WhatsApp.`
+            : '✅ No había conversaciones para actualizar'
+        }
+      });
+    } catch (error: any) {
+      logger.error('Fix WhatsApp channels error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error fixing WhatsApp channels'
+      });
+    }
+  }
+}

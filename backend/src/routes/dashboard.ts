@@ -13,4 +13,8 @@ router.get('/metrics', DashboardController.getMetrics);
 router.get('/recent-bookings', DashboardController.getRecentBookings);
 router.get('/active-conversations', DashboardController.getActiveConversations);
 
+// Temporary diagnostic endpoints
+router.get('/check-whatsapp-channels', DashboardController.checkWhatsAppChannels);
+router.post('/fix-whatsapp-channels', DashboardController.fixWhatsAppChannels);
+
 export default router;
