@@ -1096,36 +1096,53 @@ export class MessageRouter {
         }
       }
 
-      // Estrategia 2: Si no hay SERVICE_ID, buscar servicio por nombre en el mensaje del usuario
+      // Estrategia 2: Si no hay SERVICE_ID, buscar servicio por nombre en el contexto de la conversación
       if (!serviceId) {
-        logger.info('🔍 No SERVICE_ID found, searching service by name in user message');
+        logger.info('🔍 No SERVICE_ID found, searching service by name in conversation context');
         
         try {
           const { ServiceService } = await import('../ServiceService');
           const result = await ServiceService.getServices({ isActive: true, limit: 200 });
           
-          // Buscar servicio que coincida con el mensaje del usuario
+          // Buscar en los últimos 3 mensajes (usuario + AI) para encontrar menciones de servicios
+          let searchText = userMessage;
+          if (context.lastMessages && context.lastMessages.length > 0) {
+            const recentMessages = context.lastMessages.slice(-3);
+            searchText = recentMessages.map((msg: any) => msg.content).join(' ') + ' ' + userMessage;
+          }
+          
+          const searchLower = searchText.toLowerCase();
+          
+          // Buscar servicio que coincida con el contexto de la conversación
           const matchedService = result.services.find((service: any) => {
             const serviceName = service.name.toLowerCase();
-            const messageWords = messageLower.split(' ');
+            const searchWords = searchLower.split(' ').filter((w: string) => w.length > 3);
             
-            // Verificar si el mensaje contiene palabras clave del servicio
-            // Ejemplo: "depilación láser axilas" debe coincidir con "Depilación Laser Axilas Mujer 8 Sesiones"
+            // Verificar si el contexto contiene palabras clave del servicio
+            // Ejemplo: "detox pack crio total" debe coincidir con "DETOX PACK CRIO TOTAL 14 SESIONES"
             const serviceWords = serviceName.split(' ').filter((w: string) => w.length > 3);
+            
+            // Contar cuántas palabras del servicio aparecen en el contexto
             const matchCount = serviceWords.filter((sw: string) => 
-              messageWords.some(mw => mw.includes(sw) || sw.includes(mw))
+              searchWords.some(mw => {
+                // Normalizar para comparación (quitar acentos, etc.)
+                const swNorm = sw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const mwNorm = mw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return mwNorm.includes(swNorm) || swNorm.includes(mwNorm);
+              })
             ).length;
             
-            // Si al menos 2 palabras coinciden, considerarlo un match
-            return matchCount >= 2;
+            // Si al menos 2 palabras coinciden O el porcentaje de coincidencia es > 40%, considerarlo un match
+            const matchPercentage = serviceWords.length > 0 ? (matchCount / serviceWords.length) * 100 : 0;
+            return matchCount >= 2 || matchPercentage > 40;
           });
           
           if (matchedService) {
             serviceId = matchedService.id;
-            logger.info('✅ Service found by name matching:', { 
+            logger.info('✅ Service found by name matching in context:', { 
               serviceId, 
               serviceName: matchedService.name,
-              userMessage: userMessage.substring(0, 50)
+              searchText: searchText.substring(0, 100)
             });
           } else {
             logger.warn('⚠️ No service matched user message:', { 

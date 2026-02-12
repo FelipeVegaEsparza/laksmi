@@ -291,8 +291,11 @@ const ChatWidget = () => {
       
       console.log('📨 Final message to display:', messageContent);
       
+      // Extraer messageId del servidor si está disponible
+      const serverMessageId = (response as any).data?.messageId || (response as any).messageId;
+      
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: serverMessageId || (Date.now() + 1).toString(), // Usar ID del servidor si está disponible
         content: messageContent,
         sender: 'ai',
         timestamp: new Date()
@@ -366,8 +369,11 @@ const ChatWidget = () => {
         }
       }
       
+      // Extraer messageId del servidor si está disponible
+      const serverMessageId = (response as any).data?.messageId || (response as any).messageId;
+      
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: serverMessageId || (Date.now() + 1).toString(), // Usar ID del servidor si está disponible
         content: messageContent,
         sender: 'ai',
         timestamp: new Date()
