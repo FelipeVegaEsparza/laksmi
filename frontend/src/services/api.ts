@@ -124,12 +124,18 @@ export const bookingsApi = {
 
 // Chat API (for web widget)
 export const chatApi = {
-  sendMessage: async (message: string, clientId?: string): Promise<{ response: string; conversationId: string }> => {
-    const payload = {
+  sendMessage: async (message: string, clientId?: string, metadata?: any): Promise<{ response: string; conversationId: string }> => {
+    const payload: any = {
       content: message,
       clientId: clientId || '',
       channel: 'web'
     };
+    
+    // Agregar metadata si está disponible
+    if (metadata) {
+      payload.metadata = metadata;
+    }
+    
     console.log('Sending chat message:', payload);
     const response = await api.post('/ai/message', payload);
     console.log('Chat response:', response.data);

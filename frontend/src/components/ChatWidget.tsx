@@ -248,7 +248,14 @@ const ChatWidget = () => {
     setIsLoading(true);
 
     try {
-      const response = await chatApi.sendMessage(inputMessage, clientId);
+      // Preparar metadata incluyendo serviceId si está disponible
+      const metadata: any = {};
+      if (serviceContext?.id) {
+        metadata.serviceId = serviceContext.id;
+        metadata.serviceName = serviceContext.name;
+      }
+      
+      const response = await chatApi.sendMessage(inputMessage, clientId, metadata);
       
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
@@ -335,7 +342,14 @@ const ChatWidget = () => {
     setIsLoading(true);
 
     try {
-      const response = await chatApi.sendMessage(message, clientId);
+      // Preparar metadata incluyendo serviceId si está disponible
+      const metadata: any = {};
+      if (serviceContext?.id) {
+        metadata.serviceId = serviceContext.id;
+        metadata.serviceName = serviceContext.name;
+      }
+      
+      const response = await chatApi.sendMessage(message, clientId, metadata);
       
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';

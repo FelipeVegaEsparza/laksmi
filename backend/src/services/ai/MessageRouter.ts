@@ -130,6 +130,21 @@ export class MessageRouter {
       logger.debug('Context updated');
 
       // ============================================
+      // CAPTURAR SERVICE_ID DEL METADATA SI ESTÁ DISPONIBLE
+      // ============================================
+      if (request.metadata?.serviceId) {
+        logger.info('📌 Service ID captured from metadata:', {
+          serviceId: request.metadata.serviceId,
+          serviceName: request.metadata.serviceName,
+          conversationId: conversation.id
+        });
+        
+        // Guardar serviceId en el contexto de la conversación
+        await ContextManager.setVariable(conversation.id, 'contextServiceId', request.metadata.serviceId);
+        await ContextManager.setVariable(conversation.id, 'contextServiceName', request.metadata.serviceName);
+      }
+
+      // ============================================
       // VERIFICAR SI HAY CONTROL HUMANO ACTIVO
       // ============================================
       const { HumanTakeoverService } = await import('./HumanTakeoverService');
@@ -451,7 +466,8 @@ export class MessageRouter {
           const bookingLink = await this.generateBookingLinkIfNeeded(
             request.content,
             nluResult.intent.name,
-            conversation.context
+            conversation.context,
+            conversation.id
           );
 
           // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
@@ -1038,7 +1054,8 @@ export class MessageRouter {
   private static async generateBookingLinkIfNeeded(
     userMessage: string,
     intent: string,
-    context: any
+    context: any,
+    conversationId: string
   ): Promise<string | null> {
     try {
       const messageLower = userMessage.toLowerCase();
@@ -1076,11 +1093,22 @@ export class MessageRouter {
         return null;
       }
 
-      // REGLA 3: Buscar SERVICE_ID en mensajes del AI O buscar servicio por nombre
+      // REGLA 3: Buscar SERVICE_ID - PRIORIDAD: contexto guardado > mensajes AI > búsqueda por nombre
       let serviceId: string | null = null;
 
-      // Estrategia 1: Buscar [SERVICE_ID:xxx] en mensajes anteriores del AI
-      if (context.lastMessages && context.lastMessages.length > 0) {
+      // Estrategia 0 (NUEVA - MÁXIMA PRIORIDAD): Usar serviceId guardado en el contexto
+      const contextServiceId = await ContextManager.getVariable(conversationId, 'contextServiceId');
+      if (contextServiceId) {
+        serviceId = contextServiceId;
+        const contextServiceName = await ContextManager.getVariable(conversationId, 'contextServiceName');
+        logger.info('✅ SERVICE_ID found in conversation context (HIGHEST PRIORITY):', { 
+          serviceId, 
+          serviceName: contextServiceName 
+        });
+      }
+
+      // Estrategia 1: Buscar [SERVICE_ID:xxx] en mensajes anteriores del AI (solo si no hay en contexto)
+      if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
           .slice(-3)
