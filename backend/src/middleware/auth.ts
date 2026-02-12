@@ -70,7 +70,7 @@ export const requireRole = (roles: string | string[]) => {
 // Middleware específicos para roles
 export const requireAdmin = requireRole('admin');
 export const requireManagerOrAdmin = requireRole(['admin', 'manager']);
-export const requireAnyRole = requireRole(['admin', 'manager', 'staff']);
+export const requireAnyRole = requireRole(['admin', 'manager', 'staff', 'secretaria']);
 
 /**
  * Autenticación para sockets
