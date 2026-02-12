@@ -168,7 +168,7 @@ export class DashboardController {
     }
   }
 
-  // Temporary diagnostic endpoints for WhatsApp channel fix
+  // Diagnostic endpoints for WhatsApp channel verification
   static async checkWhatsAppChannels(req: Request, res: Response): Promise<void> {
     try {
       logger.info('🔍 Checking WhatsApp conversation channels...');
