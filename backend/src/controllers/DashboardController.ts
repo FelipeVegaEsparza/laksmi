@@ -167,7 +167,6 @@ export class DashboardController {
       });
     }
   }
-}
 
   // Temporary diagnostic endpoints for WhatsApp channel fix
   static async checkWhatsAppChannels(req: Request, res: Response): Promise<void> {
