@@ -404,10 +404,11 @@ export class MessageRouter {
             conversation.id
           );
 
-          logger.debug('AIService response received', {
+          logger.info('AIService response received', {
             conversationId: conversation.id,
             messageLength: aiResult.message.length,
-            usedKnowledgeBase: aiResult.usedKnowledgeBase
+            usedKnowledgeBase: aiResult.usedKnowledgeBase,
+            hasServiceId: aiResult.message.includes('[SERVICE_ID:')
           });
 
           // ⚠️ VALIDACIÓN: Si el AI no incluyó SERVICE_ID pero debería haberlo hecho
