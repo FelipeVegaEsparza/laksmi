@@ -194,4 +194,90 @@ router.get('/control-humano', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Endpoint de diagnóstico para verificar configuración de Twilio
+ * GET /api/diagnostico/twilio
+ */
+router.get('/twilio', async (req: Request, res: Response) => {
+  try {
+    const { TwilioService } = await import('../services/TwilioService');
+    
+    const config = TwilioService.getConfig();
+    
+    // Obtener auth token de variables de entorno (solo para diagnóstico)
+    const authToken = process.env.TWILIO_AUTH_TOKEN || '';
+    const maskedAuthToken = authToken 
+      ? `${authToken.substring(0, 4)}...${authToken.substring(authToken.length - 4)}`
+      : 'NO CONFIGURADO';
+    
+    const diagnostico = {
+      timestamp: new Date().toISOString(),
+      configuracion: {
+        accountSid: config.accountSid || 'NO CONFIGURADO',
+        accountSidValido: config.accountSid?.startsWith('AC') || false,
+        authToken: maskedAuthToken,
+        authTokenConfigurado: !!authToken && authToken.length > 10,
+        phoneNumber: config.phoneNumber || 'NO CONFIGURADO',
+        webhookUrl: config.webhookUrl || 'NO CONFIGURADO',
+        validateSignatures: config.validateSignatures
+      },
+      variablesEntorno: {
+        TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ? `${process.env.TWILIO_ACCOUNT_SID.substring(0, 5)}...` : 'NO DEFINIDA',
+        TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ? 'DEFINIDA' : 'NO DEFINIDA',
+        TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER || 'NO DEFINIDA',
+        TWILIO_WEBHOOK_URL: process.env.TWILIO_WEBHOOK_URL || 'NO DEFINIDA'
+      },
+      estado: 'OK',
+      problemas: [] as string[],
+      recomendaciones: [] as string[]
+    };
+    
+    // Validaciones
+    if (!config.accountSid || config.accountSid === 'dummy_account_sid') {
+      diagnostico.estado = 'ERROR';
+      diagnostico.problemas.push('TWILIO_ACCOUNT_SID no está configurado o usa valor dummy');
+      diagnostico.recomendaciones.push('Configurar TWILIO_ACCOUNT_SID en variables de entorno de Easypanel');
+    }
+    
+    if (!config.accountSid?.startsWith('AC')) {
+      diagnostico.estado = 'ERROR';
+      diagnostico.problemas.push('TWILIO_ACCOUNT_SID no tiene formato válido (debe empezar con AC)');
+      diagnostico.recomendaciones.push('Verificar que el Account SID sea correcto en Twilio Console');
+    }
+    
+    if (!authToken || authToken === 'dummy_auth_token' || authToken.length < 20) {
+      diagnostico.estado = 'ERROR';
+      diagnostico.problemas.push('TWILIO_AUTH_TOKEN no está configurado correctamente');
+      diagnostico.recomendaciones.push('Configurar TWILIO_AUTH_TOKEN en variables de entorno de Easypanel');
+      diagnostico.recomendaciones.push('Obtener Auth Token desde Twilio Console > Account Info');
+    }
+    
+    if (!config.phoneNumber) {
+      diagnostico.estado = 'WARNING';
+      diagnostico.problemas.push('TWILIO_WHATSAPP_NUMBER no está configurado');
+      diagnostico.recomendaciones.push('Configurar TWILIO_WHATSAPP_NUMBER (ej: +56984320723)');
+    }
+    
+    if (diagnostico.estado === 'OK') {
+      diagnostico.recomendaciones.push('Configuración de Twilio correcta');
+      diagnostico.recomendaciones.push('Si aún hay errores de autenticación, verificar que las credenciales en Easypanel coincidan con Twilio Console');
+    }
+    
+    logger.info('✅ Diagnóstico de Twilio completado', { estado: diagnostico.estado });
+    
+    res.json({
+      success: true,
+      diagnostico
+    });
+    
+  } catch (error: any) {
+    logger.error('❌ Error en diagnóstico de Twilio:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 export default router;
