@@ -219,8 +219,8 @@ export default function Layout({ children }: LayoutProps) {
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
 
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
-        {menuItems
-          .filter((item) => item.roles.includes(user?.role || ''))
+        {user && menuItems
+          .filter((item) => item.roles.includes(user.role))
           .map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
