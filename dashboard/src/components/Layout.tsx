@@ -54,7 +54,7 @@ interface LayoutProps {
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/', roles: ['admin', 'manager', 'staff'] },
-  { text: 'Clientes', icon: <PeopleIcon />, path: '/clients', roles: ['admin', 'manager', 'staff'] },
+  { text: 'Clientes', icon: <PeopleIcon />, path: '/clients', roles: ['admin', 'manager', 'staff', 'secretaria'] },
   { text: 'Citas', icon: <EventNoteIcon />, path: '/bookings', roles: ['admin', 'manager', 'staff', 'secretaria'] },
   { text: 'Servicios', icon: <InventoryIcon />, path: '/services', roles: ['admin', 'manager', 'staff'] },
   { text: 'Productos', icon: <InventoryIcon />, path: '/products', roles: ['admin', 'manager', 'staff'] },
