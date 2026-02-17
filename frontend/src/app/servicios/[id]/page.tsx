@@ -526,4 +526,6 @@ const ServiceDetailPage = () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
+
 export default ServiceDetailPage;

@@ -69,4 +69,6 @@ const ConsentimientoPage = () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
+
 export default ConsentimientoPage;

@@ -781,4 +781,6 @@ const ProductDetailPage = () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
+
 export default ProductDetailPage;

@@ -11,6 +11,10 @@ const nextConfig = {
   // Configuración para producción
   output: 'standalone',
   poweredByHeader: false,
+  // Deshabilitar generación estática para evitar timeouts en build
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
 };
 
 module.exports = nextConfig;

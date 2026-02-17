@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Settings, MessageCircle } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
+export const dynamic = 'force-dynamic';
+
 export default function MaintenancePage() {
   const router = useRouter();
   const { logoUrl, companyName, contactWhatsapp } = useCompanySettings();

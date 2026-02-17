@@ -69,4 +69,6 @@ const PrivacyPage = () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
+
 export default PrivacyPage;

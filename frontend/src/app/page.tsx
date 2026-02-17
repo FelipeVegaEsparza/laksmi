@@ -17,6 +17,8 @@ import { getPlainTextPreview } from '@/utils/text';
 import ServiceImage from '@/components/ServiceImage';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);

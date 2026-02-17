@@ -7,6 +7,8 @@ import Card from '@/components/Card';
 import { Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react';
 import { themeColors, dynamicStyles, hoverEffects } from '@/utils/colors';
 
+export const dynamic = 'force-dynamic';
+
 interface CompanySettings {
   companyName: string;
   contactAddress?: string;

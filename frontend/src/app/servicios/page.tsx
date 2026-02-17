@@ -363,4 +363,6 @@ const ServicesPage = () => {
   );
 };
 
+export const dynamic = 'force-dynamic';
+
 export default ServicesPage;
