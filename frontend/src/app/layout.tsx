@@ -13,9 +13,10 @@ const inter = Inter({
 // Función para obtener el Meta Pixel ID desde el backend
 async function getMetaPixelId(): Promise<string | null> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-    const response = await fetch(`${apiUrl}/api/company-settings`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+    const response = await fetch(`${apiUrl}/company-settings`, {
       cache: 'no-store',
+      next: { revalidate: 3600 }, // Cache por 1 hora
     })
     
     if (!response.ok) return null

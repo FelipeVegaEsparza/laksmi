@@ -8,8 +8,9 @@ const nextConfig = {
     // Ignorar errores de TypeScript durante el build de producción
     ignoreBuildErrors: true,
   },
-  // Desactivar optimización de fuentes para evitar problemas de red en build
-  optimizeFonts: false,
+  // Configuración para producción
+  output: 'standalone',
+  poweredByHeader: false,
 };
 
 module.exports = nextConfig;
