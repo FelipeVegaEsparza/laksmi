@@ -43,7 +43,8 @@ const BookingContent = () => {
         const servicesData = await servicesApi.getAll();
         setServices(servicesData);
         
-        const service = servicesData.find(s => s.id === preselectedServiceId);
+        // Buscar servicio por slug o por ID (para compatibilidad)
+        const service = servicesData.find(s => s.slug === preselectedServiceId || s.id === preselectedServiceId);
         if (service) {
           setSelectedService(service);
           setStep(2); // Ir directo al paso 2 (fecha y hora)
