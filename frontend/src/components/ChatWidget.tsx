@@ -234,7 +234,7 @@ const ChatWidget = () => {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !clientId) return;
+    if (!inputMessage.trim() || !clientId || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -244,7 +244,8 @@ const ChatWidget = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    const messageToSend = inputMessage; // Guardar el mensaje antes de limpiar
+    setInputMessage(''); // Limpiar inmediatamente para prevenir reenvíos
     setIsLoading(true);
 
     try {
@@ -255,7 +256,7 @@ const ChatWidget = () => {
         metadata.serviceName = serviceContext.name;
       }
       
-      const response = await chatApi.sendMessage(inputMessage, clientId, metadata);
+      const response = await chatApi.sendMessage(messageToSend, clientId, metadata);
       
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
@@ -329,7 +330,7 @@ const ChatWidget = () => {
   };
 
   const sendAutoMessage = async (message: string) => {
-    if (!message.trim() || !clientId) return;
+    if (!message.trim() || !clientId || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
