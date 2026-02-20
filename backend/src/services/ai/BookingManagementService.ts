@@ -406,7 +406,7 @@ export class BookingManagementService {
       const serviceName = service?.name || 'tu cita';
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-      const rescheduleLink = `${frontendUrl}/reservar?service=${booking.serviceId}&reschedule=${bookingId}`;
+      const rescheduleLink = `${frontendUrl}/reservar?service=${service?.slug || booking.serviceId}&reschedule=${bookingId}`;
 
       return {
         success: true,

@@ -1199,10 +1199,10 @@ export class MessageRouter {
         return null;
       }
 
-      // Generar link
+      // Generar link usando slug en lugar de ID
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-      logger.info('✅ Booking link generated:', { serviceId, serviceName: service.name });
-      return `${frontendUrl}/reservar?service=${serviceId}`;
+      logger.info('✅ Booking link generated:', { serviceId, slug: service.slug, serviceName: service.name });
+      return `${frontendUrl}/reservar?service=${service.slug}`;
 
     } catch (error) {
       logger.error('Error generating booking link:', error);
