@@ -320,7 +320,7 @@ const ServicesContent = () => {
                             Ver Detalles
                           </Button>
                           <Button
-                            href={`/reservar?service=${service.id}`}
+                            href={`/reservar?service=${service.slug}`}
                             variant="outline"
                             size="sm"
                             fullWidth

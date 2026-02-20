@@ -406,7 +406,7 @@ const ServiceDetailPage = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <Button
-                href={`/reservar?service=${service.id}`}
+                href={`/reservar?service=${service.slug}`}
                 variant="primary"
                 size="lg"
                 className="flex-1 flex items-center justify-center"
