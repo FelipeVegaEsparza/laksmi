@@ -26,6 +26,7 @@ RUN npm ci
 COPY src ./src
 COPY migrations ./migrations
 COPY seeds ./seeds
+COPY scripts ./scripts
 
 # Compilar TypeScript
 RUN npm run build
@@ -64,6 +65,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/seeds ./seeds
+COPY --from=builder /app/scripts ./scripts
 
 # Copiar script de inicio
 COPY start-production.sh ./
