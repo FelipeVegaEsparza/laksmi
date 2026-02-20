@@ -429,6 +429,39 @@ export class MessageRouter {
           // ⚠️ VALIDACIÓN: Si el AI no incluyó SERVICE_ID pero debería haberlo hecho
           // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
           let aiMessage = aiResult.message;
+          
+          // NUEVA LÓGICA: Detectar si el usuario seleccionó un servicio por número
+          const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
+          if (numberMatch) {
+            const selectedNumber = parseInt(numberMatch[1]);
+            const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
+            
+            if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
+              const selectedService = serviceOptions[selectedNumber - 1];
+              logger.info('✅ User selected service by number', { 
+                number: selectedNumber, 
+                serviceId: selectedService.id,
+                serviceName: selectedService.name 
+              });
+              
+              // Guardar el servicio seleccionado en el contexto
+              await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
+              await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
+              
+              // Modificar el mensaje del AI para que incluya el SERVICE_ID
+              // Esto asegura que cuando el usuario confirme, el link se genere correctamente
+              if (!aiMessage.includes('[SERVICE_ID:')) {
+                aiMessage += ` [SERVICE_ID:${selectedService.id}]`;
+                logger.info('✅ SERVICE_ID added to AI response after number selection', { 
+                  serviceId: selectedService.id 
+                });
+              }
+              
+              // Limpiar las opciones del contexto
+              await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+            }
+          }
+          
           if (!aiMessage.includes('[SERVICE_ID:')) {
             const confirmationKeywords = [
               'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
@@ -461,6 +494,9 @@ export class MessageRouter {
           // NOTA: Ya NO detectamos servicios automáticamente de la respuesta del AI
           // Solo confiamos en [SERVICE_ID:xxx] explícito que el AI debe incluir
           // Esto elimina falsos positivos y hace el sistema más confiable
+
+          // NUEVA LÓGICA: Detectar si el AI listó múltiples servicios y guardarlos en el contexto
+          await this.detectAndSaveServiceOptions(aiMessage, conversation.id);
 
           // Detectar si el usuario quiere agendar y hay un servicio en contexto
           const bookingLink = await this.generateBookingLinkIfNeeded(
@@ -1310,6 +1346,68 @@ export class MessageRouter {
     });
 
     return finalMessage;
+  }
+
+  /**
+   * Detectar y guardar opciones de servicios cuando el AI lista múltiples servicios
+   */
+  private static async detectAndSaveServiceOptions(
+    aiMessage: string,
+    conversationId: string
+  ): Promise<void> {
+    try {
+      // Detectar si el mensaje contiene una lista de servicios con bullets (•)
+      const serviceListPattern = /•\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*-\s*\$?([\d,]+)/gi;
+      const matches = [...aiMessage.matchAll(serviceListPattern)];
+      
+      if (matches.length >= 2) {
+        // Hay múltiples servicios listados, buscarlos en la BD
+        logger.info('🔍 Multiple services detected in AI response, searching in database', {
+          count: matches.length,
+          conversationId
+        });
+        
+        const { ServiceService } = await import('../ServiceService');
+        const result = await ServiceService.getServices({ isActive: true, limit: 200 });
+        const allServices = result.services;
+        
+        const serviceOptions: any[] = [];
+        
+        for (const match of matches) {
+          const serviceName = match[1].trim();
+          const price = match[3].replace(/,/g, '');
+          
+          // Buscar el servicio en la BD por nombre y precio
+          const foundService = allServices.find((s: any) => {
+            const nameMatch = s.name.toLowerCase().includes(serviceName.toLowerCase()) ||
+                            serviceName.toLowerCase().includes(s.name.toLowerCase());
+            const priceMatch = s.price.toString() === price;
+            return nameMatch && priceMatch;
+          });
+          
+          if (foundService) {
+            serviceOptions.push({
+              id: foundService.id,
+              name: foundService.name,
+              slug: foundService.slug,
+              price: foundService.price
+            });
+          }
+        }
+        
+        if (serviceOptions.length >= 2) {
+          // Guardar las opciones en el contexto
+          await ContextManager.setVariable(conversationId, 'serviceOptions', serviceOptions);
+          logger.info('✅ Service options saved to context', {
+            count: serviceOptions.length,
+            services: serviceOptions.map(s => s.name),
+            conversationId
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('Error detecting and saving service options:', error);
+    }
   }
 
   /**
