@@ -1267,13 +1267,14 @@ export class MessageRouter {
       // REGLA 2: Verificar confirmación válida (intent affirmative O keywords explícitos)
       const isAffirmativeIntent = intent === 'affirmative';
       
-      // Keywords explícitos de confirmación (SIN palabras cortas como "si", "sí", "ok")
+      // Keywords explícitos de confirmación (INCLUIR "agendar" y "reservar")
       const explicitConfirmationKeywords = [
         'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
         'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
         'quiero ese', 'quiero esa', 'me interesa ese', 'me interesa esa',
         'confirmo', 'adelante', 'proceder',
-        'sí, reservar', 'si, reservar', 'sí, agendar', 'si, agendar'
+        'sí, reservar', 'si, reservar', 'sí, agendar', 'si, agendar',
+        'agendar', 'reservar' // Agregar palabras solas cuando hay estado de espera
       ];
       
       const hasExplicitConfirmation = explicitConfirmationKeywords.some(kw => messageLower.includes(kw));
@@ -1514,14 +1515,21 @@ export class MessageRouter {
       // Tolerante a: "desde $precio", "promo $precio", espacios, moneda, etc.
       
       // Pattern más tolerante que acepta variaciones
-      const serviceListPattern = /[•\*]\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
+      // Acepta: "• Servicio - $precio", "• Servicio (sesiones) - $precio", "* Servicio - precio"
+      const serviceListPattern = /[•\*]\s*([^\n(]+?)(?:\s*\((\d+)\s*sesiones?\))?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
       
       logger.info('🔍 Searching for service list in AI message', {
         messageLength: aiMessage.length,
         matchesFound: matches.length,
         conversationId,
-        firstLines: aiMessage.split('\n').slice(0, 10).join('\n')
+        firstLines: aiMessage.split('\n').slice(0, 15).join('\n'),
+        matches: matches.map(m => ({
+          fullMatch: m[0],
+          name: m[1]?.trim(),
+          sessions: m[2],
+          price: m[3]
+        }))
       });
       
       if (matches.length >= 2) {

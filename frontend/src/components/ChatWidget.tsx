@@ -305,15 +305,11 @@ const ChatWidget = () => {
       // Extraer messageId del servidor para el mensaje del usuario
       const serverUserMessageId = (response as any).data?.userMessageId || (response as any).userMessageId;
       
-      // Reemplazar el mensaje temporal con el ID real del servidor Y actualizar timestamp
+      // Reemplazar el mensaje temporal con el ID real del servidor
       if (serverUserMessageId) {
         setMessages(prev => prev.map(msg => 
           msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
         ));
-        
-        // Actualizar timestamp del último mensaje con el del usuario
-        // Esto evita que el polling lo detecte como nuevo
-        setLastMessageTimestamp(new Date().toISOString());
       }
       
       // Extraer messageId del servidor para el mensaje del AI
@@ -328,8 +324,10 @@ const ChatWidget = () => {
 
       setMessages(prev => [...prev, aiMessage]);
       
-      // Actualizar timestamp del último mensaje con el del AI
-      setLastMessageTimestamp(aiMessage.timestamp.toISOString());
+      // Actualizar timestamp DESPUÉS de agregar ambos mensajes
+      // Usar un timestamp ligeramente en el futuro para evitar que el polling los detecte
+      const futureTimestamp = new Date(Date.now() + 1000).toISOString();
+      setLastMessageTimestamp(futureTimestamp);
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -406,15 +404,11 @@ const ChatWidget = () => {
         // Extraer messageId del servidor para el mensaje del usuario
         const serverUserMessageId = (response as any).data?.userMessageId || (response as any).userMessageId;
 
-        // Reemplazar el mensaje temporal con el ID real del servidor Y actualizar timestamp
+        // Reemplazar el mensaje temporal con el ID real del servidor
         if (serverUserMessageId) {
           setMessages(prev => prev.map(msg => 
             msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
           ));
-          
-          // Actualizar timestamp del último mensaje con el del usuario
-          // Esto evita que el polling lo detecte como nuevo
-          setLastMessageTimestamp(new Date().toISOString());
         }
 
         // Extraer messageId del servidor para el mensaje del AI
@@ -429,8 +423,10 @@ const ChatWidget = () => {
 
         setMessages(prev => [...prev, aiMessage]);
 
-        // Actualizar timestamp del último mensaje con el del AI
-        setLastMessageTimestamp(aiMessage.timestamp.toISOString());
+        // Actualizar timestamp DESPUÉS de agregar ambos mensajes
+        // Usar un timestamp ligeramente en el futuro para evitar que el polling los detecte
+        const futureTimestamp = new Date(Date.now() + 1000).toISOString();
+        setLastMessageTimestamp(futureTimestamp);
       } catch (error) {
         console.error('Error sending message:', error);
 
