@@ -583,6 +583,7 @@ export class MessageRouter {
           // Esto elimina falsos positivos y hace el sistema más confiable
 
           // NUEVA LÓGICA: Detectar si el AI listó múltiples servicios y guardarlos en el contexto
+          // IMPORTANTE: Hacer esto ANTES de limpiar el [SERVICE_ID:xxx]
           await this.detectAndSaveServiceOptions(aiMessage, conversation.id);
 
           // Detectar si el usuario quiere agendar y hay un servicio en contexto
@@ -1473,7 +1474,7 @@ export class MessageRouter {
         messageLength: aiMessage.length,
         matchesFound: matches.length,
         conversationId,
-        firstLines: aiMessage.split('\n').slice(0, 5).join('\n')
+        firstLines: aiMessage.split('\n').slice(0, 10).join('\n')
       });
       
       if (matches.length >= 2) {
@@ -1484,27 +1485,69 @@ export class MessageRouter {
         });
         
         const { ServiceService } = await import('../ServiceService');
-        const result = await ServiceService.getServices({ isActive: true, limit: 200 });
+        const result = await ServiceService.getServices({ isActive: true, limit: 300 });
         const allServices = result.services;
+        
+        logger.info('📊 Total services in database', {
+          count: allServices.length,
+          conversationId
+        });
         
         const serviceOptions: any[] = [];
         
         for (let i = 0; i < matches.length; i++) {
           const match = matches[i];
           const serviceName = match[1].trim();
+          const sessions = match[2];
           const price = match[3].replace(/[,\.]/g, '');
           
           logger.info(`🔎 Looking for service ${i + 1}`, {
             serviceName,
+            sessions,
             price,
             conversationId
           });
           
           // Buscar el servicio en la BD por nombre y precio
+          // Normalizar para comparación (quitar acentos, mayúsculas, etc.)
+          const normalizeText = (text: string) => {
+            return text
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9\s]/g, "")
+              .trim();
+          };
+          
+          const normalizedSearchName = normalizeText(serviceName);
+          
           const foundService = allServices.find((s: any) => {
-            const nameMatch = s.name.toLowerCase().includes(serviceName.toLowerCase()) ||
-                            serviceName.toLowerCase().includes(s.name.toLowerCase());
+            const normalizedServiceName = normalizeText(s.name);
+            
+            // Verificar coincidencia de nombre (debe contener las palabras clave)
+            const searchWords = normalizedSearchName.split(/\s+/).filter((w: string) => w.length > 2);
+            const serviceWords = normalizedServiceName.split(/\s+/);
+            
+            const matchingWords = searchWords.filter((sw: string) => 
+              serviceWords.some((sew: string) => sew.includes(sw) || sw.includes(sew))
+            );
+            
+            const nameMatch = matchingWords.length >= Math.min(2, searchWords.length);
+            
+            // Verificar coincidencia de precio
             const priceMatch = s.price.toString() === price;
+            
+            logger.info(`  Comparing with: ${s.name}`, {
+              normalizedServiceName,
+              normalizedSearchName,
+              matchingWords: matchingWords.length,
+              searchWords: searchWords.length,
+              nameMatch,
+              priceMatch,
+              servicePrice: s.price,
+              searchPrice: price
+            });
+            
             return nameMatch && priceMatch;
           });
           
@@ -1517,12 +1560,14 @@ export class MessageRouter {
             });
             logger.info(`✅ Service found: ${foundService.name}`, {
               id: foundService.id,
+              slug: foundService.slug,
               conversationId
             });
           } else {
             logger.warn(`⚠️ Service not found in database`, {
               serviceName,
               price,
+              normalizedSearchName,
               conversationId
             });
           }
@@ -1531,9 +1576,9 @@ export class MessageRouter {
         if (serviceOptions.length >= 2) {
           // Guardar las opciones en el contexto
           await ContextManager.setVariable(conversationId, 'serviceOptions', serviceOptions);
-          logger.info('✅ Service options saved to context', {
+          logger.info('✅✅✅ Service options saved to context', {
             count: serviceOptions.length,
-            services: serviceOptions.map(s => s.name),
+            services: serviceOptions.map(s => ({ name: s.name, id: s.id })),
             conversationId
           });
         } else {
