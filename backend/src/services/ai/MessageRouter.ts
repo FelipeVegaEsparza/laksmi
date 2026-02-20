@@ -559,13 +559,38 @@ export class MessageRouter {
               logger.error('Error finding service:', error);
             }
           }
+          
+          // ============================================
+          // DETECCIÓN DE INTENCIÓN DE AGENDAR (CRÍTICO)
+          // ============================================
+          // Si el usuario respondió con un número que corresponde a "Agendar" (opción 3 o 4)
+          // Y el AI no incluyó SERVICE_ID, agregarlo automáticamente del contexto
+          const isBookingIntent = aiMessage.toLowerCase().includes('agendar') || 
+                                 aiMessage.toLowerCase().includes('reservar') ||
+                                 aiMessage.toLowerCase().includes('te ayudaré');
+          
+          const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+          
+          if (isBookingIntent && !aiMessage.includes('[SERVICE_ID:') && contextServiceId) {
+            // El AI olvidó incluir el SERVICE_ID, agregarlo automáticamente
+            aiMessage += `\n\n[SERVICE_ID:${contextServiceId}]`;
+            extractedServiceId = contextServiceId;
+            const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
+            extractedServiceName = contextServiceName;
+            
+            logger.info('✅ AUTO-ADDED SERVICE_ID from context (AI forgot to include it)', {
+              serviceId: contextServiceId,
+              serviceName: contextServiceName,
+              conversationId: conversation.id
+            });
+          }
 
           // ============================================
           // CONFIRMACIÓN ROBUSTA (SIN FALSOS POSITIVOS)
           // ============================================
           const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
-          const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-          const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
+          const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+          const contextServiceNameCheck = await ContextManager.getVariable(conversation.id, 'contextServiceName');
           
           // Solo considerar confirmación si:
           // 1. Hay un estado explícito de espera de confirmación
@@ -589,19 +614,19 @@ export class MessageRouter {
             isAffirmativeIntent,
             hasExplicitConfirmation,
             hasValidConfirmation,
-            contextServiceId,
+            contextServiceId: contextServiceIdCheck,
             userMessage: request.content,
             conversationId: conversation.id
           });
           
           // Si hay confirmación válida Y contextServiceId, agregar SERVICE_ID al mensaje
-          if (hasValidConfirmation && contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
-            aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
-            extractedServiceId = contextServiceId;
-            extractedServiceName = contextServiceName;
+          if (hasValidConfirmation && contextServiceIdCheck && !aiMessage.includes('[SERVICE_ID:')) {
+            aiMessage += ` [SERVICE_ID:${contextServiceIdCheck}]`;
+            extractedServiceId = contextServiceIdCheck;
+            extractedServiceName = contextServiceNameCheck;
             logger.info('✅ AUTO-ADDING contextServiceId after valid confirmation', { 
-              contextServiceId,
-              contextServiceName,
+              contextServiceId: contextServiceIdCheck,
+              contextServiceName: contextServiceNameCheck,
               conversationId: conversation.id
             });
             
