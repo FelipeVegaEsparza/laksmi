@@ -497,6 +497,29 @@ export class MessageRouter {
           // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
           let aiMessage = aiResult.message;
           
+          // NUEVA LÓGICA: Si hay confirmación y contextServiceId, agregar SERVICE_ID automáticamente
+          const confirmationKeywords = [
+            'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
+            'sí quiero', 'si quiero', 'quiero ese', 'quiero esa',
+            'me interesa', 'confirmo', 'adelante', 'sí', 'si', 'ok', 'vale'
+          ];
+          
+          const messageLower = request.content.toLowerCase().trim();
+          const hasConfirmation = confirmationKeywords.some(kw => messageLower === kw || messageLower.includes(kw));
+          
+          if (hasConfirmation) {
+            // Verificar si hay un servicio en el contexto
+            const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+            
+            if (contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
+              aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
+              logger.info('✅ AUTO-ADDING contextServiceId to AI response after confirmation', { 
+                contextServiceId,
+                userMessage: request.content 
+              });
+            }
+          }
+          
           if (!aiMessage.includes('[SERVICE_ID:')) {
             const confirmationKeywords = [
               'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
