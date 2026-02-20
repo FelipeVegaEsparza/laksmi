@@ -145,6 +145,73 @@ export class MessageRouter {
       }
 
       // ============================================
+      // DETECCIÓN TEMPRANA: Usuario seleccionó servicio por número
+      // ============================================
+      const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
+      if (numberMatch) {
+        const selectedNumber = parseInt(numberMatch[1]);
+        const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
+        
+        if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
+          const selectedService = serviceOptions[selectedNumber - 1];
+          logger.info('✅ User selected service by number - generating direct response', { 
+            number: selectedNumber, 
+            serviceId: selectedService.id,
+            serviceName: selectedService.name 
+          });
+          
+          // Guardar el servicio seleccionado en el contexto
+          await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
+          await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
+          
+          // Limpiar las opciones del contexto
+          await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+          
+          // Generar respuesta directa sin llamar al AI
+          const directResponse = `¡Claro! Te cuento sobre ${selectedService.name}. 😊
+
+¿Qué información necesitas?
+• Ver precio y sesiones
+• Saber cuánto dura
+• Conocer los beneficios
+• Agendar una cita`;
+
+          const aiMessage = await ConversationModel.addMessage(conversation.id, {
+            senderType: 'ai',
+            content: directResponse,
+            metadata: {
+              intent: 'service_inquiry',
+              serviceSelected: true,
+              serviceId: selectedService.id,
+              serviceName: selectedService.name
+            }
+          });
+
+          await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+          const processingTime = Date.now() - startTime;
+
+          return {
+            response: {
+              message: directResponse,
+              intent: 'service_inquiry',
+              entities: [],
+              needsHumanEscalation: false,
+              metadata: {
+                serviceSelected: true,
+                serviceId: selectedService.id,
+                serviceName: selectedService.name
+              }
+            },
+            conversationId: conversation.id,
+            clientId: client.id,
+            messageId: aiMessage.id,
+            processingTime
+          };
+        }
+      }
+
+      // ============================================
       // VERIFICAR SI HAY CONTROL HUMANO ACTIVO
       // ============================================
       const { HumanTakeoverService } = await import('./HumanTakeoverService');
@@ -429,38 +496,6 @@ export class MessageRouter {
           // ⚠️ VALIDACIÓN: Si el AI no incluyó SERVICE_ID pero debería haberlo hecho
           // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
           let aiMessage = aiResult.message;
-          
-          // NUEVA LÓGICA: Detectar si el usuario seleccionó un servicio por número
-          const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
-          if (numberMatch) {
-            const selectedNumber = parseInt(numberMatch[1]);
-            const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
-            
-            if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
-              const selectedService = serviceOptions[selectedNumber - 1];
-              logger.info('✅ User selected service by number', { 
-                number: selectedNumber, 
-                serviceId: selectedService.id,
-                serviceName: selectedService.name 
-              });
-              
-              // Guardar el servicio seleccionado en el contexto
-              await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
-              await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
-              
-              // Modificar el mensaje del AI para que incluya el SERVICE_ID
-              // Esto asegura que cuando el usuario confirme, el link se genere correctamente
-              if (!aiMessage.includes('[SERVICE_ID:')) {
-                aiMessage += ` [SERVICE_ID:${selectedService.id}]`;
-                logger.info('✅ SERVICE_ID added to AI response after number selection', { 
-                  serviceId: selectedService.id 
-                });
-              }
-              
-              // Limpiar las opciones del contexto
-              await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
-            }
-          }
           
           if (!aiMessage.includes('[SERVICE_ID:')) {
             const confirmationKeywords = [
