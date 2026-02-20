@@ -53,7 +53,7 @@ const ServiceDetailPage = () => {
           try {
             const allServices = await servicesApi.getAll();
             // Filtrar el servicio actual
-            const otherServices = allServices.filter(s => s.id !== params.id);
+            const otherServices = allServices.filter(s => s.slug !== params.slug && s.id !== serviceData.id);
             
             // Intentar obtener servicios que comparten alguna categoría
             let related = otherServices.filter(s => {
@@ -103,7 +103,7 @@ const ServiceDetailPage = () => {
         // Ignore if context is not available
       }
     };
-  }, [params.id]);
+  }, [params.slug]);
 
   if (loading) {
     return (

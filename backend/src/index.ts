@@ -44,34 +44,6 @@ async function startServer() {
       const { MigrationService } = await import('./services/MigrationService');
       await MigrationService.runMigrations();
       logger.info('✅ Migraciones completadas');
-      
-      // Ejecutar scripts de población de slugs (solo si es necesario)
-      logger.info('🔄 Verificando y poblando slugs...');
-      try {
-        const { populateServiceSlugs } = require('../scripts/populate-service-slugs.js');
-        await populateServiceSlugs();
-        logger.info('✅ Slugs de servicios poblados');
-      } catch (slugError: any) {
-        // Si falla, probablemente ya están poblados
-        if (slugError.message?.includes('Duplicate entry') || slugError.message?.includes('already has slug')) {
-          logger.info('ℹ️  Slugs de servicios ya poblados');
-        } else {
-          logger.warn('⚠️  Error poblando slugs de servicios:', slugError.message);
-        }
-      }
-      
-      try {
-        const { populateProductSlugs } = require('../scripts/populate-product-slugs.js');
-        await populateProductSlugs();
-        logger.info('✅ Slugs de productos poblados');
-      } catch (slugError: any) {
-        // Si falla, probablemente ya están poblados
-        if (slugError.message?.includes('Duplicate entry') || slugError.message?.includes('already has slug')) {
-          logger.info('ℹ️  Slugs de productos ya poblados');
-        } else {
-          logger.warn('⚠️  Error poblando slugs de productos:', slugError.message);
-        }
-      }
     } catch (migrationError) {
       logger.error('❌ Error ejecutando migraciones:', migrationError);
       // No detener el servidor si las migraciones fallan, solo advertir
