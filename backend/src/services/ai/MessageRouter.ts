@@ -168,17 +168,23 @@ export class MessageRouter {
           await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
           
           // Generar respuesta directa sin llamar al AI
+          // IMPORTANTE: Incluir [SERVICE_ID:xxx] para que el sistema pueda generar el link después
           const directResponse = `¡Claro! Te cuento sobre ${selectedService.name}. 😊
 
 ¿Qué información necesitas?
 • Ver precio y sesiones
 • Saber cuánto dura
 • Conocer los beneficios
-• Agendar una cita`;
+• Agendar una cita
+
+[SERVICE_ID:${selectedService.id}]`;
+
+          // Limpiar el SERVICE_ID del mensaje antes de guardarlo
+          const cleanedResponse = directResponse.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
 
           const aiMessage = await ConversationModel.addMessage(conversation.id, {
             senderType: 'ai',
-            content: directResponse,
+            content: cleanedResponse,
             metadata: {
               intent: 'service_inquiry',
               serviceSelected: true,
@@ -193,7 +199,7 @@ export class MessageRouter {
 
           return {
             response: {
-              message: directResponse,
+              message: cleanedResponse,
               intent: 'service_inquiry',
               entities: [],
               needsHumanEscalation: false,
@@ -1434,13 +1440,21 @@ export class MessageRouter {
     conversationId: string
   ): Promise<void> {
     try {
-      // Detectar si el mensaje contiene una lista de servicios con bullets (•)
-      const serviceListPattern = /•\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*-\s*\$?([\d,]+)/gi;
+      // Detectar si el mensaje contiene una lista de servicios con bullets (•) o asteriscos (*)
+      // Formato esperado: "• Nombre del servicio (X sesiones) - $precio" o "* Nombre del servicio (X sesiones) - $precio"
+      const serviceListPattern = /[•\*]\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*-\s*\$?([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
+      
+      logger.info('🔍 Searching for service list in AI message', {
+        messageLength: aiMessage.length,
+        matchesFound: matches.length,
+        conversationId,
+        firstLines: aiMessage.split('\n').slice(0, 5).join('\n')
+      });
       
       if (matches.length >= 2) {
         // Hay múltiples servicios listados, buscarlos en la BD
-        logger.info('🔍 Multiple services detected in AI response, searching in database', {
+        logger.info('📋 Multiple services detected in AI response, searching in database', {
           count: matches.length,
           conversationId
         });
@@ -1451,9 +1465,16 @@ export class MessageRouter {
         
         const serviceOptions: any[] = [];
         
-        for (const match of matches) {
+        for (let i = 0; i < matches.length; i++) {
+          const match = matches[i];
           const serviceName = match[1].trim();
-          const price = match[3].replace(/,/g, '');
+          const price = match[3].replace(/[,\.]/g, '');
+          
+          logger.info(`🔎 Looking for service ${i + 1}`, {
+            serviceName,
+            price,
+            conversationId
+          });
           
           // Buscar el servicio en la BD por nombre y precio
           const foundService = allServices.find((s: any) => {
@@ -1470,6 +1491,16 @@ export class MessageRouter {
               slug: foundService.slug,
               price: foundService.price
             });
+            logger.info(`✅ Service found: ${foundService.name}`, {
+              id: foundService.id,
+              conversationId
+            });
+          } else {
+            logger.warn(`⚠️ Service not found in database`, {
+              serviceName,
+              price,
+              conversationId
+            });
           }
         }
         
@@ -1481,7 +1512,18 @@ export class MessageRouter {
             services: serviceOptions.map(s => s.name),
             conversationId
           });
+        } else {
+          logger.warn('⚠️ Not enough services found to save options', {
+            foundCount: serviceOptions.length,
+            requiredCount: 2,
+            conversationId
+          });
         }
+      } else {
+        logger.info('ℹ️ No service list detected (less than 2 matches)', {
+          matchesFound: matches.length,
+          conversationId
+        });
       }
     } catch (error) {
       logger.error('Error detecting and saving service options:', error);
