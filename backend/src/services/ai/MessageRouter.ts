@@ -71,13 +71,15 @@ export class MessageRouter {
         throw new Error('Rate limit exceeded. Please wait before sending another message.');
       }
 
-      // Obtener o crear cliente
-      let client = await ClientModel.findById(request.clientId);
+      // Obtener o crear cliente (NO MUTAR request.clientId)
+      const effectiveClientId = request.clientId;
+      let client = await ClientModel.findById(effectiveClientId);
+      
       if (!client) {
         // Intentar buscar por teléfono
         const phoneToSearch = request.channel === 'whatsapp' && request.metadata?.phone
           ? request.metadata.phone
-          : `web_${request.clientId.substring(0, 8)}`;
+          : `web_${effectiveClientId.substring(0, 8)}`;
 
         client = await ClientModel.findByPhone(phoneToSearch);
 
@@ -85,11 +87,11 @@ export class MessageRouter {
         if (!client && request.channel === 'web') {
           try {
             client = await ClientModel.create({
-              name: `Web Visitor ${request.clientId.substring(0, 8)}`,
+              name: `Web Visitor ${effectiveClientId.substring(0, 8)}`,
               phone: phoneToSearch,
               email: request.metadata?.email || ''
             });
-            logger.info(`New web client created: ${client.id} for web ID: ${request.clientId}`);
+            logger.info(`New web client created: ${client.id} for web ID: ${effectiveClientId}`);
           } catch (error: any) {
             // Si falla por duplicado, intentar buscar de nuevo
             if (error.message?.includes('Duplicate entry')) {
@@ -99,10 +101,7 @@ export class MessageRouter {
           }
         }
 
-        if (client) {
-          // Actualizar el clientId del request para usar el ID real de la BD
-          request.clientId = client.id;
-        } else {
+        if (!client) {
           throw new Error('Client not found');
         }
       }
@@ -130,6 +129,16 @@ export class MessageRouter {
       logger.debug('Context updated');
 
       // ============================================
+      // OBTENER CONTEXTO FRESCO (CRÍTICO)
+      // ============================================
+      // Después de guardar el mensaje, obtener contexto actualizado
+      const freshContext = await ContextManager.getContext(conversation.id);
+      logger.debug('Fresh context obtained', {
+        conversationId: conversation.id,
+        messagesCount: freshContext.lastMessages?.length || 0
+      });
+
+      // ============================================
       // CAPTURAR SERVICE_ID DEL METADATA SI ESTÁ DISPONIBLE
       // ============================================
       if (request.metadata?.serviceId) {
@@ -145,80 +154,7 @@ export class MessageRouter {
       }
 
       // ============================================
-      // DETECCIÓN TEMPRANA: Usuario seleccionó servicio por número
-      // ============================================
-      const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
-      if (numberMatch) {
-        const selectedNumber = parseInt(numberMatch[1]);
-        const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
-        
-        if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
-          const selectedService = serviceOptions[selectedNumber - 1];
-          logger.info('✅ User selected service by number - generating direct response', { 
-            number: selectedNumber, 
-            serviceId: selectedService.id,
-            serviceName: selectedService.name 
-          });
-          
-          // Guardar el servicio seleccionado en el contexto
-          await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
-          await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
-          
-          // Limpiar las opciones del contexto
-          await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
-          
-          // Generar respuesta directa sin llamar al AI
-          // IMPORTANTE: Incluir [SERVICE_ID:xxx] para que el sistema pueda generar el link después
-          const directResponse = `¡Claro! Te cuento sobre ${selectedService.name}. 😊
-
-¿Qué información necesitas?
-• Ver precio y sesiones
-• Saber cuánto dura
-• Conocer los beneficios
-• Agendar una cita
-
-[SERVICE_ID:${selectedService.id}]`;
-
-          // Limpiar el SERVICE_ID del mensaje antes de guardarlo
-          const cleanedResponse = directResponse.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
-
-          const aiMessage = await ConversationModel.addMessage(conversation.id, {
-            senderType: 'ai',
-            content: cleanedResponse,
-            metadata: {
-              intent: 'service_inquiry',
-              serviceSelected: true,
-              serviceId: selectedService.id,
-              serviceName: selectedService.name
-            }
-          });
-
-          await ContextManager.addMessageToContext(conversation.id, aiMessage);
-
-          const processingTime = Date.now() - startTime;
-
-          return {
-            response: {
-              message: cleanedResponse,
-              intent: 'service_inquiry',
-              entities: [],
-              needsHumanEscalation: false,
-              metadata: {
-                serviceSelected: true,
-                serviceId: selectedService.id,
-                serviceName: selectedService.name
-              }
-            },
-            conversationId: conversation.id,
-            clientId: client.id,
-            messageId: aiMessage.id,
-            processingTime
-          };
-        }
-      }
-
-      // ============================================
-      // VERIFICAR SI HAY CONTROL HUMANO ACTIVO
+      // VERIFICAR SI HAY CONTROL HUMANO ACTIVO (ANTES DE TODO)
       // ============================================
       const { HumanTakeoverService } = await import('./HumanTakeoverService');
       const isUnderHumanControl = await HumanTakeoverService.isUnderHumanControl(conversation.id);
@@ -256,8 +192,78 @@ export class MessageRouter {
         };
       }
 
-      // Procesar mensaje con NLU
-      const nluResult = await NLUService.processMessage(request.content, conversation.context);
+      // ============================================
+      // DETECCIÓN TEMPRANA: Usuario seleccionó servicio por número
+      // ============================================
+      const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
+      if (numberMatch) {
+        const selectedNumber = parseInt(numberMatch[1]);
+        const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
+        
+        if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
+          const selectedService = serviceOptions[selectedNumber - 1];
+          logger.info('✅ User selected service by number - generating direct response', { 
+            number: selectedNumber, 
+            serviceId: selectedService.id,
+            serviceName: selectedService.name 
+          });
+          
+          // Guardar el servicio seleccionado en el contexto
+          await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
+          await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
+          
+          // Establecer estado de espera de confirmación
+          await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', true);
+          
+          // Limpiar las opciones del contexto
+          await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+          
+          // Generar respuesta directa sin llamar al AI
+          const directResponse = `¡Claro! Te cuento sobre ${selectedService.name}. 😊
+
+¿Qué información necesitas?
+• Ver precio y sesiones
+• Saber cuánto dura
+• Conocer los beneficios
+• Agendar una cita`;
+
+          const aiMessage = await ConversationModel.addMessage(conversation.id, {
+            senderType: 'ai',
+            content: directResponse,
+            metadata: {
+              intent: 'service_inquiry',
+              serviceSelected: true,
+              serviceId: selectedService.id,
+              serviceName: selectedService.name
+            }
+          });
+
+          await ContextManager.addMessageToContext(conversation.id, aiMessage);
+
+          const processingTime = Date.now() - startTime;
+
+          return {
+            response: {
+              message: directResponse,
+              intent: 'service_inquiry',
+              entities: [],
+              needsHumanEscalation: false,
+              metadata: {
+                serviceSelected: true,
+                serviceId: selectedService.id,
+                serviceName: selectedService.name
+              }
+            },
+            conversationId: conversation.id,
+            clientId: client.id,
+            messageId: aiMessage.id,
+            processingTime
+          };
+        }
+      }
+
+      // Procesar mensaje con NLU (usando contexto fresco)
+      const nluResult = await NLUService.processMessage(request.content, freshContext);
 
       // Verificar si está esperando que proporcione su email
       const { ChatAuthService } = await import('./ChatAuthService');
@@ -383,12 +389,12 @@ export class MessageRouter {
         };
       }
 
-      // Verificar si es una gestión de reserva (confirmar, cancelar, reagendar)
+      // Verificar si es una gestión de reserva (confirmar, cancelar, reagendar) - usar freshContext
       const bookingManagement = await this.handleBookingManagement(
         request.content,
         nluResult.intent.name,
         client.id,
-        conversation.context,
+        freshContext,
         conversation.id
       );
 
@@ -426,15 +432,17 @@ export class MessageRouter {
         };
       }
 
-      // Evaluar necesidad de escalación
+      // Evaluar necesidad de escalación (usar freshContext)
       const escalationEvaluation = await EscalationService.evaluateEscalationNeed(
         conversation.id,
         nluResult,
-        conversation.context,
+        freshContext,
         client
       );
 
       let aiResponse: AIResponse;
+      let extractedServiceId: string | null = null;
+      let extractedServiceName: string | null = null;
 
       if (escalationEvaluation.shouldEscalate) {
         // Ejecutar escalación automática
@@ -474,8 +482,8 @@ export class MessageRouter {
 
           const { AIService } = await import('../AIService');
 
-          // Preparar historial de conversación para OpenAI
-          const conversationHistory = conversation.context.lastMessages.slice(-5).map((msg: any) => ({
+          // Preparar historial de conversación para OpenAI (usar freshContext)
+          const conversationHistory = freshContext.lastMessages.slice(-5).map((msg: any) => ({
             role: msg.senderType === 'client' ? 'user' as const : 'assistant' as const,
             content: msg.content
           }));
@@ -499,83 +507,91 @@ export class MessageRouter {
             hasServiceId: aiResult.message.includes('[SERVICE_ID:')
           });
 
-          // ⚠️ VALIDACIÓN: Si el AI no incluyó SERVICE_ID pero debería haberlo hecho
-          // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
+          // ============================================
+          // EXTRAER SERVICE_ID DEL MENSAJE AI (CRÍTICO - HACER PRIMERO)
+          // ============================================
           let aiMessage = aiResult.message;
-          
-          // CRÍTICO: Extraer SERVICE_ID del mensaje actual del AI ANTES de cualquier otra cosa
           let extractedServiceId: string | null = null;
+          let extractedServiceName: string | null = null;
+          
           const serviceIdMatch = aiMessage.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
           if (serviceIdMatch) {
             extractedServiceId = serviceIdMatch[1];
-            logger.info('✅ SERVICE_ID extracted from current AI message', {
+            logger.info('✅ SERVICE_ID extracted from AI message', {
               serviceId: extractedServiceId,
               conversationId: conversation.id
             });
             
-            // Guardar en el contexto para uso futuro
-            await ContextManager.setVariable(conversation.id, 'contextServiceId', extractedServiceId);
-            
-            // Buscar el nombre del servicio
+            // Buscar el nombre del servicio y guardar en contexto
             try {
               const { ServiceService } = await import('../ServiceService');
-              const result = await ServiceService.getServices({ isActive: true, limit: 200 });
+              const result = await ServiceService.getServices({ isActive: true, limit: 300 });
               const service = result.services.find((s: any) => s.id === extractedServiceId);
               if (service) {
-                await ContextManager.setVariable(conversation.id, 'contextServiceName', service.name);
-                logger.info('✅ Service name saved to context', {
+                extractedServiceName = service.name;
+                await ContextManager.setVariable(conversation.id, 'contextServiceId', extractedServiceId);
+                await ContextManager.setVariable(conversation.id, 'contextServiceName', extractedServiceName);
+                // Establecer estado de espera de confirmación
+                await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', true);
+                logger.info('✅ Service context saved', {
                   serviceId: extractedServiceId,
-                  serviceName: service.name,
+                  serviceName: extractedServiceName,
+                  awaitingConfirmation: true,
                   conversationId: conversation.id
                 });
               }
             } catch (error) {
-              logger.error('Error finding service name:', error);
+              logger.error('Error finding service:', error);
             }
           }
-          
-          // NUEVA LÓGICA: Si hay confirmación y contextServiceId, agregar SERVICE_ID automáticamente
-          const confirmationKeywords = [
-            'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
-            'sí quiero', 'si quiero', 'quiero ese', 'quiero esa',
-            'me interesa', 'confirmo', 'adelante', 'sí', 'si', 'ok', 'vale'
-          ];
-          
-          const messageLower = request.content.toLowerCase().trim();
-          const hasConfirmation = confirmationKeywords.some(kw => messageLower === kw || messageLower.includes(kw));
-          
-          logger.info('🔍 Checking for confirmation and contextServiceId', {
-            userMessage: request.content,
-            messageLower,
-            hasConfirmation,
-            conversationId: conversation.id
-          });
-          
-          // Verificar si hay un servicio en el contexto
+
+          // ============================================
+          // CONFIRMACIÓN ROBUSTA (SIN FALSOS POSITIVOS)
+          // ============================================
+          const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
           const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
           const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
           
-          logger.info('📋 Context check result', {
+          // Solo considerar confirmación si:
+          // 1. Hay un estado explícito de espera de confirmación
+          // 2. El intent es affirmative O el mensaje es una confirmación explícita
+          const isAffirmativeIntent = nluResult.intent.name === 'affirmative';
+          const explicitConfirmationKeywords = [
+            'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
+            'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
+            'quiero ese', 'quiero esa', 'me interesa ese', 'me interesa esa',
+            'confirmo', 'adelante', 'proceder'
+          ];
+          
+          const messageLower = request.content.toLowerCase().trim();
+          const hasExplicitConfirmation = explicitConfirmationKeywords.some(kw => messageLower.includes(kw));
+          
+          // Confirmación válida solo si hay estado Y (intent affirmative O confirmación explícita)
+          const hasValidConfirmation = awaitingConfirmation && (isAffirmativeIntent || hasExplicitConfirmation);
+          
+          logger.info('🔍 Confirmation check', {
+            awaitingConfirmation,
+            isAffirmativeIntent,
+            hasExplicitConfirmation,
+            hasValidConfirmation,
             contextServiceId,
-            contextServiceName,
-            hasServiceIdInMessage: aiMessage.includes('[SERVICE_ID:'),
-            hasConfirmation,
-            extractedServiceId
+            userMessage: request.content,
+            conversationId: conversation.id
           });
           
-          // Si hay confirmación Y hay contextServiceId Y el mensaje no tiene SERVICE_ID, agregarlo
-          if (hasConfirmation && contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
+          // Si hay confirmación válida Y contextServiceId, agregar SERVICE_ID al mensaje
+          if (hasValidConfirmation && contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
             aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
-            logger.info('✅ AUTO-ADDING contextServiceId to AI response after confirmation', { 
+            extractedServiceId = contextServiceId;
+            extractedServiceName = contextServiceName;
+            logger.info('✅ AUTO-ADDING contextServiceId after valid confirmation', { 
               contextServiceId,
               contextServiceName,
-              userMessage: request.content 
+              conversationId: conversation.id
             });
-          } else if (hasConfirmation && !contextServiceId && !extractedServiceId) {
-            logger.warn('⚠️ User confirmed but no contextServiceId found in context', {
-              conversationId: conversation.id,
-              userMessage: request.content
-            });
+            
+            // Limpiar estado de espera después de confirmar
+            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
           }
 
           // NOTA: Ya NO detectamos servicios automáticamente de la respuesta del AI
@@ -586,11 +602,11 @@ export class MessageRouter {
           // IMPORTANTE: Hacer esto ANTES de limpiar el [SERVICE_ID:xxx]
           await this.detectAndSaveServiceOptions(aiMessage, conversation.id);
 
-          // Detectar si el usuario quiere agendar y hay un servicio en contexto
+          // Detectar si el usuario quiere agendar y hay un servicio en contexto (usar freshContext)
           const bookingLink = await this.generateBookingLinkIfNeeded(
             request.content,
             nluResult.intent.name,
-            conversation.context,
+            freshContext,
             conversation.id
           );
 
@@ -674,14 +690,16 @@ export class MessageRouter {
         }
       }
 
-      // Guardar respuesta del AI
+      // Guardar respuesta del AI (con metadata completo incluyendo serviceId)
       const aiMessage = await ConversationModel.addMessage(conversation.id, {
         senderType: 'ai',
         content: aiResponse.message,
         metadata: {
           intent: aiResponse.intent,
           entities: aiResponse.entities,
-          actions: aiResponse.actions
+          actions: aiResponse.actions,
+          serviceId: extractedServiceId || undefined,
+          serviceName: extractedServiceName || undefined
         }
       });
 
@@ -1208,50 +1226,69 @@ export class MessageRouter {
         contextLastMessagesCount: context.lastMessages?.length || 0
       });
 
-      const messageLower = userMessage.toLowerCase();
+      const messageLower = userMessage.toLowerCase().trim();
 
-      // REGLA 1: Detectar confirmación EXPLÍCITA de reserva (PRIMERO)
-      const confirmationKeywords = [
-        'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
-        'quiero ese', 'quiero esa', 'quiero el', 'quiero la',
-        'me interesa ese', 'me interesa esa', 
-        'reservar ese', 'agendar ese', 'reservar esa', 'agendar esa',
-        'confirmo', 'adelante', 'proceder', 'sí, reservar', 'si, reservar',
-        'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
-        'agendar', 'reservar', 'sí', 'si'
-      ];
-
-      const hasConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
-
-      logger.info('🔍 Confirmation check', {
-        hasConfirmation,
-        messageLower,
-        matchedKeyword: confirmationKeywords.find(kw => messageLower.includes(kw))
+      // ============================================
+      // CONFIRMACIÓN ROBUSTA SIN FALSOS POSITIVOS
+      // ============================================
+      
+      // REGLA 1: Verificar estado explícito de espera de confirmación
+      const awaitingConfirmation = await ContextManager.getVariable(conversationId, 'awaitingBookingConfirmation');
+      
+      logger.info('🔍 Checking awaitingBookingConfirmation state', {
+        awaitingConfirmation,
+        conversationId
       });
-
-      // REGLA 2: NO generar link en consultas iniciales (SOLO si NO hay confirmación)
-      if (!hasConfirmation) {
-        const initialQueryKeywords = [
-          'me gustaría', 'quisiera', 'quiero información', 'quiero saber',
-          'cuáles son', 'qué opciones', 'opciones de', 'información sobre',
-          'cuánto cuesta', 'precio de', 'cuánto vale'
-        ];
-
-        if (initialQueryKeywords.some(keyword => messageLower.includes(keyword))) {
-          logger.info('❌ Initial query detected, NOT generating booking link');
-          return null;
-        }
+      
+      // Si NO hay estado de espera, NO generar link (evita falsos positivos)
+      if (!awaitingConfirmation) {
+        logger.info('❌ NOT awaiting booking confirmation, NOT generating booking link', {
+          conversationId,
+          userMessage: userMessage.substring(0, 50)
+        });
+        return null;
       }
-
-      // Si no hay confirmación explícita, no generar link
-      if (!hasConfirmation) {
-        logger.info('❌ No explicit confirmation detected, NOT generating booking link');
+      
+      // REGLA 2: Verificar confirmación válida (intent affirmative O keywords explícitos)
+      const isAffirmativeIntent = intent === 'affirmative';
+      
+      // Keywords explícitos de confirmación (SIN palabras cortas como "si", "sí", "ok")
+      const explicitConfirmationKeywords = [
+        'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
+        'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
+        'quiero ese', 'quiero esa', 'me interesa ese', 'me interesa esa',
+        'confirmo', 'adelante', 'proceder',
+        'sí, reservar', 'si, reservar', 'sí, agendar', 'si, agendar'
+      ];
+      
+      const hasExplicitConfirmation = explicitConfirmationKeywords.some(kw => messageLower.includes(kw));
+      
+      // Confirmación válida: intent affirmative O confirmación explícita
+      const hasValidConfirmation = isAffirmativeIntent || hasExplicitConfirmation;
+      
+      logger.info('🔍 Confirmation validation', {
+        awaitingConfirmation,
+        isAffirmativeIntent,
+        hasExplicitConfirmation,
+        hasValidConfirmation,
+        messageLower,
+        conversationId
+      });
+      
+      // Si no hay confirmación válida, NO generar link
+      if (!hasValidConfirmation) {
+        logger.info('❌ No valid confirmation detected, NOT generating booking link', {
+          conversationId,
+          userMessage: userMessage.substring(0, 50)
+        });
         return null;
       }
 
-      logger.info('✅ Confirmation detected, proceeding to find SERVICE_ID');
+      logger.info('✅ Valid confirmation detected, proceeding to find SERVICE_ID');
 
-      // REGLA 3: Buscar SERVICE_ID - SOLO usar contexto guardado o [SERVICE_ID:xxx] explícito
+      // ============================================
+      // BUSCAR SERVICE_ID (SOLO contexto o metadata)
+      // ============================================
       let serviceId: string | null = null;
 
       // Estrategia 0 (MÁXIMA PRIORIDAD): Usar serviceId guardado en el contexto
@@ -1271,7 +1308,7 @@ export class MessageRouter {
         });
       }
 
-      // Estrategia 1: Buscar [SERVICE_ID:xxx] en mensajes anteriores del AI (solo si no hay en contexto)
+      // Estrategia 1: Buscar en metadata de mensajes anteriores del AI (solo si no hay en contexto)
       if (!serviceId && context.lastMessages && context.lastMessages.length > 0) {
         const recentAIMessages = context.lastMessages
           .filter((msg: any) => msg.senderType === 'ai')
@@ -1279,15 +1316,7 @@ export class MessageRouter {
           .reverse();
 
         for (const aiMsg of recentAIMessages) {
-          // Primero buscar en el contenido del mensaje
-          const serviceIdMatch = aiMsg.content.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
-          if (serviceIdMatch) {
-            serviceId = serviceIdMatch[1];
-            logger.info('✅ SERVICE_ID found in AI message content:', { serviceId });
-            break;
-          }
-          
-          // Si no está en el contenido, buscar en el metadata
+          // Buscar en el metadata (más confiable que el contenido)
           if (aiMsg.metadata) {
             const metadata = typeof aiMsg.metadata === 'string' 
               ? JSON.parse(aiMsg.metadata) 
@@ -1305,10 +1334,6 @@ export class MessageRouter {
         }
       }
 
-      // ⚠️ ESTRATEGIA 2 ELIMINADA: La búsqueda por nombre causaba falsos positivos
-      // Ahora SOLO confiamos en contextServiceId o [SERVICE_ID:xxx] explícito del AI
-      // Esto garantiza que el link siempre apunte al servicio correcto
-
       // Si aún no encontramos servicio, NO generar link
       if (!serviceId) {
         logger.warn('❌ No service found, NOT generating booking link', {
@@ -1324,7 +1349,7 @@ export class MessageRouter {
 
       // Validar que el servicio existe y está activo
       const { ServiceService } = await import('../ServiceService');
-      const result = await ServiceService.getServices({ isActive: true, limit: 100 });
+      const result = await ServiceService.getServices({ isActive: true, limit: 300 });
       const service = result.services.find((s: any) => s.id === serviceId);
 
       if (!service) {
@@ -1339,12 +1364,16 @@ export class MessageRouter {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
       
+      // Limpiar estado de espera después de generar el link
+      await ContextManager.setVariable(conversationId, 'awaitingBookingConfirmation', false);
+      
       logger.info('✅✅✅ BOOKING LINK GENERATED SUCCESSFULLY', { 
         serviceId, 
         slug: service.slug, 
         serviceName: service.name,
         bookingLink,
-        conversationId
+        conversationId,
+        awaitingConfirmationCleared: true
       });
       
       return bookingLink;
@@ -1466,8 +1495,11 @@ export class MessageRouter {
   ): Promise<void> {
     try {
       // Detectar si el mensaje contiene una lista de servicios con bullets (•) o asteriscos (*)
-      // Formato esperado: "• Nombre del servicio (X sesiones) - $precio" o "* Nombre del servicio (X sesiones) - $precio"
-      const serviceListPattern = /[•\*]\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*-\s*\$?([\d,\.]+)/gi;
+      // Formato esperado: "• Nombre del servicio (X sesiones) - $precio" o variaciones
+      // Tolerante a: "desde $precio", "promo $precio", espacios, moneda, etc.
+      
+      // Pattern más tolerante que acepta variaciones
+      const serviceListPattern = /[•\*]\s*([^\n]+?)\s*(?:\((\d+)\s*sesiones?\))?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
       
       logger.info('🔍 Searching for service list in AI message', {
@@ -1499,12 +1531,18 @@ export class MessageRouter {
           const match = matches[i];
           const serviceName = match[1].trim();
           const sessions = match[2];
-          const price = match[3].replace(/[,\.]/g, '');
+          let priceStr = match[3].replace(/[,\s]/g, ''); // Eliminar comas y espacios
+          
+          // Normalizar precio: si tiene punto decimal, mantenerlo; si no, es entero
+          const priceNum = priceStr.includes('.') 
+            ? parseFloat(priceStr) 
+            : parseInt(priceStr, 10);
           
           logger.info(`🔎 Looking for service ${i + 1}`, {
             serviceName,
             sessions,
-            price,
+            priceStr,
+            priceNum,
             conversationId
           });
           
@@ -1534,8 +1572,9 @@ export class MessageRouter {
             
             const nameMatch = matchingWords.length >= Math.min(2, searchWords.length);
             
-            // Verificar coincidencia de precio
-            const priceMatch = s.price.toString() === price;
+            // Verificar coincidencia de precio (tolerante a .00)
+            const servicePriceNum = parseInt(s.price.toString(), 10);
+            const priceMatch = servicePriceNum === priceNum || servicePriceNum === Math.floor(priceNum);
             
             logger.info(`  Comparing with: ${s.name}`, {
               normalizedServiceName,
@@ -1545,7 +1584,9 @@ export class MessageRouter {
               nameMatch,
               priceMatch,
               servicePrice: s.price,
-              searchPrice: price
+              servicePriceNum,
+              searchPrice: priceNum,
+              conversationId
             });
             
             return nameMatch && priceMatch;
@@ -1566,7 +1607,7 @@ export class MessageRouter {
           } else {
             logger.warn(`⚠️ Service not found in database`, {
               serviceName,
-              price,
+              priceNum,
               normalizedSearchName,
               conversationId
             });
