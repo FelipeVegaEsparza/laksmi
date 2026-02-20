@@ -507,15 +507,35 @@ export class MessageRouter {
           const messageLower = request.content.toLowerCase().trim();
           const hasConfirmation = confirmationKeywords.some(kw => messageLower === kw || messageLower.includes(kw));
           
+          logger.info('🔍 Checking for confirmation and contextServiceId', {
+            userMessage: request.content,
+            messageLower,
+            hasConfirmation,
+            conversationId: conversation.id
+          });
+          
           if (hasConfirmation) {
             // Verificar si hay un servicio en el contexto
             const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+            const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
+            
+            logger.info('📋 Context check result', {
+              contextServiceId,
+              contextServiceName,
+              hasServiceIdInMessage: aiMessage.includes('[SERVICE_ID:')
+            });
             
             if (contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
               aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
               logger.info('✅ AUTO-ADDING contextServiceId to AI response after confirmation', { 
                 contextServiceId,
+                contextServiceName,
                 userMessage: request.content 
+              });
+            } else if (!contextServiceId) {
+              logger.warn('⚠️ User confirmed but no contextServiceId found in context', {
+                conversationId: conversation.id,
+                userMessage: request.content
               });
             }
           }
