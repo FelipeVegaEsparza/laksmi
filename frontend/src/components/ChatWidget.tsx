@@ -236,15 +236,17 @@ const ChatWidget = () => {
   const sendMessage = async () => {
     if (!inputMessage.trim() || !clientId || isLoading) return;
 
+    const messageToSend = inputMessage; // Guardar el mensaje antes de limpiar
+    const tempId = `temp-${Date.now()}`; // ID temporal
+    
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputMessage,
+      id: tempId,
+      content: messageToSend,
       sender: 'user',
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const messageToSend = inputMessage; // Guardar el mensaje antes de limpiar
     setInputMessage(''); // Limpiar inmediatamente para prevenir reenvíos
     setIsLoading(true);
 
@@ -299,7 +301,17 @@ const ChatWidget = () => {
       
       console.log('📨 Final message to display:', messageContent);
       
-      // Extraer messageId del servidor si está disponible
+      // Extraer messageId del servidor para el mensaje del usuario
+      const serverUserMessageId = (response as any).data?.userMessageId || (response as any).userMessageId;
+      
+      // Reemplazar el mensaje temporal con el ID real del servidor
+      if (serverUserMessageId) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
+        ));
+      }
+      
+      // Extraer messageId del servidor para el mensaje del AI
       const serverMessageId = (response as any).data?.messageId || (response as any).messageId;
       
       const aiMessage: Message = {
@@ -330,89 +342,101 @@ const ChatWidget = () => {
   };
 
   const sendAutoMessage = async (message: string) => {
-    if (!message.trim() || !clientId || isLoading) return;
+      if (!message.trim() || !clientId || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: message,
-      sender: 'user',
-      timestamp: new Date()
+      const tempId = `temp-${Date.now()}`; // ID temporal
+
+      const userMessage: Message = {
+        id: tempId,
+        content: message,
+        sender: 'user',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      setIsLoading(true);
+
+      try {
+        // Preparar metadata incluyendo serviceId si está disponible
+        const metadata: any = {};
+        if (serviceContext?.id) {
+          metadata.serviceId = serviceContext.id;
+          metadata.serviceName = serviceContext.name;
+        }
+
+        const response = await chatApi.sendMessage(message, clientId, metadata);
+
+        // Extraer el mensaje de la respuesta
+        let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
+
+        console.log('Chat response:', response);
+
+        if (typeof response === 'string') {
+          messageContent = response;
+        } else if (response && typeof response === 'object') {
+          // La API devuelve { response: { message: string, ... }, conversationId, clientId, messageId, processingTime }
+          if ((response as any).response?.message) {
+            messageContent = (response as any).response.message;
+          } else if ((response as any).data?.response?.message) {
+            messageContent = (response as any).data.response.message;
+          } else if ((response as any).message) {
+            messageContent = (response as any).message;
+          }
+
+          // Guardar conversationId para polling
+          const convId = (response as any).data?.conversationId || (response as any).conversationId;
+          if (convId) {
+            setConversationId(convId);
+            console.log('💬 Conversation ID set:', convId);
+          }
+
+          // Guardar clientId real si viene en la respuesta
+          const realClientId = (response as any).data?.clientId || (response as any).clientId;
+          if (realClientId && realClientId !== clientId) {
+            console.log('🔄 Updating clientId from temporary to real:', { old: clientId, new: realClientId });
+            localStorage.setItem('chat_client_id', realClientId);
+          }
+        }
+
+        // Extraer messageId del servidor para el mensaje del usuario
+        const serverUserMessageId = (response as any).data?.userMessageId || (response as any).userMessageId;
+
+        // Reemplazar el mensaje temporal con el ID real del servidor
+        if (serverUserMessageId) {
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
+          ));
+        }
+
+        // Extraer messageId del servidor para el mensaje del AI
+        const serverMessageId = (response as any).data?.messageId || (response as any).messageId;
+
+        const aiMessage: Message = {
+          id: serverMessageId || (Date.now() + 1).toString(), // Usar ID del servidor si está disponible
+          content: messageContent,
+          sender: 'ai',
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+
+        // Actualizar timestamp del último mensaje
+        setLastMessageTimestamp(aiMessage.timestamp.toISOString());
+      } catch (error) {
+        console.error('Error sending message:', error);
+
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Lo siento, hay un problema con la conexión. Por favor, intenta de nuevo o contáctanos por WhatsApp.',
+          sender: 'ai',
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
     };
-
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      // Preparar metadata incluyendo serviceId si está disponible
-      const metadata: any = {};
-      if (serviceContext?.id) {
-        metadata.serviceId = serviceContext.id;
-        metadata.serviceName = serviceContext.name;
-      }
-      
-      const response = await chatApi.sendMessage(message, clientId, metadata);
-      
-      // Extraer el mensaje de la respuesta
-      let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
-      
-      console.log('Chat response:', response);
-      
-      if (typeof response === 'string') {
-        messageContent = response;
-      } else if (response && typeof response === 'object') {
-        // La API devuelve { response: { message: string, ... }, conversationId, clientId, messageId, processingTime }
-        if ((response as any).response?.message) {
-          messageContent = (response as any).response.message;
-        } else if ((response as any).data?.response?.message) {
-          messageContent = (response as any).data.response.message;
-        } else if ((response as any).message) {
-          messageContent = (response as any).message;
-        }
-
-        // Guardar conversationId para polling
-        const convId = (response as any).data?.conversationId || (response as any).conversationId;
-        if (convId) {
-          setConversationId(convId);
-          console.log('💬 Conversation ID set:', convId);
-        }
-
-        // Guardar clientId real si viene en la respuesta
-        const realClientId = (response as any).data?.clientId || (response as any).clientId;
-        if (realClientId && realClientId !== clientId) {
-          console.log('🔄 Updating clientId from temporary to real:', { old: clientId, new: realClientId });
-          localStorage.setItem('chat_client_id', realClientId);
-        }
-      }
-      
-      // Extraer messageId del servidor si está disponible
-      const serverMessageId = (response as any).data?.messageId || (response as any).messageId;
-      
-      const aiMessage: Message = {
-        id: serverMessageId || (Date.now() + 1).toString(), // Usar ID del servidor si está disponible
-        content: messageContent,
-        sender: 'ai',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Actualizar timestamp del último mensaje
-      setLastMessageTimestamp(aiMessage.timestamp.toISOString());
-    } catch (error) {
-      console.error('Error sending message:', error);
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: 'Lo siento, hay un problema con la conexión. Por favor, intenta de nuevo o contáctanos por WhatsApp.',
-        sender: 'ai',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -456,8 +480,8 @@ const ChatWidget = () => {
     if (action === 'whatsapp') {
       transferToWhatsApp();
     } else {
-      setInputMessage(text);
-      sendMessage();
+      // NO establecer inputMessage, enviar directamente
+      sendAutoMessage(text);
     }
   };
 
