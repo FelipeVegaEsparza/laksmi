@@ -200,12 +200,27 @@ export class MessageRouter {
         const selectedNumber = parseInt(numberMatch[1]);
         const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
         
+        logger.info('🔢 Number detected in user message', {
+          number: selectedNumber,
+          hasServiceOptions: !!serviceOptions,
+          serviceOptionsCount: serviceOptions?.length || 0,
+          serviceOptions: serviceOptions ? serviceOptions.map((s: any) => ({ 
+            index: serviceOptions.indexOf(s) + 1,
+            id: s.id, 
+            name: s.name,
+            price: s.price
+          })) : null,
+          conversationId: conversation.id
+        });
+        
         if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
           const selectedService = serviceOptions[selectedNumber - 1];
           logger.info('✅ User selected service by number - generating direct response', { 
             number: selectedNumber, 
             serviceId: selectedService.id,
-            serviceName: selectedService.name 
+            serviceName: selectedService.name,
+            servicePrice: selectedService.price,
+            conversationId: conversation.id
           });
           
           // Guardar el servicio seleccionado en el contexto
@@ -1619,7 +1634,13 @@ export class MessageRouter {
           await ContextManager.setVariable(conversationId, 'serviceOptions', serviceOptions);
           logger.info('✅✅✅ Service options saved to context', {
             count: serviceOptions.length,
-            services: serviceOptions.map(s => ({ name: s.name, id: s.id })),
+            services: serviceOptions.map((s, idx) => ({ 
+              index: idx + 1,
+              name: s.name, 
+              id: s.id,
+              slug: s.slug,
+              price: s.price
+            })),
             conversationId
           });
         } else {

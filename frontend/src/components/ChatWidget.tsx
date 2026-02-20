@@ -129,6 +129,7 @@ const ChatWidget = () => {
             
             if (uniqueNewMessages.length > 0) {
               console.log('📨 New messages received from polling:', uniqueNewMessages.length);
+              console.log('📊 Message IDs:', uniqueNewMessages.map(m => ({ id: m.id, sender: m.sender, content: m.content.substring(0, 30) })));
               console.log('📊 Chat state - isOpen:', isOpen, 'isMinimized:', isMinimized);
               
               // Incrementar contador de no leídos si el chat está cerrado o minimizado
