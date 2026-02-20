@@ -1,6 +1,7 @@
 export interface Service {
   id: string;
   name: string;
+  slug: string; // URL amigable para SEO
   category: string; // Categoría primaria (backward compatibility)
   categories: string[]; // Todas las categorías asignadas
   price: number;
@@ -19,6 +20,7 @@ export interface Service {
 
 export interface CreateServiceRequest {
   name: string;
+  slug?: string; // Opcional, se genera automáticamente si no se proporciona
   category: string; // Categoría primaria
   categories?: string[]; // Categorías adicionales (opcional)
   price: number;
@@ -34,6 +36,7 @@ export interface CreateServiceRequest {
 
 export interface UpdateServiceRequest {
   name?: string;
+  slug?: string; // Actualizar slug manualmente (se regenera automáticamente si cambia el nombre)
   category?: string; // Actualizar categoría primaria
   categories?: string[]; // Actualizar todas las categorías
   price?: number;

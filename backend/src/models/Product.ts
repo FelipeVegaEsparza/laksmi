@@ -581,6 +581,7 @@ export class ProductModel {
     return {
       id: dbProduct.id,
       name: dbProduct.name,
+      slug: dbProduct.slug,
       category: dbProduct.category, // Categoría primaria para backward compatibility
       categories: categoryNames.length > 0 ? categoryNames : [dbProduct.category], // Usar categorías de la tabla de unión o fallback
       price: parseFloat(dbProduct.price),

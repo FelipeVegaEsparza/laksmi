@@ -547,6 +547,7 @@ export class ServiceModel {
     return {
       id: dbService.id,
       name: dbService.name,
+      slug: dbService.slug,
       category: dbService.category, // Categoría primaria para backward compatibility
       categories: categoryNames.length > 0 ? categoryNames : [dbService.category], // Usar categorías de la tabla de unión o fallback
       price: parseFloat(dbService.price),
