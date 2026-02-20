@@ -48,12 +48,12 @@ async function startServer() {
       // Ejecutar scripts de población de slugs (solo si es necesario)
       logger.info('🔄 Verificando y poblando slugs...');
       try {
-        const { populateServiceSlugs } = await import('../scripts/populate-service-slugs');
+        const { populateServiceSlugs } = require('../scripts/populate-service-slugs.js');
         await populateServiceSlugs();
         logger.info('✅ Slugs de servicios poblados');
       } catch (slugError: any) {
         // Si falla, probablemente ya están poblados
-        if (slugError.message?.includes('Duplicate entry')) {
+        if (slugError.message?.includes('Duplicate entry') || slugError.message?.includes('already has slug')) {
           logger.info('ℹ️  Slugs de servicios ya poblados');
         } else {
           logger.warn('⚠️  Error poblando slugs de servicios:', slugError.message);
@@ -61,12 +61,12 @@ async function startServer() {
       }
       
       try {
-        const { populateProductSlugs } = await import('../scripts/populate-product-slugs');
+        const { populateProductSlugs } = require('../scripts/populate-product-slugs.js');
         await populateProductSlugs();
         logger.info('✅ Slugs de productos poblados');
       } catch (slugError: any) {
         // Si falla, probablemente ya están poblados
-        if (slugError.message?.includes('Duplicate entry')) {
+        if (slugError.message?.includes('Duplicate entry') || slugError.message?.includes('already has slug')) {
           logger.info('ℹ️  Slugs de productos ya poblados');
         } else {
           logger.warn('⚠️  Error poblando slugs de productos:', slugError.message);
