@@ -564,11 +564,30 @@ export class MessageRouter {
           // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
           let finalMessage = aiMessage.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
           
+          logger.info('🔍 Checking if booking link should be added', {
+            hasBookingLink: !!bookingLink,
+            bookingLink: bookingLink || 'null',
+            conversationId: conversation.id,
+            userMessage: request.content
+          });
+          
           // Si hay link de reserva, agregarlo al mensaje
           if (bookingLink) {
             // Formato simple para que WhatsApp detecte el link automáticamente
             // Usar salto de línea doble antes del link para asegurar que WhatsApp lo detecte
             finalMessage += `\n\n📅 Para reservar tu cita, haz clic aquí:\n\n${bookingLink}`;
+            
+            logger.info('✅✅✅ BOOKING LINK ADDED TO MESSAGE', {
+              conversationId: conversation.id,
+              bookingLink,
+              finalMessageLength: finalMessage.length
+            });
+          } else {
+            logger.warn('⚠️⚠️⚠️ NO BOOKING LINK TO ADD', {
+              conversationId: conversation.id,
+              userMessage: request.content,
+              aiMessageHadServiceId: aiResult.message.includes('[SERVICE_ID:')
+            });
           }
 
           aiResponse = {
@@ -1149,6 +1168,13 @@ export class MessageRouter {
     conversationId: string
   ): Promise<string | null> {
     try {
+      logger.info('🔵 generateBookingLinkIfNeeded CALLED', {
+        userMessage,
+        intent,
+        conversationId,
+        contextLastMessagesCount: context.lastMessages?.length || 0
+      });
+
       const messageLower = userMessage.toLowerCase();
 
       // REGLA 1: Detectar confirmación EXPLÍCITA de reserva (PRIMERO)
@@ -1159,10 +1185,16 @@ export class MessageRouter {
         'reservar ese', 'agendar ese', 'reservar esa', 'agendar esa',
         'confirmo', 'adelante', 'proceder', 'sí, reservar', 'si, reservar',
         'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
-        'agendar', 'reservar'
+        'agendar', 'reservar', 'sí', 'si'
       ];
 
       const hasConfirmation = confirmationKeywords.some(keyword => messageLower.includes(keyword));
+
+      logger.info('🔍 Confirmation check', {
+        hasConfirmation,
+        messageLower,
+        matchedKeyword: confirmationKeywords.find(kw => messageLower.includes(kw))
+      });
 
       // REGLA 2: NO generar link en consultas iniciales (SOLO si NO hay confirmación)
       if (!hasConfirmation) {
@@ -1173,16 +1205,18 @@ export class MessageRouter {
         ];
 
         if (initialQueryKeywords.some(keyword => messageLower.includes(keyword))) {
-          logger.debug('Initial query detected, NOT generating booking link');
+          logger.info('❌ Initial query detected, NOT generating booking link');
           return null;
         }
       }
 
       // Si no hay confirmación explícita, no generar link
       if (!hasConfirmation) {
-        logger.debug('No explicit confirmation detected, NOT generating booking link');
+        logger.info('❌ No explicit confirmation detected, NOT generating booking link');
         return null;
       }
+
+      logger.info('✅ Confirmation detected, proceeding to find SERVICE_ID');
 
       // REGLA 3: Buscar SERVICE_ID - SOLO usar contexto guardado o [SERVICE_ID:xxx] explícito
       let serviceId: string | null = null;
@@ -1244,9 +1278,16 @@ export class MessageRouter {
 
       // Si aún no encontramos servicio, NO generar link
       if (!serviceId) {
-        logger.debug('No service found, NOT generating booking link');
+        logger.warn('❌ No service found, NOT generating booking link', {
+          conversationId,
+          userMessage: userMessage.substring(0, 50),
+          checkedContext: true,
+          checkedMessages: true
+        });
         return null;
       }
+
+      logger.info('🔍 Validating service exists and is active', { serviceId });
 
       // Validar que el servicio existe y está activo
       const { ServiceService } = await import('../ServiceService');
@@ -1254,14 +1295,26 @@ export class MessageRouter {
       const service = result.services.find((s: any) => s.id === serviceId);
 
       if (!service) {
-        logger.warn('Service ID found but service not active or not found:', { serviceId });
+        logger.warn('❌ Service ID found but service not active or not found:', { 
+          serviceId,
+          conversationId 
+        });
         return null;
       }
 
       // Generar link usando slug en lugar de ID
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-      logger.info('✅ Booking link generated:', { serviceId, slug: service.slug, serviceName: service.name });
-      return `${frontendUrl}/reservar?service=${service.slug}`;
+      const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+      
+      logger.info('✅✅✅ BOOKING LINK GENERATED SUCCESSFULLY', { 
+        serviceId, 
+        slug: service.slug, 
+        serviceName: service.name,
+        bookingLink,
+        conversationId
+      });
+      
+      return bookingLink;
 
     } catch (error) {
       logger.error('Error generating booking link:', error);
