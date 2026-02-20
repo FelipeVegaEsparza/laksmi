@@ -238,7 +238,7 @@ const Header = () => {
           {/* CTA Button - Destacado y profesional */}
           <div className="hidden lg:flex">
             <Button 
-              href="/servicios" 
+              href="/reservar" 
               variant="primary" 
               size="md" 
               className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 font-semibold"
@@ -301,7 +301,7 @@ const Header = () => {
               })}
               <div className="pt-3 px-2">
                 <Button 
-                  href="/servicios" 
+                  href="/reservar" 
                   variant="primary" 
                   fullWidth
                   onClick={() => setIsMenuOpen(false)}
