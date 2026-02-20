@@ -520,59 +520,30 @@ export class MessageRouter {
             conversationId: conversation.id
           });
           
-          if (hasConfirmation) {
-            // Verificar si hay un servicio en el contexto
-            const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-            const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
-            
-            logger.info('📋 Context check result', {
+          // Verificar si hay un servicio en el contexto
+          const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+          const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
+          
+          logger.info('📋 Context check result', {
+            contextServiceId,
+            contextServiceName,
+            hasServiceIdInMessage: aiMessage.includes('[SERVICE_ID:'),
+            hasConfirmation
+          });
+          
+          // Si hay confirmación Y hay contextServiceId Y el mensaje no tiene SERVICE_ID, agregarlo
+          if (hasConfirmation && contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
+            aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
+            logger.info('✅ AUTO-ADDING contextServiceId to AI response after confirmation', { 
               contextServiceId,
               contextServiceName,
-              hasServiceIdInMessage: aiMessage.includes('[SERVICE_ID:')
+              userMessage: request.content 
             });
-            
-            if (contextServiceId && !aiMessage.includes('[SERVICE_ID:')) {
-              aiMessage += ` [SERVICE_ID:${contextServiceId}]`;
-              logger.info('✅ AUTO-ADDING contextServiceId to AI response after confirmation', { 
-                contextServiceId,
-                contextServiceName,
-                userMessage: request.content 
-              });
-            } else if (!contextServiceId) {
-              logger.warn('⚠️ User confirmed but no contextServiceId found in context', {
-                conversationId: conversation.id,
-                userMessage: request.content
-              });
-            }
-          }
-          
-          if (!aiMessage.includes('[SERVICE_ID:')) {
-            const confirmationKeywords = [
-              'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
-              'sí quiero', 'si quiero', 'quiero ese', 'quiero esa',
-              'me interesa', 'confirmo', 'adelante'
-            ];
-            
-            const messageLower = request.content.toLowerCase();
-            const hasConfirmation = confirmationKeywords.some(kw => messageLower.includes(kw));
-            
-            if (hasConfirmation && conversation.context.lastMessages) {
-              // Buscar SERVICE_ID en los últimos mensajes del AI
-              const recentAIMessages = conversation.context.lastMessages
-                .filter((msg: any) => msg.senderType === 'ai')
-                .slice(-3)
-                .reverse();
-              
-              for (const aiMsg of recentAIMessages) {
-                const serviceIdMatch = aiMsg.content.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
-                if (serviceIdMatch) {
-                  const serviceId = serviceIdMatch[1];
-                  logger.info('✅ AUTO-ADDING SERVICE_ID to AI response', { serviceId });
-                  aiMessage += ` [SERVICE_ID:${serviceId}]`;
-                  break;
-                }
-              }
-            }
+          } else if (hasConfirmation && !contextServiceId) {
+            logger.warn('⚠️ User confirmed but no contextServiceId found in context', {
+              conversationId: conversation.id,
+              userMessage: request.content
+            });
           }
 
           // NOTA: Ya NO detectamos servicios automáticamente de la respuesta del AI
@@ -1213,17 +1184,23 @@ export class MessageRouter {
         return null;
       }
 
-      // REGLA 3: Buscar SERVICE_ID - PRIORIDAD: contexto guardado > mensajes AI > búsqueda por nombre
+      // REGLA 3: Buscar SERVICE_ID - SOLO usar contexto guardado o [SERVICE_ID:xxx] explícito
       let serviceId: string | null = null;
 
-      // Estrategia 0 (NUEVA - MÁXIMA PRIORIDAD): Usar serviceId guardado en el contexto
+      // Estrategia 0 (MÁXIMA PRIORIDAD): Usar serviceId guardado en el contexto
       const contextServiceId = await ContextManager.getVariable(conversationId, 'contextServiceId');
       if (contextServiceId) {
         serviceId = contextServiceId;
         const contextServiceName = await ContextManager.getVariable(conversationId, 'contextServiceName');
         logger.info('✅ SERVICE_ID found in conversation context (HIGHEST PRIORITY):', { 
           serviceId, 
-          serviceName: contextServiceName 
+          serviceName: contextServiceName,
+          conversationId
+        });
+      } else {
+        logger.warn('⚠️ No contextServiceId found in conversation context', {
+          conversationId,
+          userMessage: userMessage.substring(0, 50)
         });
       }
 
@@ -1235,73 +1212,35 @@ export class MessageRouter {
           .reverse();
 
         for (const aiMsg of recentAIMessages) {
+          // Primero buscar en el contenido del mensaje
           const serviceIdMatch = aiMsg.content.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
           if (serviceIdMatch) {
             serviceId = serviceIdMatch[1];
-            logger.info('✅ SERVICE_ID found in AI message:', { serviceId });
+            logger.info('✅ SERVICE_ID found in AI message content:', { serviceId });
             break;
+          }
+          
+          // Si no está en el contenido, buscar en el metadata
+          if (aiMsg.metadata) {
+            const metadata = typeof aiMsg.metadata === 'string' 
+              ? JSON.parse(aiMsg.metadata) 
+              : aiMsg.metadata;
+            
+            if (metadata.serviceId) {
+              serviceId = metadata.serviceId;
+              logger.info('✅ SERVICE_ID found in AI message metadata:', { 
+                serviceId,
+                serviceName: metadata.serviceName 
+              });
+              break;
+            }
           }
         }
       }
 
-      // Estrategia 2: Si no hay SERVICE_ID, buscar servicio por nombre en el contexto de la conversación
-      if (!serviceId) {
-        logger.info('🔍 No SERVICE_ID found, searching service by name in conversation context');
-        
-        try {
-          const { ServiceService } = await import('../ServiceService');
-          const result = await ServiceService.getServices({ isActive: true, limit: 200 });
-          
-          // Buscar en los últimos 3 mensajes (usuario + AI) para encontrar menciones de servicios
-          let searchText = userMessage;
-          if (context.lastMessages && context.lastMessages.length > 0) {
-            const recentMessages = context.lastMessages.slice(-3);
-            searchText = recentMessages.map((msg: any) => msg.content).join(' ') + ' ' + userMessage;
-          }
-          
-          const searchLower = searchText.toLowerCase();
-          
-          // Buscar servicio que coincida con el contexto de la conversación
-          const matchedService = result.services.find((service: any) => {
-            const serviceName = service.name.toLowerCase();
-            const searchWords = searchLower.split(' ').filter((w: string) => w.length > 3);
-            
-            // Verificar si el contexto contiene palabras clave del servicio
-            // Ejemplo: "detox pack crio total" debe coincidir con "DETOX PACK CRIO TOTAL 14 SESIONES"
-            const serviceWords = serviceName.split(' ').filter((w: string) => w.length > 3);
-            
-            // Contar cuántas palabras del servicio aparecen en el contexto
-            const matchCount = serviceWords.filter((sw: string) => 
-              searchWords.some(mw => {
-                // Normalizar para comparación (quitar acentos, etc.)
-                const swNorm = sw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const mwNorm = mw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                return mwNorm.includes(swNorm) || swNorm.includes(mwNorm);
-              })
-            ).length;
-            
-            // Si al menos 2 palabras coinciden O el porcentaje de coincidencia es > 40%, considerarlo un match
-            const matchPercentage = serviceWords.length > 0 ? (matchCount / serviceWords.length) * 100 : 0;
-            return matchCount >= 2 || matchPercentage > 40;
-          });
-          
-          if (matchedService) {
-            serviceId = matchedService.id;
-            logger.info('✅ Service found by name matching in context:', { 
-              serviceId, 
-              serviceName: matchedService.name,
-              searchText: searchText.substring(0, 100)
-            });
-          } else {
-            logger.warn('⚠️ No service matched user message:', { 
-              userMessage: userMessage.substring(0, 50),
-              totalServices: result.services.length
-            });
-          }
-        } catch (error) {
-          logger.error('Error searching service by name:', error);
-        }
-      }
+      // ⚠️ ESTRATEGIA 2 ELIMINADA: La búsqueda por nombre causaba falsos positivos
+      // Ahora SOLO confiamos en contextServiceId o [SERVICE_ID:xxx] explícito del AI
+      // Esto garantiza que el link siempre apunte al servicio correcto
 
       // Si aún no encontramos servicio, NO generar link
       if (!serviceId) {
