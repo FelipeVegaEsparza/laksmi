@@ -312,7 +312,7 @@ const ServicesContent = () => {
                         </div>
                         <div className="flex flex-col gap-2">
                           <Button
-                            href={`/servicios/${service.id}`}
+                            href={`/servicios/${service.slug}`}
                             variant="primary"
                             size="sm"
                             fullWidth

@@ -2,6 +2,7 @@
 
 export interface Service {
   id: string;
+  slug: string; // URL-friendly identifier for SEO
   name: string;
   category: string; // Primary category (backward compatibility)
   categories?: string[]; // NEW: All assigned categories

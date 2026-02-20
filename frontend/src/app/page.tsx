@@ -211,7 +211,7 @@ export default function Home() {
 
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Button
-                            href={`/servicios/${service.id}`}
+                            href={`/servicios/${service.slug}`}
                             variant="primary"
                             size="lg"
                             className="flex-1 rounded-full px-8 py-4 text-lg font-semibold"
@@ -220,7 +220,7 @@ export default function Home() {
                             <ArrowRight className="h-5 w-5 ml-2" />
                           </Button>
                           <Button
-                            href={`/servicios/${service.id}`}
+                            href={`/servicios/${service.slug}`}
                             variant="outline"
                             size="lg"
                             className="rounded-full px-8 py-4 text-lg font-semibold"
@@ -367,7 +367,7 @@ export default function Home() {
                       </div>
                     </div>
                     <Button
-                      href={`/servicios/${service.id}`}
+                      href={`/servicios/${service.slug}`}
                       variant="primary"
                       size="sm"
                       fullWidth

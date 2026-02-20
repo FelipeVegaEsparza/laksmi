@@ -1,13 +1,22 @@
 import db from '../config/database';
 import { Service, CreateServiceRequest, UpdateServiceRequest, ServiceFilters, ServiceCategory } from '../types/service';
+import { generateUniqueSlug } from '../utils/slug';
 
 export class ServiceModel {
-  static async findById(id: string): Promise<Service | null> {
-    const service = await db('services').where({ id }).first();
-    if (!service) return null;
-    
-    return await this.formatService(service);
-  }
+  static async findById(idOrSlug: string): Promise<Service | null> {
+      // Intentar buscar por UUID primero, luego por slug
+      let service = await db('services').where({ id: idOrSlug }).first();
+
+      // Si no se encuentra por ID, buscar por slug
+      if (!service) {
+        service = await db('services').where({ slug: idOrSlug }).first();
+      }
+
+      if (!service) return null;
+
+      return await this.formatService(service);
+    }
+
 
   static async findByName(name: string): Promise<Service | null> {
     const service = await db('services').where({ name }).first();
@@ -17,8 +26,18 @@ export class ServiceModel {
   }
 
   static async create(serviceData: CreateServiceRequest): Promise<Service> {
+    // Generar slug único
+    const slug = await generateUniqueSlug(
+      serviceData.name,
+      async (slug) => {
+        const existing = await db('services').where({ slug }).first();
+        return !!existing;
+      }
+    );
+
     const insertData = {
       name: serviceData.name,
+      slug: slug,
       category: serviceData.category,
       price: serviceData.price,
       duration: serviceData.duration,
@@ -33,6 +52,7 @@ export class ServiceModel {
 
     // DEBUG: Ver qué se va a guardar en la BD
     console.log('💾 ServiceModel - Guardando en BD:');
+    console.log('   Slug:', slug);
     console.log('   Description preview:', insertData.description?.substring(0, 200));
     console.log('   Benefits preview:', insertData.benefits?.substring(0, 200));
     console.log('   Description tiene HTML?:', insertData.description?.includes('<'));
@@ -69,7 +89,17 @@ export class ServiceModel {
   static async update(id: string, updates: UpdateServiceRequest): Promise<Service | null> {
     const updateData: any = {};
     
-    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.name !== undefined) {
+      updateData.name = updates.name;
+      // Regenerar slug si cambia el nombre
+      updateData.slug = await generateUniqueSlug(
+        updates.name,
+        async (slug) => {
+          const existing = await db('services').where({ slug }).whereNot({ id }).first();
+          return !!existing;
+        }
+      );
+    }
     if (updates.category !== undefined) updateData.category = updates.category;
     if (updates.price !== undefined) updateData.price = updates.price;
     if (updates.duration !== undefined) updateData.duration = updates.duration;

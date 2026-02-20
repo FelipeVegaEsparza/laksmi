@@ -30,8 +30,8 @@ const ServiceDetailPage = () => {
   useEffect(() => {
     const loadService = async () => {
       try {
-        if (params.id) {
-          const serviceData = await servicesApi.getById(params.id as string);
+        if (params.slug) {
+          const serviceData = await servicesApi.getById(params.slug as string);
           console.log('Service data received:', serviceData);
           console.log('Service images:', serviceData.images);
           setService(serviceData);
@@ -505,7 +505,7 @@ const ServiceDetailPage = () => {
                       {formatPrice(relatedService.price)}
                     </span>
                     <Button
-                      href={`/servicios/${relatedService.id}`}
+                      href={`/servicios/${relatedService.slug}`}
                       variant="primary"
                       size="sm"
                     >
