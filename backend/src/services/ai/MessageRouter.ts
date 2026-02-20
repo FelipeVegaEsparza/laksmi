@@ -503,6 +503,37 @@ export class MessageRouter {
           // (usuario confirma reserva y hay un servicio en contexto), agregarlo automáticamente
           let aiMessage = aiResult.message;
           
+          // CRÍTICO: Extraer SERVICE_ID del mensaje actual del AI ANTES de cualquier otra cosa
+          let extractedServiceId: string | null = null;
+          const serviceIdMatch = aiMessage.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
+          if (serviceIdMatch) {
+            extractedServiceId = serviceIdMatch[1];
+            logger.info('✅ SERVICE_ID extracted from current AI message', {
+              serviceId: extractedServiceId,
+              conversationId: conversation.id
+            });
+            
+            // Guardar en el contexto para uso futuro
+            await ContextManager.setVariable(conversation.id, 'contextServiceId', extractedServiceId);
+            
+            // Buscar el nombre del servicio
+            try {
+              const { ServiceService } = await import('../ServiceService');
+              const result = await ServiceService.getServices({ isActive: true, limit: 200 });
+              const service = result.services.find((s: any) => s.id === extractedServiceId);
+              if (service) {
+                await ContextManager.setVariable(conversation.id, 'contextServiceName', service.name);
+                logger.info('✅ Service name saved to context', {
+                  serviceId: extractedServiceId,
+                  serviceName: service.name,
+                  conversationId: conversation.id
+                });
+              }
+            } catch (error) {
+              logger.error('Error finding service name:', error);
+            }
+          }
+          
           // NUEVA LÓGICA: Si hay confirmación y contextServiceId, agregar SERVICE_ID automáticamente
           const confirmationKeywords = [
             'quiero reservar', 'quiero agendar', 'agendar', 'reservar',
@@ -528,7 +559,8 @@ export class MessageRouter {
             contextServiceId,
             contextServiceName,
             hasServiceIdInMessage: aiMessage.includes('[SERVICE_ID:'),
-            hasConfirmation
+            hasConfirmation,
+            extractedServiceId
           });
           
           // Si hay confirmación Y hay contextServiceId Y el mensaje no tiene SERVICE_ID, agregarlo
@@ -539,7 +571,7 @@ export class MessageRouter {
               contextServiceName,
               userMessage: request.content 
             });
-          } else if (hasConfirmation && !contextServiceId) {
+          } else if (hasConfirmation && !contextServiceId && !extractedServiceId) {
             logger.warn('⚠️ User confirmed but no contextServiceId found in context', {
               conversationId: conversation.id,
               userMessage: request.content
