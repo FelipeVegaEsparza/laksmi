@@ -193,6 +193,113 @@ export class MessageRouter {
       }
 
       // ============================================
+      // PRIORIDAD MÁXIMA: ¿Usuario quiere agendar con servicio en contexto?
+      // ============================================
+      // ESTO DEBE IR ANTES DE TODO para interceptar INMEDIATAMENTE
+      const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+      const awaitingConfirmationCheck = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
+      
+      logger.info('🔍🔍🔍 PRIORITY CHECK: Booking intent?', {
+        hasContextServiceId: !!contextServiceIdCheck,
+        awaitingConfirmation: awaitingConfirmationCheck,
+        userMessage: request.content,
+        conversationId: conversation.id
+      });
+      
+      if (contextServiceIdCheck && awaitingConfirmationCheck) {
+        const messageLower = request.content.toLowerCase().trim();
+        
+        // Detectar si es un NÚMERO
+        const isNumber = /^\d+$/.test(request.content.trim());
+        
+        // Si es un número duplicado (ej: "44"), extraer el dígito único
+        let singleDigit: number | null = null;
+        if (isNumber) {
+          const numStr = request.content.trim();
+          const allSame = numStr.split('').every(d => d === numStr[0]);
+          if (allSame) {
+            singleDigit = parseInt(numStr[0]);
+          }
+        }
+        
+        // Detectar keywords de agendar
+        const bookingKeywords = ['agendar', 'reservar', 'cita', 'hora', 'reserva', 'si', 'sí', 'dale', 'ok', 'okay', 'confirmo'];
+        const hasBookingKeyword = bookingKeywords.some(kw => messageLower.includes(kw));
+        
+        // GENERAR LINK SI: es número O tiene keyword de agendar
+        if (isNumber || hasBookingKeyword) {
+          logger.info('✅✅✅ INTERCEPTED: USER WANTS TO BOOK', {
+            isNumber,
+            singleDigit,
+            hasBookingKeyword,
+            userMessage: request.content,
+            contextServiceId: contextServiceIdCheck,
+            conversationId: conversation.id
+          });
+          
+          const { ServiceService } = await import('../ServiceService');
+          const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+          const service = result.services.find((s: any) => s.id === contextServiceIdCheck);
+          
+          if (service) {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+            const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+            
+            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
+            
+            const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
+
+📅 Para reservar tu cita, haz clic aquí:
+
+${bookingLink}`;
+            
+            const aiMessage = await ConversationModel.addMessage(conversation.id, {
+              senderType: 'ai',
+              content: directResponse,
+              metadata: {
+                intent: 'booking_request',
+                serviceId: contextServiceIdCheck,
+                serviceName: service.name,
+                bookingLink,
+                directBooking: true
+              }
+            });
+            
+            await ContextManager.addMessageToContext(conversation.id, aiMessage);
+            
+            const processingTime = Date.now() - startTime;
+            
+            logger.info('✅✅✅ BOOKING LINK GENERATED AND RETURNED', {
+              serviceId: contextServiceIdCheck,
+              serviceName: service.name,
+              bookingLink,
+              processingTime,
+              conversationId: conversation.id
+            });
+            
+            return {
+              response: {
+                message: directResponse,
+                intent: 'booking_request',
+                entities: [],
+                needsHumanEscalation: false,
+                metadata: {
+                  bookingLink,
+                  serviceId: contextServiceIdCheck,
+                  serviceName: service.name,
+                  directBooking: true
+                }
+              },
+              conversationId: conversation.id,
+              clientId: client.id,
+              messageId: aiMessage.id,
+              processingTime
+            };
+          }
+        }
+      }
+
+      // ============================================
       // DETECCIÓN TEMPRANA: Usuario seleccionó servicio por número
       // ============================================
       const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
@@ -270,158 +377,6 @@ export class MessageRouter {
             processingTime
           };
         }
-      }
-
-      // ============================================
-      // DETECCIÓN INTELIGENTE: ¿Usuario quiere agendar?
-      // ============================================
-      const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-      const awaitingConfirmationCheck = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
-      
-      logger.info('🔍🔍🔍 BOOKING CHECK START', {
-        hasContextServiceId: !!contextServiceIdCheck,
-        awaitingConfirmation: awaitingConfirmationCheck,
-        userMessage: request.content,
-        conversationId: conversation.id
-      });
-      
-      if (contextServiceIdCheck && awaitingConfirmationCheck) {
-        const messageLower = request.content.toLowerCase().trim();
-        
-        // Detectar si es un NÚMERO (usuario seleccionó una opción)
-        // TOLERANTE: Acepta números simples O números duplicados (ej: "4" o "44")
-        const isNumber = /^\d+$/.test(request.content.trim());
-        
-        // Si es un número duplicado (ej: "44"), extraer el dígito único
-        let singleDigit: number | null = null;
-        if (isNumber) {
-          const numStr = request.content.trim();
-          // Si todos los dígitos son iguales (ej: "44", "222"), tomar el primero
-          const allSame = numStr.split('').every(d => d === numStr[0]);
-          if (allSame) {
-            singleDigit = parseInt(numStr[0]);
-            logger.info('🔢 Detected duplicated number, using single digit', {
-              original: numStr,
-              singleDigit,
-              conversationId: conversation.id
-            });
-          }
-        }
-        
-        // Detectar keywords de agendar
-        const bookingKeywords = [
-          'agendar', 'reservar', 'cita', 'hora', 'reserva',
-          'quiero agendar', 'quiero reservar', 'si', 'sí',
-          'dale', 'ok', 'okay', 'confirmo', 'adelante', 'perfecto'
-        ];
-        const hasBookingKeyword = bookingKeywords.some(kw => messageLower.includes(kw));
-        
-        logger.info('🔍 Checking if user wants to book', {
-          isNumber,
-          singleDigit,
-          hasBookingKeyword,
-          userMessage: request.content,
-          contextServiceId: contextServiceIdCheck,
-          awaitingConfirmation: awaitingConfirmationCheck,
-          conversationId: conversation.id
-        });
-        
-        // Solo generar link si:
-        // 1. Usuario escribió un número (seleccionó opción), O
-        // 2. Usuario usó keywords de agendar
-        // IMPORTANTE: Si el número es 4 (o 44, 444, etc.) → Es opción de agendar
-        const isBookingOption = singleDigit === 4 || (isNumber && parseInt(request.content.trim()) === 4);
-        
-        if (isNumber || hasBookingKeyword || isBookingOption) {
-          logger.info('✅✅✅ USER WANTS TO BOOK - GENERATING LINK', {
-            reason: isBookingOption ? 'booking_option_4' : (isNumber ? 'number_detected' : 'booking_keyword'),
-            userMessage: request.content,
-            singleDigit,
-            contextServiceId: contextServiceIdCheck,
-            conversationId: conversation.id
-          });
-          
-          // Obtener información del servicio
-          const { ServiceService } = await import('../ServiceService');
-          const result = await ServiceService.getServices({ isActive: true, limit: 300 });
-          const service = result.services.find((s: any) => s.id === contextServiceIdCheck);
-          
-          if (service) {
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-            const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
-            
-            // Limpiar estado de espera
-            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
-            
-            const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
-
-📅 Para reservar tu cita, haz clic aquí:
-
-${bookingLink}`;
-            
-            const aiMessage = await ConversationModel.addMessage(conversation.id, {
-              senderType: 'ai',
-              content: directResponse,
-              metadata: {
-                intent: 'booking_request',
-                serviceId: contextServiceIdCheck,
-                serviceName: service.name,
-                bookingLink,
-                directBooking: true
-              }
-            });
-            
-            await ContextManager.addMessageToContext(conversation.id, aiMessage);
-            
-            const processingTime = Date.now() - startTime;
-            
-            logger.info('✅✅✅ BOOKING LINK GENERATED SUCCESSFULLY', {
-              serviceId: contextServiceIdCheck,
-              serviceName: service.name,
-              bookingLink,
-              processingTime,
-              conversationId: conversation.id
-            });
-            
-            return {
-              response: {
-                message: directResponse,
-                intent: 'booking_request',
-                entities: [],
-                needsHumanEscalation: false,
-                metadata: {
-                  bookingLink,
-                  serviceId: contextServiceIdCheck,
-                  serviceName: service.name,
-                  directBooking: true
-                }
-              },
-              conversationId: conversation.id,
-              clientId: client.id,
-              messageId: aiMessage.id,
-              processingTime
-            };
-          } else {
-            logger.error('❌ SERVICE NOT FOUND', {
-              contextServiceId: contextServiceIdCheck,
-              conversationId: conversation.id
-            });
-          }
-        } else {
-          logger.info('⚠️ User message does not indicate booking intent', {
-            isNumber,
-            hasBookingKeyword,
-            isBookingOption,
-            userMessage: request.content,
-            conversationId: conversation.id
-          });
-        }
-      } else {
-        logger.info('⚠️ No service in context or not awaiting confirmation', {
-          hasContextServiceId: !!contextServiceIdCheck,
-          awaitingConfirmation: awaitingConfirmationCheck,
-          conversationId: conversation.id
-        });
       }
 
       // Procesar mensaje con NLU (usando contexto fresco)
