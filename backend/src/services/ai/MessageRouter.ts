@@ -193,6 +193,76 @@ export class MessageRouter {
       }
 
       // ============================================
+      // DETECCIÓN: Primer mensaje con servicio específico desde página de servicio
+      // ============================================
+      // Si el mensaje viene con serviceId en metadata Y es una conversación nueva (pocos mensajes)
+      // Responder directamente con el menú de 4 opciones de ese servicio
+      if (request.metadata?.serviceId && request.metadata?.serviceName) {
+        const messageCount = freshContext.lastMessages?.length || 0;
+        
+        // Solo aplicar si es una conversación nueva (1-2 mensajes)
+        if (messageCount <= 2) {
+          logger.info('🎯 First message with specific service from service page', {
+            serviceId: request.metadata.serviceId,
+            serviceName: request.metadata.serviceName,
+            messageCount,
+            conversationId: conversation.id
+          });
+          
+          // Generar respuesta directa con menú de 4 opciones
+          const directResponse = `¡Hola ${client.name.split(' ')[0]}! 😊 Veo que te interesa ${request.metadata.serviceName}.
+
+¿Qué información necesitas?
+
+1. Ver precio y sesiones
+2. Saber cuánto dura
+3. Conocer los beneficios
+4. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción (1, 2, 3 o 4).`;
+          
+          const aiMessage = await ConversationModel.addMessage(conversation.id, {
+            senderType: 'ai',
+            content: directResponse,
+            metadata: {
+              intent: 'service_inquiry_from_page',
+              serviceId: request.metadata.serviceId,
+              serviceName: request.metadata.serviceName,
+              autoResponse: true
+            }
+          });
+          
+          await ContextManager.addMessageToContext(conversation.id, aiMessage);
+          
+          const processingTime = Date.now() - startTime;
+          
+          logger.info('✅ Service inquiry menu sent from service page', {
+            serviceId: request.metadata.serviceId,
+            serviceName: request.metadata.serviceName,
+            conversationId: conversation.id
+          });
+          
+          return {
+            response: {
+              message: directResponse,
+              intent: 'service_inquiry_from_page',
+              entities: [],
+              needsHumanEscalation: false,
+              metadata: {
+                serviceId: request.metadata.serviceId,
+                serviceName: request.metadata.serviceName,
+                autoResponse: true
+              }
+            },
+            conversationId: conversation.id,
+            clientId: client.id,
+            messageId: aiMessage.id,
+            processingTime
+          };
+        }
+      }
+
+      // ============================================
       // PRIORIDAD MÁXIMA: ¿Usuario quiere agendar con servicio en contexto?
       // ============================================
       // ESTO DEBE IR ANTES DE TODO para interceptar INMEDIATAMENTE
