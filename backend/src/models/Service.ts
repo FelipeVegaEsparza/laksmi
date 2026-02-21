@@ -226,21 +226,45 @@ export class ServiceModel {
   }
 
   static async getCategories(): Promise<ServiceCategory[]> {
-    // Contar servicios por categoría desde la tabla de unión
-    // Un servicio puede aparecer en múltiples categorías
-    const categories = await db('service_categories')
-      .join('services', 'service_categories.service_id', 'services.id')
-      .where('services.is_active', true)
-      .select('service_categories.category_name')
-      .count('DISTINCT service_categories.service_id as serviceCount')
-      .groupBy('service_categories.category_name')
-      .orderBy('serviceCount', 'desc');
+    try {
+      // OPCIÓN 1: Intentar desde service_categories (tabla de unión)
+      const categoriesFromJunction = await db('service_categories')
+        .join('services', 'service_categories.service_id', 'services.id')
+        .where('services.is_active', true)
+        .select('service_categories.category_name')
+        .count('DISTINCT service_categories.service_id as serviceCount')
+        .groupBy('service_categories.category_name')
+        .orderBy('serviceCount', 'desc');
 
-    return categories.map(cat => ({
-      name: String(cat.category_name),
-      description: `Servicios de ${String(cat.category_name).toLowerCase()}`,
-      serviceCount: parseInt(cat.serviceCount as string)
-    }));
+      if (categoriesFromJunction.length > 0) {
+        return categoriesFromJunction.map(cat => ({
+          name: String(cat.category_name),
+          description: `Servicios de ${String(cat.category_name).toLowerCase()}`,
+          serviceCount: parseInt(cat.serviceCount as string)
+        }));
+      }
+
+      // OPCIÓN 2: Si no hay datos en service_categories, obtener desde la columna category de services
+      logger.warn('No categories found in service_categories, falling back to services.category column');
+      
+      const categoriesFromServices = await db('services')
+        .where('is_active', true)
+        .whereNotNull('category')
+        .where('category', '!=', '')
+        .select('category')
+        .count('* as serviceCount')
+        .groupBy('category')
+        .orderBy('serviceCount', 'desc');
+
+      return categoriesFromServices.map(cat => ({
+        name: String(cat.category),
+        description: `Servicios de ${String(cat.category).toLowerCase()}`,
+        serviceCount: parseInt(cat.serviceCount as string)
+      }));
+    } catch (error) {
+      logger.error('Error getting categories:', error);
+      return [];
+    }
   }
 
   static async getServicesByCategory(category: string): Promise<Service[]> {
