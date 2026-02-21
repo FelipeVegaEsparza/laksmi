@@ -1666,25 +1666,26 @@ ${bookingLink}`;
     try {
       // Detectar si el mensaje contiene una lista de servicios
       // Formatos soportados:
-      // 1. "• Nombre del servicio (X sesiones) - $precio"
-      // 2. "* Nombre del servicio (X sesiones) - $precio"
+      // 1. "1. *Depilación láser bigote (8 sesiones)* - $120,000"
+      // 2. "• Nombre del servicio (X sesiones) - $precio"
       // 3. "1. Nombre del servicio (X sesiones) - $precio"
-      // 4. "1. *Nombre del servicio (X sesiones)* - $precio"
       
-      // Pattern que acepta múltiples formatos
-      const serviceListPattern = /(?:^|\n)\s*(?:\d+\.\s*)?[•\*]?\s*\*?([^\n(]+?)\*?(?:\s*\((\d+)\s*sesiones?\))?\*?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
+      // Pattern mejorado que captura el formato con asteriscos
+      // Captura: número opcional, asteriscos opcionales, nombre, sesiones opcionales, precio
+      const serviceListPattern = /(?:^|\n)\s*(\d+)\.\s*\*?([^*\n]+?)\*?(?:\s*\((\d+)\s*sesiones?\))?\*?\s*[-–—]\s*\$?\s*([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
       
       logger.info('🔍 Searching for service list in AI message', {
         messageLength: aiMessage.length,
         matchesFound: matches.length,
         conversationId,
-        firstLines: aiMessage.split('\n').slice(0, 20).join('\n'),
+        messagePreview: aiMessage.substring(0, 500),
         matches: matches.map(m => ({
           fullMatch: m[0],
-          name: m[1]?.trim(),
-          sessions: m[2],
-          price: m[3]
+          number: m[1],
+          name: m[2]?.trim(),
+          sessions: m[3],
+          price: m[4]
         }))
       });
       
@@ -1708,16 +1709,18 @@ ${bookingLink}`;
         
         for (let i = 0; i < matches.length; i++) {
           const match = matches[i];
-          const serviceName = match[1].trim();
-          const sessions = match[2];
-          let priceStr = match[3].replace(/[,\s]/g, ''); // Eliminar comas y espacios
+          const listNumber = match[1]; // El número en la lista (1, 2, 3, etc.)
+          const serviceName = match[2].trim(); // El nombre del servicio
+          const sessions = match[3]; // Las sesiones (opcional)
+          let priceStr = match[4].replace(/[,\s]/g, ''); // El precio, eliminar comas y espacios
           
           // Normalizar precio: si tiene punto decimal, mantenerlo; si no, es entero
           const priceNum = priceStr.includes('.') 
             ? parseFloat(priceStr) 
             : parseInt(priceStr, 10);
           
-          logger.info(`🔎 Looking for service ${i + 1}`, {
+          logger.info(`🔎 Looking for service ${i + 1} (list number: ${listNumber})`, {
+            listNumber,
             serviceName,
             sessions,
             priceStr,
