@@ -62,17 +62,22 @@ const ChatWidget = () => {
     }
   }, [isOpen, isMinimized]);
 
-  // Función para convertir URLs en links clicables
+  // Función para convertir URLs en links clicables y saltos de línea en <br>
   const linkifyText = (text: string): string => {
+    // Primero, convertir saltos de línea a <br>
+    let formattedText = text.replace(/\n/g, '<br>');
+    
     // Regex para detectar URLs (http, https, www)
     const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
     
-    return text.replace(urlRegex, (url) => {
+    formattedText = formattedText.replace(urlRegex, (url) => {
       // Si la URL no tiene protocolo, agregar https://
       const href = url.startsWith('http') ? url : `https://${url}`;
       
       return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${url}</a>`;
     });
+    
+    return formattedText;
   };
 
   useEffect(() => {
