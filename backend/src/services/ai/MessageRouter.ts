@@ -278,11 +278,35 @@ export class MessageRouter {
       const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
       const awaitingConfirmationCheck = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
       
+      logger.info('🔍🔍🔍 BOOKING CHECK START', {
+        hasContextServiceId: !!contextServiceIdCheck,
+        awaitingConfirmation: awaitingConfirmationCheck,
+        userMessage: request.content,
+        conversationId: conversation.id
+      });
+      
       if (contextServiceIdCheck && awaitingConfirmationCheck) {
         const messageLower = request.content.toLowerCase().trim();
         
         // Detectar si es un NÚMERO (usuario seleccionó una opción)
+        // TOLERANTE: Acepta números simples O números duplicados (ej: "4" o "44")
         const isNumber = /^\d+$/.test(request.content.trim());
+        
+        // Si es un número duplicado (ej: "44"), extraer el dígito único
+        let singleDigit: number | null = null;
+        if (isNumber) {
+          const numStr = request.content.trim();
+          // Si todos los dígitos son iguales (ej: "44", "222"), tomar el primero
+          const allSame = numStr.split('').every(d => d === numStr[0]);
+          if (allSame) {
+            singleDigit = parseInt(numStr[0]);
+            logger.info('🔢 Detected duplicated number, using single digit', {
+              original: numStr,
+              singleDigit,
+              conversationId: conversation.id
+            });
+          }
+        }
         
         // Detectar keywords de agendar
         const bookingKeywords = [
@@ -294,6 +318,7 @@ export class MessageRouter {
         
         logger.info('🔍 Checking if user wants to book', {
           isNumber,
+          singleDigit,
           hasBookingKeyword,
           userMessage: request.content,
           contextServiceId: contextServiceIdCheck,
@@ -304,10 +329,14 @@ export class MessageRouter {
         // Solo generar link si:
         // 1. Usuario escribió un número (seleccionó opción), O
         // 2. Usuario usó keywords de agendar
-        if (isNumber || hasBookingKeyword) {
+        // IMPORTANTE: Si el número es 4 (o 44, 444, etc.) → Es opción de agendar
+        const isBookingOption = singleDigit === 4 || (isNumber && parseInt(request.content.trim()) === 4);
+        
+        if (isNumber || hasBookingKeyword || isBookingOption) {
           logger.info('✅✅✅ USER WANTS TO BOOK - GENERATING LINK', {
-            reason: isNumber ? 'number_detected' : 'booking_keyword',
+            reason: isBookingOption ? 'booking_option_4' : (isNumber ? 'number_detected' : 'booking_keyword'),
             userMessage: request.content,
+            singleDigit,
             contextServiceId: contextServiceIdCheck,
             conversationId: conversation.id
           });
@@ -346,7 +375,7 @@ ${bookingLink}`;
             
             const processingTime = Date.now() - startTime;
             
-            logger.info('✅ BOOKING LINK GENERATED', {
+            logger.info('✅✅✅ BOOKING LINK GENERATED SUCCESSFULLY', {
               serviceId: contextServiceIdCheck,
               serviceName: service.name,
               bookingLink,
@@ -378,7 +407,21 @@ ${bookingLink}`;
               conversationId: conversation.id
             });
           }
+        } else {
+          logger.info('⚠️ User message does not indicate booking intent', {
+            isNumber,
+            hasBookingKeyword,
+            isBookingOption,
+            userMessage: request.content,
+            conversationId: conversation.id
+          });
         }
+      } else {
+        logger.info('⚠️ No service in context or not awaiting confirmation', {
+          hasContextServiceId: !!contextServiceIdCheck,
+          awaitingConfirmation: awaitingConfirmationCheck,
+          conversationId: conversation.id
+        });
       }
 
       // Procesar mensaje con NLU (usando contexto fresco)
