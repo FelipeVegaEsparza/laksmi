@@ -1,6 +1,7 @@
 import db from '../config/database';
 import { Service, CreateServiceRequest, UpdateServiceRequest, ServiceFilters, ServiceCategory } from '../types/service';
 import { generateUniqueSlug } from '../utils/slug';
+import logger from '../utils/logger';
 
 export class ServiceModel {
   static async findById(idOrSlug: string): Promise<Service | null> {
@@ -227,6 +228,8 @@ export class ServiceModel {
 
   static async getCategories(): Promise<ServiceCategory[]> {
     try {
+      logger.info('🔍 Getting categories - attempting from service_categories first');
+      
       // OPCIÓN 1: Intentar desde service_categories (tabla de unión)
       const categoriesFromJunction = await db('service_categories')
         .join('services', 'service_categories.service_id', 'services.id')
@@ -235,6 +238,11 @@ export class ServiceModel {
         .count('DISTINCT service_categories.service_id as serviceCount')
         .groupBy('service_categories.category_name')
         .orderBy('serviceCount', 'desc');
+
+      logger.info('📊 Categories from junction table:', {
+        count: categoriesFromJunction.length,
+        categories: categoriesFromJunction
+      });
 
       if (categoriesFromJunction.length > 0) {
         return categoriesFromJunction.map(cat => ({
@@ -245,7 +253,7 @@ export class ServiceModel {
       }
 
       // OPCIÓN 2: Si no hay datos en service_categories, obtener desde la columna category de services
-      logger.warn('No categories found in service_categories, falling back to services.category column');
+      logger.warn('⚠️ No categories found in service_categories, falling back to services.category column');
       
       const categoriesFromServices = await db('services')
         .where('is_active', true)
@@ -256,13 +264,42 @@ export class ServiceModel {
         .groupBy('category')
         .orderBy('serviceCount', 'desc');
 
-      return categoriesFromServices.map(cat => ({
+      logger.info('📊 Categories from services table:', {
+        count: categoriesFromServices.length,
+        categories: categoriesFromServices
+      });
+
+      if (categoriesFromServices.length > 0) {
+        return categoriesFromServices.map(cat => ({
+          name: String(cat.category),
+          description: `Servicios de ${String(cat.category).toLowerCase()}`,
+          serviceCount: parseInt(cat.serviceCount as string)
+        }));
+      }
+
+      // OPCIÓN 3: Si tampoco hay en services, intentar sin filtro de is_active
+      logger.warn('⚠️ No active categories found, trying without is_active filter');
+      
+      const allCategories = await db('services')
+        .whereNotNull('category')
+        .where('category', '!=', '')
+        .select('category')
+        .count('* as serviceCount')
+        .groupBy('category')
+        .orderBy('serviceCount', 'desc');
+
+      logger.info('📊 All categories (no filter):', {
+        count: allCategories.length,
+        categories: allCategories
+      });
+
+      return allCategories.map(cat => ({
         name: String(cat.category),
         description: `Servicios de ${String(cat.category).toLowerCase()}`,
         serviceCount: parseInt(cat.serviceCount as string)
       }));
     } catch (error) {
-      logger.error('Error getting categories:', error);
+      logger.error('❌ Error getting categories:', error);
       return [];
     }
   }
