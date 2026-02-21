@@ -675,53 +675,64 @@ ${bookingLink}`;
               aiMessage.toLowerCase().includes('tratamiento');
             
             if (isConfirmingBooking) {
-              logger.info('🔍 AI is confirming booking but forgot SERVICE_ID, searching in conversation', {
+              logger.info('🔍 AI is confirming booking but forgot SERVICE_ID, checking context', {
                 conversationId: conversation.id
               });
               
-              // Buscar el servicio mencionado en los últimos mensajes
-              const recentMessages = freshContext.lastMessages.slice(-10);
+              // PRIORIDAD 1: Usar contextServiceId si existe (más confiable)
+              const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+              const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
               
-              // Buscar en los mensajes del AI que mencionan servicios específicos
-              for (const msg of recentMessages.reverse()) {
-                if (msg.senderType === 'ai' && msg.content) {
-                  // Buscar patrones como "depilación láser axilas" o nombres de servicios
-                  const { ServiceService } = await import('../ServiceService');
-                  const result = await ServiceService.getServices({ isActive: true, limit: 300 });
-                  
-                  // Buscar servicio mencionado en el mensaje de la IA
-                  for (const service of result.services) {
-                    const serviceName = service.name.toLowerCase();
-                    const messageContent = msg.content.toLowerCase();
+              if (contextServiceId) {
+                extractedServiceId = contextServiceId;
+                extractedServiceName = contextServiceName;
+                
+                // Agregar SERVICE_ID al mensaje de la IA
+                aiMessage += `\n\n[SERVICE_ID:${contextServiceId}]`;
+                
+                logger.info('✅✅✅ AUTO-RECOVERED SERVICE_ID from context (HIGHEST PRIORITY)', {
+                  serviceId: contextServiceId,
+                  serviceName: contextServiceName,
+                  conversationId: conversation.id
+                });
+              } else {
+                // PRIORIDAD 2: Buscar en metadata de mensajes anteriores
+                logger.info('🔍 No contextServiceId, searching in message metadata', {
+                  conversationId: conversation.id
+                });
+                
+                const recentMessages = freshContext.lastMessages.slice(-10);
+                
+                for (const msg of recentMessages.reverse()) {
+                  if (msg.senderType === 'ai' && msg.metadata) {
+                    const metadata = typeof msg.metadata === 'string' 
+                      ? JSON.parse(msg.metadata) 
+                      : msg.metadata;
                     
-                    // Si el mensaje menciona el nombre del servicio
-                    if (messageContent.includes(serviceName)) {
-                      extractedServiceId = service.id;
-                      extractedServiceName = service.name;
+                    if (metadata.serviceId) {
+                      extractedServiceId = metadata.serviceId;
+                      extractedServiceName = metadata.serviceName;
                       
                       // Agregar SERVICE_ID al mensaje de la IA
-                      aiMessage += `\n\n[SERVICE_ID:${service.id}]`;
+                      aiMessage += `\n\n[SERVICE_ID:${metadata.serviceId}]`;
                       
-                      logger.info('✅✅✅ AUTO-RECOVERED SERVICE_ID from conversation history', {
-                        serviceId: service.id,
-                        serviceName: service.name,
-                        foundInMessage: msg.content.substring(0, 100),
+                      logger.info('✅✅✅ AUTO-RECOVERED SERVICE_ID from message metadata', {
+                        serviceId: metadata.serviceId,
+                        serviceName: metadata.serviceName,
                         conversationId: conversation.id
                       });
                       
                       break;
                     }
                   }
-                  
-                  if (extractedServiceId) break;
                 }
-              }
-              
-              if (!extractedServiceId) {
-                logger.error('❌ Could not recover SERVICE_ID from conversation', {
-                  conversationId: conversation.id,
-                  recentMessagesCount: recentMessages.length
-                });
+                
+                if (!extractedServiceId) {
+                  logger.error('❌ Could not recover SERVICE_ID from context or metadata', {
+                    conversationId: conversation.id,
+                    recentMessagesCount: recentMessages.length
+                  });
+                }
               }
             }
           }
