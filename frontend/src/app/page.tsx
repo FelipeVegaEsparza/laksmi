@@ -311,7 +311,7 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredServices.map((service) => (
-                <Card key={service.id} hover className="overflow-hidden" padding="none">
+                <Card key={service.id} hover className="overflow-hidden flex flex-col h-full" padding="none">
                   <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center p-2">
                     <ServiceImage
                       src={service.images?.[0] || ''}
@@ -343,7 +343,7 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                  <div className="p-4 flex flex-col flex-grow">
+                  <div className="p-4 flex flex-col h-full">
                     <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                       {service.name}
                     </h3>
@@ -354,6 +354,8 @@ export default function Home() {
                         Incluye: <span className="font-semibold ml-1">{service.sessions} sesiones</span>
                       </p>
                     )}
+                    {/* Spacer para empujar precio y botón hacia abajo */}
+                    <div className="flex-grow"></div>
                     <div className="flex items-center justify-between mb-3">
                       <div 
                         className="text-xl font-bold"
