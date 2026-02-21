@@ -237,10 +237,12 @@ export class MessageRouter {
           const directResponse = `¡Claro! Te cuento sobre ${selectedService.name}. 😊
 
 ¿Qué información necesitas?
-• Ver precio y sesiones
-• Saber cuánto dura
-• Conocer los beneficios
-• Agendar una cita`;
+1. Ver precio y sesiones
+2. Saber cuánto dura
+3. Conocer los beneficios
+4. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción (1, 2, 3 o 4).`;
 
           const aiMessage = await ConversationModel.addMessage(conversation.id, {
             senderType: 'ai',
@@ -274,6 +276,113 @@ export class MessageRouter {
             messageId: aiMessage.id,
             processingTime
           };
+        }
+        
+        // ============================================
+        // NUEVA LÓGICA: Detectar si el usuario seleccionó "Agendar" de las opciones
+        // ============================================
+        // Si el usuario respondió con un número pero NO hay serviceOptions,
+        // verificar si el último mensaje del AI tenía opciones de información
+        // y si el número corresponde a "Agendar"
+        
+        const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+        const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
+        
+        logger.info('🔍 Checking if number corresponds to "Agendar" option', {
+          selectedNumber,
+          hasContextServiceId: !!contextServiceId,
+          awaitingConfirmation,
+          conversationId: conversation.id
+        });
+        
+        // Si hay un servicio en contexto Y estado de espera de confirmación
+        if (contextServiceId && awaitingConfirmation) {
+          // Obtener el último mensaje del AI para verificar las opciones
+          const lastAIMessage = freshContext.lastMessages
+            ?.filter((msg: any) => msg.senderType === 'ai')
+            .slice(-1)[0];
+          
+          if (lastAIMessage) {
+            const messageContent = lastAIMessage.content.toLowerCase();
+            
+            // Detectar si el mensaje tiene opciones numeradas con "agendar"
+            // Buscar patrones como "4. Agendar" o "3. Agendar" etc.
+            const agendarOptionMatch = messageContent.match(/(\d+)\.\s*agendar/i);
+            
+            logger.info('🔍 Checking last AI message for "Agendar" option', {
+              hasLastMessage: !!lastAIMessage,
+              agendarOptionMatch: agendarOptionMatch ? agendarOptionMatch[0] : null,
+              agendarOptionNumber: agendarOptionMatch ? parseInt(agendarOptionMatch[1]) : null,
+              selectedNumber,
+              conversationId: conversation.id
+            });
+            
+            if (agendarOptionMatch) {
+              const agendarOptionNumber = parseInt(agendarOptionMatch[1]);
+              
+              // Si el usuario seleccionó el número de "Agendar"
+              if (selectedNumber === agendarOptionNumber) {
+                logger.info('✅✅✅ User selected "Agendar" option - generating booking link immediately', {
+                  selectedNumber,
+                  agendarOptionNumber,
+                  contextServiceId,
+                  conversationId: conversation.id
+                });
+                
+                // Generar link de reserva
+                const { ServiceService } = await import('../ServiceService');
+                const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+                const service = result.services.find((s: any) => s.id === contextServiceId);
+                
+                if (service) {
+                  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                  const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+                  
+                  // Limpiar estado de espera
+                  await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
+                  
+                  const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
+
+📅 Para reservar tu cita, haz clic aquí:
+
+${bookingLink}`;
+                  
+                  const aiMessage = await ConversationModel.addMessage(conversation.id, {
+                    senderType: 'ai',
+                    content: directResponse,
+                    metadata: {
+                      intent: 'booking_request',
+                      serviceId: contextServiceId,
+                      serviceName: service.name,
+                      bookingLink
+                    }
+                  });
+                  
+                  await ContextManager.addMessageToContext(conversation.id, aiMessage);
+                  
+                  const processingTime = Date.now() - startTime;
+                  
+                  return {
+                    response: {
+                      message: directResponse,
+                      intent: 'booking_request',
+                      entities: [],
+                      needsHumanEscalation: false,
+                      metadata: {
+                        bookingLink,
+                        serviceId: contextServiceId,
+                        serviceName: service.name
+                      }
+                    },
+                    conversationId: conversation.id,
+                    clientId: client.id,
+                    messageId: aiMessage.id,
+                    processingTime
+                  };
+                }
+              }
+            }
+          }
         }
       }
 
