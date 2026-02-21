@@ -204,22 +204,15 @@ export class MessageRouter {
           number: selectedNumber,
           hasServiceOptions: !!serviceOptions,
           serviceOptionsCount: serviceOptions?.length || 0,
-          serviceOptions: serviceOptions ? serviceOptions.map((s: any) => ({ 
-            index: serviceOptions.indexOf(s) + 1,
-            id: s.id, 
-            name: s.name,
-            price: s.price
-          })) : null,
           conversationId: conversation.id
         });
         
         if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
           const selectedService = serviceOptions[selectedNumber - 1];
-          logger.info('✅ User selected service by number - generating direct response', { 
+          logger.info('✅ User selected service by number', { 
             number: selectedNumber, 
             serviceId: selectedService.id,
             serviceName: selectedService.name,
-            servicePrice: selectedService.price,
             conversationId: conversation.id
           });
           
@@ -277,248 +270,96 @@ export class MessageRouter {
             processingTime
           };
         }
-        
-        // ============================================
-        // NUEVA LÓGICA: Detectar si el usuario seleccionó "Agendar" de las opciones
-        // ============================================
-        // Si el usuario respondió con un número pero NO hay serviceOptions,
-        // verificar si el último mensaje del AI tenía opciones de información
-        // y si el número corresponde a "Agendar"
-        
-        const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-        const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
-        
-        logger.info('🔍 Checking if number corresponds to an option', {
-          selectedNumber,
-          hasContextServiceId: !!contextServiceId,
-          awaitingConfirmation,
-          conversationId: conversation.id
-        });
-        
-        // Si hay un servicio en contexto Y estado de espera de confirmación
-        if (contextServiceId && awaitingConfirmation) {
-          // Obtener el último mensaje del AI para verificar las opciones
-          const lastAIMessage = freshContext.lastMessages
-            ?.filter((msg: any) => msg.senderType === 'ai')
-            .slice(-1)[0];
-          
-          if (lastAIMessage) {
-            const messageContent = lastAIMessage.content;
-            const messageContentLower = messageContent.toLowerCase();
-            
-            logger.info('🔍 Last AI message content', {
-              messageLength: messageContent.length,
-              firstLines: messageContent.split('\n').slice(0, 10).join('\n'),
-              conversationId: conversation.id
-            });
-            
-            // Buscar todas las opciones numeradas en el mensaje
-            // Formato: "1. Texto de la opción" o "1) Texto de la opción"
-            const optionPattern = new RegExp(`${selectedNumber}[\\.\\)]\\s*([^\n]+)`, 'i');
-            const optionMatch = messageContent.match(optionPattern);
-            
-            logger.info('🔍 Searching for selected option text', {
-              selectedNumber,
-              pattern: optionPattern.toString(),
-              optionMatch: optionMatch ? optionMatch[0] : null,
-              optionText: optionMatch ? optionMatch[1] : null,
-              conversationId: conversation.id
-            });
-            
-            if (optionMatch) {
-              const optionText = optionMatch[1].toLowerCase().trim();
-              
-              // Verificar si la opción contiene palabras relacionadas con agendar
-              const bookingKeywords = ['agendar', 'reservar', 'cita', 'hora'];
-              const isBookingOption = bookingKeywords.some(kw => optionText.includes(kw));
-              
-              logger.info('🔍 Option analysis', {
-                selectedNumber,
-                optionText,
-                isBookingOption,
-                conversationId: conversation.id
-              });
-              
-              // Si la opción seleccionada es para agendar
-              if (isBookingOption) {
-                logger.info('✅✅✅ User selected booking option - generating link immediately', {
-                  selectedNumber,
-                  optionText,
-                  contextServiceId,
-                  conversationId: conversation.id
-                });
-                
-                // Generar link de reserva
-                const { ServiceService } = await import('../ServiceService');
-                const result = await ServiceService.getServices({ isActive: true, limit: 300 });
-                const service = result.services.find((s: any) => s.id === contextServiceId);
-                
-                if (service) {
-                  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-                  const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
-                  
-                  // Limpiar estado de espera
-                  await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
-                  
-                  const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
-
-📅 Para reservar tu cita, haz clic aquí:
-
-${bookingLink}`;
-                  
-                  const aiMessage = await ConversationModel.addMessage(conversation.id, {
-                    senderType: 'ai',
-                    content: directResponse,
-                    metadata: {
-                      intent: 'booking_request',
-                      serviceId: contextServiceId,
-                      serviceName: service.name,
-                      bookingLink,
-                      directBooking: true
-                    }
-                  });
-                  
-                  await ContextManager.addMessageToContext(conversation.id, aiMessage);
-                  
-                  const processingTime = Date.now() - startTime;
-                  
-                  logger.info('✅ Booking link generated from option selection', {
-                    selectedNumber,
-                    optionText,
-                    serviceId: contextServiceId,
-                    serviceName: service.name,
-                    bookingLink,
-                    processingTime,
-                    conversationId: conversation.id
-                  });
-                  
-                  return {
-                    response: {
-                      message: directResponse,
-                      intent: 'booking_request',
-                      entities: [],
-                      needsHumanEscalation: false,
-                      metadata: {
-                        bookingLink,
-                        serviceId: contextServiceId,
-                        serviceName: service.name,
-                        directBooking: true
-                      }
-                    },
-                    conversationId: conversation.id,
-                    clientId: client.id,
-                    messageId: aiMessage.id,
-                    processingTime
-                  };
-                }
-              }
-            }
-          }
-        }
       }
 
       // ============================================
-      // DETECCIÓN DIRECTA: Intención de agendar con servicio en contexto
+      // DETECCIÓN SUPER SIMPLE: ¿Hay servicio en contexto? → Generar link
       // ============================================
-      // Si el usuario expresa intención de agendar Y ya tenemos un servicio en contexto,
-      // generar el link inmediatamente sin llamar al AI
-      const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-      const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
+      // Si hay un servicio guardado en el contexto, SIEMPRE generar el link
+      // No importa qué diga el usuario, si hay servicio = generar link
+      const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+      const awaitingConfirmationCheck = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
       
-      if (contextServiceId && awaitingConfirmation) {
-        const messageLower = request.content.toLowerCase().trim();
-        
-        // Keywords que indican intención de agendar
-        const bookingKeywords = [
-          'agendar', 'reservar', 'agendar cita', 'reservar cita',
-          'quiero agendar', 'quiero reservar', 'hacer reserva',
-          'hacer cita', 'pedir cita', 'pedir hora', 'agendar hora',
-          'si', 'sí', 'dale', 'ok', 'okay', 'confirmo', 'adelante'
-        ];
-        
-        const hasBookingIntent = bookingKeywords.some(kw => messageLower.includes(kw));
-        
-        logger.info('🔍 Checking direct booking intent', {
-          messageLower,
-          hasBookingIntent,
-          contextServiceId,
-          awaitingConfirmation,
+      logger.info('🔍 SIMPLE CHECK: Service in context?', {
+        hasContextServiceId: !!contextServiceIdCheck,
+        awaitingConfirmation: awaitingConfirmationCheck,
+        userMessage: request.content,
+        conversationId: conversation.id
+      });
+      
+      // Si hay servicio en contexto Y estado de espera → GENERAR LINK SIEMPRE
+      if (contextServiceIdCheck && awaitingConfirmationCheck) {
+        logger.info('✅✅✅ SERVICE IN CONTEXT - GENERATING LINK IMMEDIATELY', {
+          contextServiceId: contextServiceIdCheck,
+          userMessage: request.content,
           conversationId: conversation.id
         });
         
-        if (hasBookingIntent) {
-          logger.info('✅✅✅ Direct booking intent detected - generating link WITHOUT calling AI', {
-            userMessage: request.content,
-            contextServiceId,
-            conversationId: conversation.id
-          });
+        // Obtener información del servicio
+        const { ServiceService } = await import('../ServiceService');
+        const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+        const service = result.services.find((s: any) => s.id === contextServiceIdCheck);
+        
+        if (service) {
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+          const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
           
-          // Obtener información del servicio
-          const { ServiceService } = await import('../ServiceService');
-          const result = await ServiceService.getServices({ isActive: true, limit: 300 });
-          const service = result.services.find((s: any) => s.id === contextServiceId);
+          // Limpiar estado de espera
+          await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
           
-          if (service) {
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-            const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
-            
-            // Limpiar estado de espera
-            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
-            
-            const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
+          const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
 
 📅 Para reservar tu cita, haz clic aquí:
 
 ${bookingLink}`;
-            
-            const aiMessage = await ConversationModel.addMessage(conversation.id, {
-              senderType: 'ai',
-              content: directResponse,
-              metadata: {
-                intent: 'booking_request',
-                serviceId: contextServiceId,
-                serviceName: service.name,
-                bookingLink,
-                directBooking: true // Marca que fue generado directamente sin AI
-              }
-            });
-            
-            await ContextManager.addMessageToContext(conversation.id, aiMessage);
-            
-            const processingTime = Date.now() - startTime;
-            
-            logger.info('✅ Direct booking link generated successfully', {
-              serviceId: contextServiceId,
+          
+          const aiMessage = await ConversationModel.addMessage(conversation.id, {
+            senderType: 'ai',
+            content: directResponse,
+            metadata: {
+              intent: 'booking_request',
+              serviceId: contextServiceIdCheck,
               serviceName: service.name,
               bookingLink,
-              processingTime,
-              conversationId: conversation.id
-            });
-            
-            return {
-              response: {
-                message: directResponse,
-                intent: 'booking_request',
-                entities: [],
-                needsHumanEscalation: false,
-                metadata: {
-                  bookingLink,
-                  serviceId: contextServiceId,
-                  serviceName: service.name,
-                  directBooking: true
-                }
-              },
-              conversationId: conversation.id,
-              clientId: client.id,
-              messageId: aiMessage.id,
-              processingTime
-            };
-          } else {
-            logger.warn('⚠️ Service not found for contextServiceId', {
-              contextServiceId,
-              conversationId: conversation.id
-            });
-          }
+              directBooking: true
+            }
+          });
+          
+          await ContextManager.addMessageToContext(conversation.id, aiMessage);
+          
+          const processingTime = Date.now() - startTime;
+          
+          logger.info('✅ BOOKING LINK GENERATED', {
+            serviceId: contextServiceIdCheck,
+            serviceName: service.name,
+            bookingLink,
+            processingTime,
+            conversationId: conversation.id
+          });
+          
+          return {
+            response: {
+              message: directResponse,
+              intent: 'booking_request',
+              entities: [],
+              needsHumanEscalation: false,
+              metadata: {
+                bookingLink,
+                serviceId: contextServiceIdCheck,
+                serviceName: service.name,
+                directBooking: true
+              }
+            },
+            conversationId: conversation.id,
+            clientId: client.id,
+            messageId: aiMessage.id,
+            processingTime
+          };
+        } else {
+          logger.error('❌ SERVICE NOT FOUND', {
+            contextServiceId: contextServiceIdCheck,
+            conversationId: conversation.id
+          });
         }
       }
 
