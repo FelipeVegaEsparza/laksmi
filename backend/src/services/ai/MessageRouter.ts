@@ -396,7 +396,40 @@ ${bookingLink}`;
           const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
           const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
           
-          if (contextServiceId && (selectedNumber >= 1 && selectedNumber <= 4)) {
+          // IMPORTANTE: Verificar si el usuario está seleccionando una CATEGORÍA del menú principal
+          // Si selecciona 1, 2 o 3 y el último mensaje del bot fue el menú principal, limpiar contexto
+          const lastMessages = freshContext.lastMessages || [];
+          const lastBotMessage = lastMessages.filter((m: any) => m.senderType === 'ai').slice(-1)[0];
+          const isMainMenu = lastBotMessage && (
+            lastBotMessage.content.includes('1. Depilación') ||
+            lastBotMessage.content.includes('2. Tratamientos faciales') ||
+            lastBotMessage.content.includes('3. Tratamientos corporales')
+          );
+          
+          logger.info('🔍 Checking if user is in main menu', {
+            selectedNumber,
+            isMainMenu,
+            hasContextServiceId: !!contextServiceId,
+            lastBotMessagePreview: lastBotMessage?.content?.substring(0, 200),
+            conversationId: conversation.id
+          });
+          
+          // Si el usuario selecciona 1, 2 o 3 del menú principal, limpiar contexto y pasar a IA
+          if (isMainMenu && selectedNumber >= 1 && selectedNumber <= 3) {
+            logger.info('✅ User selected category from main menu, clearing context', {
+              selectedNumber,
+              category: selectedNumber === 1 ? 'Depilación' : selectedNumber === 2 ? 'Faciales' : 'Corporales',
+              conversationId: conversation.id
+            });
+            
+            // Limpiar contexto de servicio anterior
+            await ContextManager.setVariable(conversation.id, 'contextServiceId', null);
+            await ContextManager.setVariable(conversation.id, 'contextServiceName', null);
+            await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+            
+            // NO hacer return aquí, dejar que el mensaje pase a la IA
+            // La IA generará la lista de servicios de la categoría seleccionada
+          } else if (contextServiceId && (selectedNumber >= 1 && selectedNumber <= 4)) {
             logger.info('✅ User selected info option about service in context', {
               option: selectedNumber,
               serviceId: contextServiceId,
