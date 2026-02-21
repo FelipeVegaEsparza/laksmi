@@ -580,9 +580,8 @@ export class HumanTakeoverService {
 
   /**
    * Verificar si una conversación está bajo control humano
-   * Retorna true si:
-   * 1. Hay una sesión activa Y
-   * 2. El humano escribió hace menos de 1 hora
+   * Retorna true si human_takeover_active está en true en la BD
+   * NO hay auto-desactivación por tiempo - solo manual desde el dashboard
    */
   static async isUnderHumanControl(conversationId: string): Promise<boolean> {
     try {
@@ -593,28 +592,9 @@ export class HumanTakeoverService {
         return false;
       }
 
-      // Si el humano nunca ha escrito, considerar que está bajo control
-      if (!state.lastMessageTime) {
-        return true;
-      }
-
-      // Verificar si ha pasado más de 1 hora desde el último mensaje humano
-      const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hora en milisegundos
-      const timeSinceLastMessage = Date.now() - state.lastMessageTime.getTime();
-
-      if (timeSinceLastMessage > ONE_HOUR_MS) {
-        logger.info(`🤖 Bot reactivated: 1 hour passed since last human message`, {
-          conversationId,
-          timeSinceLastMessage: Math.round(timeSinceLastMessage / 1000 / 60) + ' minutes',
-          lastHumanMessageTime: state.lastMessageTime
-        });
-        
-        // Auto-deactivate takeover in database
-        await ConversationModel.setHumanTakeover(conversationId, state.agentId!, false);
-        return false; // Ha pasado más de 1 hora, el bot puede responder
-      }
-
-      return true; // Aún está bajo control humano
+      // Si está activo, está bajo control humano - sin importar el tiempo transcurrido
+      // Solo se desactiva manualmente desde el dashboard
+      return true;
     } catch (error) {
       logger.error('Database error checking human takeover state:', error);
       // Default to false to allow AI responses on database errors
