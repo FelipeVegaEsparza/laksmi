@@ -416,15 +416,15 @@ ${bookingLink}`;
                 // Ver precio y sesiones
                 directResponse = `💰 Información de precio de ${service.name}:
 
-• Precio: ${service.price?.toLocaleString('es-CL') || 'Consultar'}
+• Precio: $${service.price?.toLocaleString('es-CL') || 'Consultar'}
 • Sesiones: ${service.sessions || 'Consultar'}
 • Duración por sesión: ${service.duration || 'Consultar'} minutos
 
 ¿Qué más te gustaría saber?
-1. Cuánto dura el tratamiento completo
-2. Conocer los beneficios
-3. Agendar una cita
-4. Volver al menú principal
+1. Ver precio y sesiones
+2. Saber cuánto dura
+3. Conocer los beneficios
+4. Agendar una cita
 
 ⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
               } else if (selectedNumber === 2) {
@@ -437,9 +437,9 @@ ${bookingLink}`;
 
 ¿Qué más te gustaría saber?
 1. Ver precio y sesiones
-2. Conocer los beneficios
-3. Agendar una cita
-4. Volver al menú principal
+2. Saber cuánto dura
+3. Conocer los beneficios
+4. Agendar una cita
 
 ⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
               } else if (selectedNumber === 3) {
@@ -451,8 +451,8 @@ ${service.description || 'Tratamiento profesional de alta calidad.'}
 ¿Qué más te gustaría saber?
 1. Ver precio y sesiones
 2. Saber cuánto dura
-3. Agendar una cita
-4. Volver al menú principal
+3. Conocer los beneficios
+4. Agendar una cita
 
 ⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
               } else if (selectedNumber === 4) {
