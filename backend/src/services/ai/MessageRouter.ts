@@ -198,15 +198,18 @@ export class MessageRouter {
       // ESTO DEBE IR ANTES DE TODO para interceptar INMEDIATAMENTE
       const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
       const awaitingConfirmationCheck = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
+      const serviceOptionsCheck = await ContextManager.getVariable(conversation.id, 'serviceOptions');
       
       logger.info('🔍🔍🔍 PRIORITY CHECK: Booking intent?', {
         hasContextServiceId: !!contextServiceIdCheck,
         awaitingConfirmation: awaitingConfirmationCheck,
+        hasServiceOptions: !!serviceOptionsCheck,
         userMessage: request.content,
         conversationId: conversation.id
       });
       
-      if (contextServiceIdCheck && awaitingConfirmationCheck) {
+      // IMPORTANTE: NO interceptar si hay serviceOptions (usuario está seleccionando de una lista)
+      if (contextServiceIdCheck && awaitingConfirmationCheck && !serviceOptionsCheck) {
         const messageLower = request.content.toLowerCase().trim();
         
         // Detectar si es un NÚMERO
