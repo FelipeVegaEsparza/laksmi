@@ -2126,15 +2126,21 @@ ${bookingLink}`;
   static async generateCategoriesMenu(): Promise<string> {
     try {
       const { ServiceService } = await import('../ServiceService');
-      const categories = await ServiceService.getCategories();
+      let categories = await ServiceService.getCategories();
       
       logger.info('📋 Generating categories menu', {
         categoriesCount: categories.length,
         categories: categories.map(c => c.name)
       });
       
+      // Si no hay categorías desde service_categories, usar categorías hardcodeadas como fallback
       if (categories.length === 0) {
-        return `Lo siento, no tenemos categorías disponibles en este momento. ¿Hay algo más en lo que pueda ayudarte?`;
+        logger.warn('No categories found from database, using fallback categories');
+        categories = [
+          { name: 'Depilación', description: 'Servicios de depilación', serviceCount: 0 },
+          { name: 'Tratamientos Faciales', description: 'Servicios de tratamientos faciales', serviceCount: 0 },
+          { name: 'Tratamientos Corporales', description: 'Servicios de tratamientos corporales', serviceCount: 0 }
+        ];
       }
       
       let menu = `Perfecto, aquí están nuestras categorías de servicios:\n\n`;
@@ -2148,7 +2154,16 @@ ${bookingLink}`;
       return menu;
     } catch (error) {
       logger.error('Error generating categories menu:', error);
-      return `Lo siento, hubo un error al cargar las categorías. ¿Hay algo más en lo que pueda ayudarte?`;
+      // En caso de error, regresar al menú principal
+      return `Lo siento, hubo un error al cargar las categorías.
+
+Volvamos al inicio. ¿En qué puedo ayudarte?
+
+1. Ver nuestros servicios
+2. Hacer una consulta
+3. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
     }
   }
 
@@ -2170,6 +2185,13 @@ ${bookingLink}`;
     try {
       const { ServiceService } = await import('../ServiceService');
       const categories = await ServiceService.getCategories();
+      
+      // Si no hay categorías, usar fallback de 3 categorías
+      if (categories.length === 0) {
+        logger.warn('No categories found, using fallback count of 3');
+        return 3; // Depilación, Tratamientos Faciales, Tratamientos Corporales
+      }
+      
       return categories.length;
     } catch (error) {
       logger.error('Error getting categories count:', error);
