@@ -386,6 +386,111 @@ ${bookingLink}`;
         }
       }
 
+      // ============================================
+      // DETECCIÓN DIRECTA: Intención de agendar con servicio en contexto
+      // ============================================
+      // Si el usuario expresa intención de agendar Y ya tenemos un servicio en contexto,
+      // generar el link inmediatamente sin llamar al AI
+      const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
+      const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
+      
+      if (contextServiceId && awaitingConfirmation) {
+        const messageLower = request.content.toLowerCase().trim();
+        
+        // Keywords que indican intención de agendar
+        const bookingKeywords = [
+          'agendar', 'reservar', 'agendar cita', 'reservar cita',
+          'quiero agendar', 'quiero reservar', 'hacer reserva',
+          'hacer cita', 'pedir cita', 'pedir hora', 'agendar hora',
+          'si', 'sí', 'dale', 'ok', 'okay', 'confirmo', 'adelante'
+        ];
+        
+        const hasBookingIntent = bookingKeywords.some(kw => messageLower.includes(kw));
+        
+        logger.info('🔍 Checking direct booking intent', {
+          messageLower,
+          hasBookingIntent,
+          contextServiceId,
+          awaitingConfirmation,
+          conversationId: conversation.id
+        });
+        
+        if (hasBookingIntent) {
+          logger.info('✅✅✅ Direct booking intent detected - generating link WITHOUT calling AI', {
+            userMessage: request.content,
+            contextServiceId,
+            conversationId: conversation.id
+          });
+          
+          // Obtener información del servicio
+          const { ServiceService } = await import('../ServiceService');
+          const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+          const service = result.services.find((s: any) => s.id === contextServiceId);
+          
+          if (service) {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+            const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+            
+            // Limpiar estado de espera
+            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
+            
+            const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
+
+📅 Para reservar tu cita, haz clic aquí:
+
+${bookingLink}`;
+            
+            const aiMessage = await ConversationModel.addMessage(conversation.id, {
+              senderType: 'ai',
+              content: directResponse,
+              metadata: {
+                intent: 'booking_request',
+                serviceId: contextServiceId,
+                serviceName: service.name,
+                bookingLink,
+                directBooking: true // Marca que fue generado directamente sin AI
+              }
+            });
+            
+            await ContextManager.addMessageToContext(conversation.id, aiMessage);
+            
+            const processingTime = Date.now() - startTime;
+            
+            logger.info('✅ Direct booking link generated successfully', {
+              serviceId: contextServiceId,
+              serviceName: service.name,
+              bookingLink,
+              processingTime,
+              conversationId: conversation.id
+            });
+            
+            return {
+              response: {
+                message: directResponse,
+                intent: 'booking_request',
+                entities: [],
+                needsHumanEscalation: false,
+                metadata: {
+                  bookingLink,
+                  serviceId: contextServiceId,
+                  serviceName: service.name,
+                  directBooking: true
+                }
+              },
+              conversationId: conversation.id,
+              clientId: client.id,
+              messageId: aiMessage.id,
+              processingTime
+            };
+          } else {
+            logger.warn('⚠️ Service not found for contextServiceId', {
+              contextServiceId,
+              conversationId: conversation.id
+            });
+          }
+        }
+      }
+
       // Procesar mensaje con NLU (usando contexto fresco)
       const nluResult = await NLUService.processMessage(request.content, freshContext);
 
