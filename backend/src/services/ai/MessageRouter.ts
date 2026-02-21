@@ -210,7 +210,10 @@ export class MessageRouter {
           });
           
           // Generar respuesta directa con menú de 4 opciones
-          const directResponse = `¡Hola ${client.name.split(' ')[0]}! 😊 Veo que te interesa ${request.metadata.serviceName}.
+          const firstName = client.name.startsWith('Web Visitor') ? '' : client.name.split(' ')[0];
+          const greeting = firstName ? `¡Hola ${firstName}! 😊` : '¡Hola! 😊';
+          
+          const directResponse = `${greeting} Veo que te interesa ${request.metadata.serviceName}.
 
 ¿Qué información necesitas?
 
