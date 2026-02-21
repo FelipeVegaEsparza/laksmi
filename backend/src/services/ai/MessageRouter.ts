@@ -397,28 +397,28 @@ ${bookingLink}`;
           const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
           
           // IMPORTANTE: Verificar si el usuario está seleccionando una CATEGORÍA del menú principal
-          // Si selecciona 1, 2 o 3 y el último mensaje del bot fue el menú principal, limpiar contexto
+          // Si selecciona un número y el último mensaje del bot fue el menú principal, limpiar contexto
           const lastMessages = freshContext.lastMessages || [];
           const lastBotMessage = lastMessages.filter((m: any) => m.senderType === 'ai').slice(-1)[0];
-          const isMainMenu = lastBotMessage && (
-            lastBotMessage.content.includes('1. Depilación') ||
-            lastBotMessage.content.includes('2. Tratamientos faciales') ||
-            lastBotMessage.content.includes('3. Tratamientos corporales')
-          );
+          const isMainMenu = lastBotMessage && this.isMainMenu(lastBotMessage.content);
+          
+          // Obtener el número de categorías dinámicamente
+          const categoriesCount = await this.getMainMenuCategoriesCount();
           
           logger.info('🔍 Checking if user is in main menu', {
             selectedNumber,
             isMainMenu,
+            categoriesCount,
             hasContextServiceId: !!contextServiceId,
             lastBotMessagePreview: lastBotMessage?.content?.substring(0, 200),
             conversationId: conversation.id
           });
           
-          // Si el usuario selecciona 1, 2 o 3 del menú principal, limpiar contexto y pasar a IA
-          if (isMainMenu && selectedNumber >= 1 && selectedNumber <= 3) {
+          // Si el usuario selecciona un número de categoría del menú principal, limpiar contexto y pasar a IA
+          if (isMainMenu && selectedNumber >= 1 && selectedNumber <= categoriesCount) {
             logger.info('✅ User selected category from main menu, clearing context', {
               selectedNumber,
-              category: selectedNumber === 1 ? 'Depilación' : selectedNumber === 2 ? 'Faciales' : 'Corporales',
+              categoriesCount,
               conversationId: conversation.id
             });
             
@@ -548,6 +548,48 @@ ${bookingLink}`;
 
       // Procesar mensaje con NLU (usando contexto fresco)
       const nluResult = await NLUService.processMessage(request.content, freshContext);
+
+      // ============================================
+      // INTERCEPTAR GREETING: Generar menú principal dinámico
+      // ============================================
+      if (nluResult.intent.name === 'greeting') {
+        logger.info('👋 Greeting detected, generating dynamic main menu', {
+          conversationId: conversation.id,
+          clientName: client.name
+        });
+        
+        const firstName = client.name.split(' ')[0];
+        const mainMenuMessage = await this.generateMainMenu(firstName);
+        
+        const aiMessage = await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: mainMenuMessage,
+          metadata: {
+            intent: 'greeting',
+            dynamicMenu: true
+          }
+        });
+        
+        await ContextManager.addMessageToContext(conversation.id, aiMessage);
+        
+        const processingTime = Date.now() - startTime;
+        
+        return {
+          response: {
+            message: mainMenuMessage,
+            intent: 'greeting',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              dynamicMenu: true
+            }
+          },
+          conversationId: conversation.id,
+          clientId: client.id,
+          messageId: aiMessage.id,
+          processingTime
+        };
+      }
 
       // Verificar si está esperando que proporcione su email
       const { ChatAuthService } = await import('./ChatAuthService');
@@ -1952,5 +1994,70 @@ ${bookingLink}`;
       activeRateLimits: this.rateLimitMap.size,
       config: this.getConfig()
     };
+  }
+
+  /**
+   * Generar menú principal dinámico basado en categorías de servicios
+   */
+  static async generateMainMenu(clientName?: string): Promise<string> {
+    try {
+      const { ServiceService } = await import('../ServiceService');
+      const categories = await ServiceService.getCategories();
+      
+      logger.info('📋 Generating dynamic main menu', {
+        categoriesCount: categories.length,
+        categories: categories.map(c => c.name)
+      });
+      
+      if (categories.length === 0) {
+        // Fallback si no hay categorías
+        return `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber. Aquí tienes algunas opciones:
+
+1. Ver servicios disponibles
+2. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+      }
+      
+      // Generar menú con categorías dinámicas
+      let menu = `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber. Aquí tienes algunas opciones:\n\n`;
+      
+      categories.forEach((category, index) => {
+        menu += `${index + 1}. ${category.name}\n`;
+      });
+      
+      menu += `${categories.length + 1}. Agendar una cita\n\n`;
+      menu += `⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+      
+      return menu;
+    } catch (error) {
+      logger.error('Error generating main menu:', error);
+      // Fallback en caso de error
+      return `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber.`;
+    }
+  }
+
+  /**
+   * Verificar si un mensaje es el menú principal
+   */
+  static isMainMenu(message: string): boolean {
+    // Verificar si el mensaje contiene el patrón del menú principal
+    // Debe tener "¡Hola" y "IMPORTANTE: Responde SOLO con el número"
+    return message.includes('¡Hola') && 
+           message.includes('⚠️ IMPORTANTE: Responde SOLO con el número de tu opción');
+  }
+
+  /**
+   * Obtener número de categorías del menú principal
+   */
+  static async getMainMenuCategoriesCount(): Promise<number> {
+    try {
+      const { ServiceService } = await import('../ServiceService');
+      const categories = await ServiceService.getCategories();
+      return categories.length;
+    } catch (error) {
+      logger.error('Error getting categories count:', error);
+      return 3; // Fallback a 3 categorías por defecto
+    }
   }
 }
