@@ -390,42 +390,92 @@ ${bookingLink}`;
             messageId: aiMessage.id,
             processingTime
           };
-        } else if (selectedNumber === 4) {
-          // CASO ESPECIAL: Usuario seleccionó "4" que podría ser "Agendar"
-          // Verificar si hay un servicio en contexto
+        } else {
+          // CASO: Usuario seleccionó un número pero no hay serviceOptions
+          // Verificar si hay un servicio en contexto (ya seleccionado previamente)
           const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
           const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
           
-          if (contextServiceId) {
-            logger.info('✅ User selected option 4 (likely Agendar) with service in context', {
+          if (contextServiceId && (selectedNumber >= 1 && selectedNumber <= 4)) {
+            logger.info('✅ User selected info option about service in context', {
+              option: selectedNumber,
               serviceId: contextServiceId,
               serviceName: contextServiceName,
               conversationId: conversation.id
             });
             
-            // Generar link directamente
+            // Obtener información del servicio
             const { ServiceService } = await import('../ServiceService');
             const result = await ServiceService.getServices({ isActive: true, limit: 300 });
             const service = result.services.find((s: any) => s.id === contextServiceId);
             
             if (service) {
-              const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-              const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+              let directResponse = '';
               
-              const directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
+              if (selectedNumber === 1) {
+                // Ver precio y sesiones
+                directResponse = `💰 Información de precio de ${service.name}:
+
+• Precio: ${service.price?.toLocaleString('es-CL') || 'Consultar'}
+• Sesiones: ${service.sessions || 'Consultar'}
+• Duración por sesión: ${service.duration || 'Consultar'} minutos
+
+¿Qué más te gustaría saber?
+1. Cuánto dura el tratamiento completo
+2. Conocer los beneficios
+3. Agendar una cita
+4. Volver al menú principal
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+              } else if (selectedNumber === 2) {
+                // Saber cuánto dura
+                directResponse = `⏱️ Duración de ${service.name}:
+
+• Duración por sesión: ${service.duration || 'Consultar'} minutos
+• Total de sesiones: ${service.sessions || 'Consultar'}
+• Tiempo total del tratamiento: Aproximadamente ${service.sessions ? Math.ceil(service.sessions * (service.duration || 60) / 60) : 'Consultar'} horas distribuidas en varias sesiones
+
+¿Qué más te gustaría saber?
+1. Ver precio y sesiones
+2. Conocer los beneficios
+3. Agendar una cita
+4. Volver al menú principal
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+              } else if (selectedNumber === 3) {
+                // Conocer los beneficios
+                directResponse = `✨ Beneficios de ${service.name}:
+
+${service.description || 'Tratamiento profesional de alta calidad.'}
+
+¿Qué más te gustaría saber?
+1. Ver precio y sesiones
+2. Saber cuánto dura
+3. Agendar una cita
+4. Volver al menú principal
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+              } else if (selectedNumber === 4) {
+                // Agendar una cita
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                const bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+                
+                directResponse = `¡Perfecto! Te ayudaré a agendar tu tratamiento de ${service.name}. 😊
 
 📅 Para reservar tu cita, haz clic aquí:
 
 ${bookingLink}`;
+              }
               
               const aiMessage = await ConversationModel.addMessage(conversation.id, {
                 senderType: 'ai',
                 content: directResponse,
                 metadata: {
-                  intent: 'booking_request',
+                  intent: selectedNumber === 4 ? 'booking_request' : 'service_info',
                   serviceId: contextServiceId,
                   serviceName: service.name,
-                  bookingLink
+                  infoType: selectedNumber === 1 ? 'price' : selectedNumber === 2 ? 'duration' : selectedNumber === 3 ? 'benefits' : 'booking',
+                  ...(selectedNumber === 4 && { bookingLink: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reservar?service=${service.slug}` })
                 }
               });
               
@@ -433,23 +483,24 @@ ${bookingLink}`;
               
               const processingTime = Date.now() - startTime;
               
-              logger.info('✅✅✅ BOOKING LINK GENERATED DIRECTLY (option 4)', {
+              logger.info('✅ Service info provided', {
+                option: selectedNumber,
                 serviceId: contextServiceId,
                 serviceName: service.name,
-                bookingLink,
                 conversationId: conversation.id
               });
               
               return {
                 response: {
                   message: directResponse,
-                  intent: 'booking_request',
+                  intent: selectedNumber === 4 ? 'booking_request' : 'service_info',
                   entities: [],
                   needsHumanEscalation: false,
                   metadata: {
-                    bookingLink,
                     serviceId: contextServiceId,
-                    serviceName: service.name
+                    serviceName: service.name,
+                    infoType: selectedNumber === 1 ? 'price' : selectedNumber === 2 ? 'duration' : selectedNumber === 3 ? 'benefits' : 'booking',
+                    ...(selectedNumber === 4 && { bookingLink: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reservar?service=${service.slug}` })
                   }
                 },
                 conversationId: conversation.id,
@@ -751,7 +802,17 @@ ${bookingLink}`;
 
           // NUEVA LÓGICA: Detectar si el AI listó múltiples servicios y guardarlos en el contexto
           // IMPORTANTE: Hacer esto ANTES de limpiar el [SERVICE_ID:xxx]
+          logger.info('🔍 About to call detectAndSaveServiceOptions', {
+            conversationId: conversation.id,
+            aiMessageLength: aiMessage.length,
+            aiMessagePreview: aiMessage.substring(0, 300)
+          });
+          
           await this.detectAndSaveServiceOptions(aiMessage, conversation.id);
+          
+          logger.info('✅ detectAndSaveServiceOptions completed', {
+            conversationId: conversation.id
+          });
 
           // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
           let finalMessage = aiMessage.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
@@ -1668,8 +1729,9 @@ ${bookingLink}`;
       // 3. "1. Nombre del servicio (X sesiones) - $precio"
       
       // Pattern mejorado que captura el formato con asteriscos
-      // Captura: número opcional, asteriscos opcionales, nombre, sesiones opcionales, precio
-      const serviceListPattern = /(?:^|\n)\s*(\d+)\.\s*\*?([^*\n]+?)\*?(?:\s*\((\d+)\s*sesiones?\))?\*?\s*[-–—]\s*\$?\s*([\d,\.]+)/gi;
+      // Captura: número, asterisco opcional, nombre (puede contener asteriscos), sesiones opcionales, precio
+      // Explicación: \*?\s* = asterisco opcional + espacios, (.+?) = nombre (cualquier cosa), \*?\s* = asterisco opcional + espacios
+      const serviceListPattern = /(?:^|\n)\s*(\d+)\.\s*\*?\s*(.+?)\s*\*?\s*(?:\((\d+)\s*sesiones?\))?\s*\*?\s*[-–—]\s*\$?\s*([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
       
       logger.info('🔍 Searching for service list in AI message', {
@@ -1707,7 +1769,7 @@ ${bookingLink}`;
         for (let i = 0; i < matches.length; i++) {
           const match = matches[i];
           const listNumber = match[1]; // El número en la lista (1, 2, 3, etc.)
-          const serviceName = match[2].trim(); // El nombre del servicio
+          const serviceName = match[2].trim().replace(/\*/g, ''); // El nombre del servicio, limpiar asteriscos
           const sessions = match[3]; // Las sesiones (opcional)
           let priceStr = match[4].replace(/[,\s]/g, ''); // El precio, eliminar comas y espacios
           
