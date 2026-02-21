@@ -438,7 +438,8 @@ ${await this.generateCategoriesMenu()}`;
           await ContextManager.setVariable(conversation.id, 'contextServiceId', selectedService.id);
           await ContextManager.setVariable(conversation.id, 'contextServiceName', selectedService.name);
           
-          // NO establecer awaitingBookingConfirmation aquí - solo cuando usuario seleccione "Agendar"
+          // Limpiar flags de agendamiento
+          await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
           
           // Limpiar las opciones del contexto
           await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
