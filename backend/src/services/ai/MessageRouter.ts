@@ -599,15 +599,17 @@ ${bookingLink}`;
 
           const { AIService } = await import('../AIService');
 
-          // Preparar historial de conversación para OpenAI (usar freshContext)
-          const conversationHistory = freshContext.lastMessages.slice(-5).map((msg: any) => ({
+          // Preparar historial de conversación para OpenAI
+          // IMPORTANTE: Enviar TODA la conversación (últimos 20 mensajes) para que la IA tenga contexto completo
+          const conversationHistory = freshContext.lastMessages.slice(-20).map((msg: any) => ({
             role: msg.senderType === 'client' ? 'user' as const : 'assistant' as const,
             content: msg.content
           }));
 
           logger.debug('Calling AIService.generateResponse', {
             conversationId: conversation.id,
-            historyLength: conversationHistory.length
+            historyLength: conversationHistory.length,
+            fullHistory: conversationHistory.map((m, i) => `${i + 1}. ${m.role}: ${m.content.substring(0, 100)}`)
           });
 
           // Generar respuesta con OpenAI
@@ -639,21 +641,16 @@ ${bookingLink}`;
               conversationId: conversation.id
             });
             
-            // Buscar el nombre del servicio y guardar en contexto
+            // Buscar el nombre del servicio
             try {
               const { ServiceService } = await import('../ServiceService');
               const result = await ServiceService.getServices({ isActive: true, limit: 300 });
               const service = result.services.find((s: any) => s.id === extractedServiceId);
               if (service) {
                 extractedServiceName = service.name;
-                await ContextManager.setVariable(conversation.id, 'contextServiceId', extractedServiceId);
-                await ContextManager.setVariable(conversation.id, 'contextServiceName', extractedServiceName);
-                // Establecer estado de espera de confirmación
-                await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', true);
-                logger.info('✅ Service context saved', {
+                logger.info('✅ Service found', {
                   serviceId: extractedServiceId,
                   serviceName: extractedServiceName,
-                  awaitingConfirmation: true,
                   conversationId: conversation.id
                 });
               }
@@ -661,99 +658,38 @@ ${bookingLink}`;
               logger.error('Error finding service:', error);
             }
           }
-          
-          // ============================================
-          // DETECCIÓN DE INTENCIÓN DE AGENDAR (CRÍTICO)
-          // ============================================
-          // Si el usuario respondió con un número que corresponde a "Agendar" (opción 3 o 4)
-          // Y el AI no incluyó SERVICE_ID, agregarlo automáticamente del contexto
-          const isBookingIntent = aiMessage.toLowerCase().includes('agendar') || 
-                                 aiMessage.toLowerCase().includes('reservar') ||
-                                 aiMessage.toLowerCase().includes('te ayudaré');
-          
-          const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-          
-          if (isBookingIntent && !aiMessage.includes('[SERVICE_ID:') && contextServiceId) {
-            // El AI olvidó incluir el SERVICE_ID, agregarlo automáticamente
-            aiMessage += `\n\n[SERVICE_ID:${contextServiceId}]`;
-            extractedServiceId = contextServiceId;
-            const contextServiceName = await ContextManager.getVariable(conversation.id, 'contextServiceName');
-            extractedServiceName = contextServiceName;
-            
-            logger.info('✅ AUTO-ADDED SERVICE_ID from context (AI forgot to include it)', {
-              serviceId: contextServiceId,
-              serviceName: contextServiceName,
-              conversationId: conversation.id
-            });
-          }
-
-          // ============================================
-          // CONFIRMACIÓN ROBUSTA (SIN FALSOS POSITIVOS)
-          // ============================================
-          const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
-          const contextServiceIdCheck = await ContextManager.getVariable(conversation.id, 'contextServiceId');
-          const contextServiceNameCheck = await ContextManager.getVariable(conversation.id, 'contextServiceName');
-          
-          // Solo considerar confirmación si:
-          // 1. Hay un estado explícito de espera de confirmación
-          // 2. El intent es affirmative O el mensaje es una confirmación explícita
-          const isAffirmativeIntent = nluResult.intent.name === 'affirmative';
-          const explicitConfirmationKeywords = [
-            'quiero reservar', 'quiero agendar', 'agendar cita', 'reservar cita',
-            'sí quiero', 'si quiero', 'sí, quiero', 'si, quiero',
-            'quiero ese', 'quiero esa', 'me interesa ese', 'me interesa esa',
-            'confirmo', 'adelante', 'proceder'
-          ];
-          
-          const messageLower = request.content.toLowerCase().trim();
-          const hasExplicitConfirmation = explicitConfirmationKeywords.some(kw => messageLower.includes(kw));
-          
-          // Confirmación válida solo si hay estado Y (intent affirmative O confirmación explícita)
-          const hasValidConfirmation = awaitingConfirmation && (isAffirmativeIntent || hasExplicitConfirmation);
-          
-          logger.info('🔍 Confirmation check', {
-            awaitingConfirmation,
-            isAffirmativeIntent,
-            hasExplicitConfirmation,
-            hasValidConfirmation,
-            contextServiceId: contextServiceIdCheck,
-            userMessage: request.content,
-            conversationId: conversation.id
-          });
-          
-          // Si hay confirmación válida Y contextServiceId, agregar SERVICE_ID al mensaje
-          if (hasValidConfirmation && contextServiceIdCheck && !aiMessage.includes('[SERVICE_ID:')) {
-            aiMessage += ` [SERVICE_ID:${contextServiceIdCheck}]`;
-            extractedServiceId = contextServiceIdCheck;
-            extractedServiceName = contextServiceNameCheck;
-            logger.info('✅ AUTO-ADDING contextServiceId after valid confirmation', { 
-              contextServiceId: contextServiceIdCheck,
-              contextServiceName: contextServiceNameCheck,
-              conversationId: conversation.id
-            });
-            
-            // Limpiar estado de espera después de confirmar
-            await ContextManager.setVariable(conversation.id, 'awaitingBookingConfirmation', false);
-          }
-
-          // NOTA: Ya NO detectamos servicios automáticamente de la respuesta del AI
-          // Solo confiamos en [SERVICE_ID:xxx] explícito que el AI debe incluir
-          // Esto elimina falsos positivos y hace el sistema más confiable
 
           // NUEVA LÓGICA: Detectar si el AI listó múltiples servicios y guardarlos en el contexto
           // IMPORTANTE: Hacer esto ANTES de limpiar el [SERVICE_ID:xxx]
           await this.detectAndSaveServiceOptions(aiMessage, conversation.id);
 
-          // Detectar si el usuario quiere agendar y hay un servicio en contexto (usar freshContext)
-          const bookingLink = await this.generateBookingLinkIfNeeded(
-            request.content,
-            nluResult.intent.name,
-            freshContext,
-            conversation.id
-          );
-
           // Limpiar marcadores especiales [SERVICE_ID:xxx] del mensaje antes de enviarlo
           let finalMessage = aiMessage.replace(/\[SERVICE_ID:[^\]]+\]/g, '').trim();
+          
+          // Si hay SERVICE_ID, generar el link de reserva
+          let bookingLink: string | null = null;
+          if (extractedServiceId && extractedServiceName) {
+            try {
+              const { ServiceService } = await import('../ServiceService');
+              const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+              const service = result.services.find((s: any) => s.id === extractedServiceId);
+              
+              if (service) {
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                bookingLink = `${frontendUrl}/reservar?service=${service.slug}`;
+                
+                logger.info('✅✅✅ BOOKING LINK GENERATED FROM AI SERVICE_ID', {
+                  serviceId: extractedServiceId,
+                  serviceName: service.name,
+                  slug: service.slug,
+                  bookingLink,
+                  conversationId: conversation.id
+                });
+              }
+            } catch (error) {
+              logger.error('Error generating booking link:', error);
+            }
+          }
           
           logger.info('🔍 Checking if booking link should be added', {
             hasBookingLink: !!bookingLink,
@@ -764,8 +700,6 @@ ${bookingLink}`;
           
           // Si hay link de reserva, agregarlo al mensaje
           if (bookingLink) {
-            // Formato simple para que WhatsApp detecte el link automáticamente
-            // Usar salto de línea doble antes del link para asegurar que WhatsApp lo detecte
             finalMessage += `\n\n📅 Para reservar tu cita, haz clic aquí:\n\n${bookingLink}`;
             
             logger.info('✅✅✅ BOOKING LINK ADDED TO MESSAGE', {
@@ -774,7 +708,7 @@ ${bookingLink}`;
               finalMessageLength: finalMessage.length
             });
           } else {
-            logger.warn('⚠️⚠️⚠️ NO BOOKING LINK TO ADD', {
+            logger.info('ℹ️ No booking link to add (AI did not include SERVICE_ID)', {
               conversationId: conversation.id,
               userMessage: request.content,
               aiMessageHadServiceId: aiResult.message.includes('[SERVICE_ID:')
