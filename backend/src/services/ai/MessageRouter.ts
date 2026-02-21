@@ -288,7 +288,7 @@ export class MessageRouter {
         const contextServiceId = await ContextManager.getVariable(conversation.id, 'contextServiceId');
         const awaitingConfirmation = await ContextManager.getVariable(conversation.id, 'awaitingBookingConfirmation');
         
-        logger.info('🔍 Checking if number corresponds to "Agendar" option', {
+        logger.info('🔍 Checking if number corresponds to an option', {
           selectedNumber,
           hasContextServiceId: !!contextServiceId,
           awaitingConfirmation,
@@ -303,28 +303,47 @@ export class MessageRouter {
             .slice(-1)[0];
           
           if (lastAIMessage) {
-            const messageContent = lastAIMessage.content.toLowerCase();
+            const messageContent = lastAIMessage.content;
+            const messageContentLower = messageContent.toLowerCase();
             
-            // Detectar si el mensaje tiene opciones numeradas con "agendar"
-            // Buscar patrones como "4. Agendar" o "3. Agendar" etc.
-            const agendarOptionMatch = messageContent.match(/(\d+)\.\s*agendar/i);
-            
-            logger.info('🔍 Checking last AI message for "Agendar" option', {
-              hasLastMessage: !!lastAIMessage,
-              agendarOptionMatch: agendarOptionMatch ? agendarOptionMatch[0] : null,
-              agendarOptionNumber: agendarOptionMatch ? parseInt(agendarOptionMatch[1]) : null,
-              selectedNumber,
+            logger.info('🔍 Last AI message content', {
+              messageLength: messageContent.length,
+              firstLines: messageContent.split('\n').slice(0, 10).join('\n'),
               conversationId: conversation.id
             });
             
-            if (agendarOptionMatch) {
-              const agendarOptionNumber = parseInt(agendarOptionMatch[1]);
+            // Buscar todas las opciones numeradas en el mensaje
+            // Formato: "1. Texto de la opción" o "1) Texto de la opción"
+            const optionPattern = new RegExp(`${selectedNumber}[\\.\\)]\\s*([^\n]+)`, 'i');
+            const optionMatch = messageContent.match(optionPattern);
+            
+            logger.info('🔍 Searching for selected option text', {
+              selectedNumber,
+              pattern: optionPattern.toString(),
+              optionMatch: optionMatch ? optionMatch[0] : null,
+              optionText: optionMatch ? optionMatch[1] : null,
+              conversationId: conversation.id
+            });
+            
+            if (optionMatch) {
+              const optionText = optionMatch[1].toLowerCase().trim();
               
-              // Si el usuario seleccionó el número de "Agendar"
-              if (selectedNumber === agendarOptionNumber) {
-                logger.info('✅✅✅ User selected "Agendar" option - generating booking link immediately', {
+              // Verificar si la opción contiene palabras relacionadas con agendar
+              const bookingKeywords = ['agendar', 'reservar', 'cita', 'hora'];
+              const isBookingOption = bookingKeywords.some(kw => optionText.includes(kw));
+              
+              logger.info('🔍 Option analysis', {
+                selectedNumber,
+                optionText,
+                isBookingOption,
+                conversationId: conversation.id
+              });
+              
+              // Si la opción seleccionada es para agendar
+              if (isBookingOption) {
+                logger.info('✅✅✅ User selected booking option - generating link immediately', {
                   selectedNumber,
-                  agendarOptionNumber,
+                  optionText,
                   contextServiceId,
                   conversationId: conversation.id
                 });
@@ -354,13 +373,24 @@ ${bookingLink}`;
                       intent: 'booking_request',
                       serviceId: contextServiceId,
                       serviceName: service.name,
-                      bookingLink
+                      bookingLink,
+                      directBooking: true
                     }
                   });
                   
                   await ContextManager.addMessageToContext(conversation.id, aiMessage);
                   
                   const processingTime = Date.now() - startTime;
+                  
+                  logger.info('✅ Booking link generated from option selection', {
+                    selectedNumber,
+                    optionText,
+                    serviceId: contextServiceId,
+                    serviceName: service.name,
+                    bookingLink,
+                    processingTime,
+                    conversationId: conversation.id
+                  });
                   
                   return {
                     response: {
@@ -371,7 +401,8 @@ ${bookingLink}`;
                       metadata: {
                         bookingLink,
                         serviceId: contextServiceId,
-                        serviceName: service.name
+                        serviceName: service.name,
+                        directBooking: true
                       }
                     },
                     conversationId: conversation.id,
