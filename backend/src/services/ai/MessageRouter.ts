@@ -415,14 +415,136 @@ ${await this.generateCategoriesMenu()}`;
             conversationId: conversation.id
           });
           
-          // Limpiar flags
-          await ContextManager.setVariable(conversation.id, 'inCategoriesMenu', false);
-          await ContextManager.setVariable(conversation.id, 'contextServiceId', null);
-          await ContextManager.setVariable(conversation.id, 'contextServiceName', null);
-          await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+          // Obtener el nombre de la categoría seleccionada
+          const { ServiceService } = await import('../ServiceService');
+          const categories = await ServiceService.getCategories();
+          const selectedCategory = categories[selectedNumber - 1];
           
-          // Dejar que el mensaje pase a la IA para que liste los servicios de la categoría
-          // NO hacer return aquí
+          if (selectedCategory) {
+            logger.info('📋 Category selected, fetching services', {
+              categoryName: selectedCategory.name,
+              conversationId: conversation.id
+            });
+            
+            // Obtener servicios de esa categoría
+            const servicesResult = await ServiceService.getServices({ 
+              category: selectedCategory.name,
+              isActive: true,
+              limit: 10
+            });
+            
+            const services = servicesResult.services;
+            
+            logger.info('📊 Services found for category', {
+              categoryName: selectedCategory.name,
+              servicesCount: services.length,
+              services: services.map((s: any) => ({ name: s.name, price: s.price })),
+              conversationId: conversation.id
+            });
+            
+            if (services.length === 0) {
+              // No hay servicios en esta categoría
+              const noServicesMessage = `Lo siento, actualmente no tenemos servicios disponibles en la categoría ${selectedCategory.name}.
+
+¿Te gustaría ver otra categoría?
+
+${await this.generateCategoriesMenu()}`;
+              
+              const aiMessage = await ConversationModel.addMessage(conversation.id, {
+                senderType: 'ai',
+                content: noServicesMessage,
+                metadata: {
+                  intent: 'category_selection',
+                  categoryName: selectedCategory.name,
+                  noServices: true
+                }
+              });
+              
+              await ContextManager.addMessageToContext(conversation.id, aiMessage);
+              
+              const processingTime = Date.now() - startTime;
+              
+              return {
+                response: {
+                  message: noServicesMessage,
+                  intent: 'category_selection',
+                  entities: [],
+                  needsHumanEscalation: false,
+                  metadata: {
+                    categoryName: selectedCategory.name,
+                    noServices: true
+                  }
+                },
+                conversationId: conversation.id,
+                clientId: client.id,
+                messageId: aiMessage.id,
+                processingTime
+              };
+            }
+            
+            // Generar lista de servicios
+            let servicesMessage = `Perfecto, aquí están nuestros servicios de ${selectedCategory.name}:\n\n`;
+            
+            services.forEach((service: any, index: number) => {
+              const price = service.price ? `$${service.price.toLocaleString('es-CL')}` : 'Consultar';
+              const sessions = service.sessions ? ` (${service.sessions} sesiones)` : '';
+              servicesMessage += `${index + 1}. *${service.name}${sessions}* - ${price}\n`;
+            });
+            
+            servicesMessage += `\n⚠️ IMPORTANTE: Responde SOLO con el número del servicio que te interesa.`;
+            
+            // Guardar las opciones de servicios en el contexto
+            const serviceOptions = services.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              slug: s.slug,
+              price: s.price
+            }));
+            
+            await ContextManager.setVariable(conversation.id, 'serviceOptions', serviceOptions);
+            
+            // Limpiar flags
+            await ContextManager.setVariable(conversation.id, 'inCategoriesMenu', false);
+            await ContextManager.setVariable(conversation.id, 'contextServiceId', null);
+            await ContextManager.setVariable(conversation.id, 'contextServiceName', null);
+            
+            const aiMessage = await ConversationModel.addMessage(conversation.id, {
+              senderType: 'ai',
+              content: servicesMessage,
+              metadata: {
+                intent: 'category_selection',
+                categoryName: selectedCategory.name,
+                servicesCount: services.length
+              }
+            });
+            
+            await ContextManager.addMessageToContext(conversation.id, aiMessage);
+            
+            const processingTime = Date.now() - startTime;
+            
+            logger.info('✅ Services list generated for category', {
+              categoryName: selectedCategory.name,
+              servicesCount: services.length,
+              conversationId: conversation.id
+            });
+            
+            return {
+              response: {
+                message: servicesMessage,
+                intent: 'category_selection',
+                entities: [],
+                needsHumanEscalation: false,
+                metadata: {
+                  categoryName: selectedCategory.name,
+                  servicesCount: services.length
+                }
+              },
+              conversationId: conversation.id,
+              clientId: client.id,
+              messageId: aiMessage.id,
+              processingTime
+            };
+          }
         }
         
         // ============================================
