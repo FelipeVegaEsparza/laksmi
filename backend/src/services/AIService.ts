@@ -71,10 +71,18 @@ REGLAS CRÍTICAS:
 8. NUNCA inventes precios, horarios o disponibilidad
 
 ESCALACIÓN A HUMANO:
-SOLO escala si:
-- Alergia severa o problema médico
-- Cliente muy molesto o queja seria
-- Cliente solicita explícitamente hablar con una persona
+SOLO escala si el cliente EXPLÍCITAMENTE dice:
+- "quiero hablar con una persona"
+- "necesito hablar con alguien"
+- "quiero hablar con un humano"
+- "dame un agente humano"
+- "quiero hablar con el gerente"
+
+NUNCA escales por:
+- Preguntas complejas (responde lo mejor que puedas)
+- Baja confianza (sigue intentando ayudar)
+- Problemas técnicos (ofrece alternativas)
+- Cliente confundido (explica de nuevo con más claridad)
 
 FORMATO GENERAL:
 - Párrafos cortos
@@ -152,15 +160,14 @@ FORMATO GENERAL:
         finishReason: completion.choices[0]?.finish_reason
       });
 
-      // Analyze if we should escalate
-      const shouldEscalate = this.shouldEscalate(userMessage, aiMessage);
+      // Analyze confidence (no longer used for escalation)
       const confidence = this.calculateConfidence(completion, knowledgeContext);
 
       return {
         message: aiMessage,
         usedKnowledgeBase: !!knowledgeContext,
         confidence,
-        suggestedActions: shouldEscalate ? ['escalate'] : undefined,
+        suggestedActions: undefined, // NUNCA sugerir escalación automática
       };
 
     } catch (error: any) {

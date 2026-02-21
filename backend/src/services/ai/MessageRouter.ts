@@ -329,6 +329,102 @@ ${bookingLink}`;
           channel: request.channel
         });
         
+        // ============================================
+        // CASO 1: Usuario seleccionó del MENÚ PRINCIPAL (1, 2, 3)
+        // ============================================
+        const lastMessages = freshContext.lastMessages || [];
+        const lastBotMessage = lastMessages.filter((m: any) => m.senderType === 'ai').slice(-1)[0];
+        const isMainMenu = lastBotMessage && this.isMainMenu(lastBotMessage.content);
+        
+        if (isMainMenu && selectedNumber >= 1 && selectedNumber <= 3) {
+          logger.info('✅ User selected from main menu', {
+            selectedNumber,
+            option: selectedNumber === 1 ? 'Ver servicios' : selectedNumber === 2 ? 'Hacer consulta' : 'Agendar',
+            conversationId: conversation.id
+          });
+          
+          let responseMessage = '';
+          
+          if (selectedNumber === 1) {
+            // Ver servicios - Mostrar categorías
+            responseMessage = await this.generateCategoriesMenu();
+            
+            // Marcar que estamos en el menú de categorías
+            await ContextManager.setVariable(conversation.id, 'inCategoriesMenu', true);
+          } else if (selectedNumber === 2) {
+            // Hacer consulta - Modo libre con IA
+            responseMessage = `Perfecto, estoy aquí para responder tus preguntas. 😊
+
+¿Qué te gustaría saber sobre nuestros servicios, tratamientos o la clínica?`;
+            
+            // Marcar que estamos en modo consulta libre
+            await ContextManager.setVariable(conversation.id, 'inFreeConsultation', true);
+          } else if (selectedNumber === 3) {
+            // Agendar - Mostrar categorías para seleccionar servicio
+            responseMessage = `¡Perfecto! Para agendar tu cita, primero necesito saber qué servicio te interesa.
+
+${await this.generateCategoriesMenu()}`;
+            
+            // Marcar que estamos en proceso de agendamiento
+            await ContextManager.setVariable(conversation.id, 'inBookingProcess', true);
+          }
+          
+          const aiMessage = await ConversationModel.addMessage(conversation.id, {
+            senderType: 'ai',
+            content: responseMessage,
+            metadata: {
+              intent: 'main_menu_selection',
+              selectedOption: selectedNumber
+            }
+          });
+          
+          await ContextManager.addMessageToContext(conversation.id, aiMessage);
+          
+          const processingTime = Date.now() - startTime;
+          
+          return {
+            response: {
+              message: responseMessage,
+              intent: 'main_menu_selection',
+              entities: [],
+              needsHumanEscalation: false,
+              metadata: {
+                selectedOption: selectedNumber
+              }
+            },
+            conversationId: conversation.id,
+            clientId: client.id,
+            messageId: aiMessage.id,
+            processingTime
+          };
+        }
+        
+        // ============================================
+        // CASO 2: Usuario seleccionó CATEGORÍA (después de "Ver servicios")
+        // ============================================
+        const inCategoriesMenu = await ContextManager.getVariable(conversation.id, 'inCategoriesMenu');
+        const categoriesCount = await this.getMainMenuCategoriesCount();
+        
+        if (inCategoriesMenu && selectedNumber >= 1 && selectedNumber <= categoriesCount) {
+          logger.info('✅ User selected category from categories menu', {
+            selectedNumber,
+            categoriesCount,
+            conversationId: conversation.id
+          });
+          
+          // Limpiar flags
+          await ContextManager.setVariable(conversation.id, 'inCategoriesMenu', false);
+          await ContextManager.setVariable(conversation.id, 'contextServiceId', null);
+          await ContextManager.setVariable(conversation.id, 'contextServiceName', null);
+          await ContextManager.setVariable(conversation.id, 'serviceOptions', null);
+          
+          // Dejar que el mensaje pase a la IA para que liste los servicios de la categoría
+          // NO hacer return aquí
+        }
+        
+        // ============================================
+        // CASO 3: Usuario seleccionó SERVICIO de una lista
+        // ============================================
         if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
           const selectedService = serviceOptions[selectedNumber - 1];
           logger.info('✅ User selected service by number from serviceOptions', { 
@@ -2006,43 +2102,53 @@ ${bookingLink}`;
   }
 
   /**
-   * Generar menú principal dinámico basado en categorías de servicios
+   * Generar menú principal inicial (primer contacto)
    */
   static async generateMainMenu(clientName?: string): Promise<string> {
+    const greeting = `¡Hola${clientName ? ' ' + clientName : ''}! � Bienvenido a Laxmi, tu clínica de belleza.`;
+    
+    const menu = `${greeting}
+
+¿En qué puedo ayudarte hoy?
+
+1. Ver nuestros servicios
+2. Hacer una consulta
+3. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+    
+    return menu;
+  }
+
+  /**
+   * Generar menú de categorías de servicios
+   */
+  static async generateCategoriesMenu(): Promise<string> {
     try {
       const { ServiceService } = await import('../ServiceService');
       const categories = await ServiceService.getCategories();
       
-      logger.info('📋 Generating dynamic main menu', {
+      logger.info('📋 Generating categories menu', {
         categoriesCount: categories.length,
         categories: categories.map(c => c.name)
       });
       
       if (categories.length === 0) {
-        // Fallback si no hay categorías
-        return `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber. Aquí tienes algunas opciones:
-
-1. Ver servicios disponibles
-2. Agendar una cita
-
-⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+        return `Lo siento, no tenemos categorías disponibles en este momento. ¿Hay algo más en lo que pueda ayudarte?`;
       }
       
-      // Generar menú con categorías dinámicas
-      let menu = `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber. Aquí tienes algunas opciones:\n\n`;
+      let menu = `Perfecto, aquí están nuestras categorías de servicios:\n\n`;
       
       categories.forEach((category, index) => {
         menu += `${index + 1}. ${category.name}\n`;
       });
       
-      menu += `${categories.length + 1}. Agendar una cita\n\n`;
-      menu += `⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+      menu += `\n⚠️ IMPORTANTE: Responde SOLO con el número de la categoría que te interesa.`;
       
       return menu;
     } catch (error) {
-      logger.error('Error generating main menu:', error);
-      // Fallback en caso de error
-      return `¡Hola${clientName ? ' ' + clientName : ''}! 😊 ¿En qué puedo ayudarte hoy? Si estás interesado en nuestros servicios o deseas agendar una cita, solo házmelo saber.`;
+      logger.error('Error generating categories menu:', error);
+      return `Lo siento, hubo un error al cargar las categorías. ¿Hay algo más en lo que pueda ayudarte?`;
     }
   }
 
@@ -2051,9 +2157,10 @@ ${bookingLink}`;
    */
   static isMainMenu(message: string): boolean {
     // Verificar si el mensaje contiene el patrón del menú principal
-    // Debe tener "¡Hola" y "IMPORTANTE: Responde SOLO con el número"
-    return message.includes('¡Hola') && 
-           message.includes('⚠️ IMPORTANTE: Responde SOLO con el número de tu opción');
+    return message.includes('¿En qué puedo ayudarte hoy?') && 
+           message.includes('1. Ver nuestros servicios') &&
+           message.includes('2. Hacer una consulta') &&
+           message.includes('3. Agendar una cita');
   }
 
   /**
