@@ -623,7 +623,9 @@ ${bookingLink}`;
             conversationId: conversation.id,
             messageLength: aiResult.message.length,
             usedKnowledgeBase: aiResult.usedKnowledgeBase,
-            hasServiceId: aiResult.message.includes('[SERVICE_ID:')
+            hasServiceId: aiResult.message.includes('[SERVICE_ID:'),
+            aiMessagePreview: aiResult.message.substring(0, 300),
+            fullAiMessage: aiResult.message
           });
 
           // ============================================
@@ -656,6 +658,71 @@ ${bookingLink}`;
               }
             } catch (error) {
               logger.error('Error finding service:', error);
+            }
+          } else {
+            // ============================================
+            // SISTEMA DE RESPALDO: Si la IA olvidó incluir SERVICE_ID
+            // ============================================
+            logger.warn('⚠️ AI did not include SERVICE_ID, checking if it should have', {
+              conversationId: conversation.id,
+              aiMessagePreview: aiMessage.substring(0, 200)
+            });
+            
+            // Detectar si la IA está confirmando una reserva
+            const isConfirmingBooking = 
+              (aiMessage.toLowerCase().includes('perfecto') || aiMessage.toLowerCase().includes('excelente')) &&
+              (aiMessage.toLowerCase().includes('agendar') || aiMessage.toLowerCase().includes('reservar')) &&
+              aiMessage.toLowerCase().includes('tratamiento');
+            
+            if (isConfirmingBooking) {
+              logger.info('🔍 AI is confirming booking but forgot SERVICE_ID, searching in conversation', {
+                conversationId: conversation.id
+              });
+              
+              // Buscar el servicio mencionado en los últimos mensajes
+              const recentMessages = freshContext.lastMessages.slice(-10);
+              
+              // Buscar en los mensajes del AI que mencionan servicios específicos
+              for (const msg of recentMessages.reverse()) {
+                if (msg.senderType === 'ai' && msg.content) {
+                  // Buscar patrones como "depilación láser axilas" o nombres de servicios
+                  const { ServiceService } = await import('../ServiceService');
+                  const result = await ServiceService.getServices({ isActive: true, limit: 300 });
+                  
+                  // Buscar servicio mencionado en el mensaje de la IA
+                  for (const service of result.services) {
+                    const serviceName = service.name.toLowerCase();
+                    const messageContent = msg.content.toLowerCase();
+                    
+                    // Si el mensaje menciona el nombre del servicio
+                    if (messageContent.includes(serviceName)) {
+                      extractedServiceId = service.id;
+                      extractedServiceName = service.name;
+                      
+                      // Agregar SERVICE_ID al mensaje de la IA
+                      aiMessage += `\n\n[SERVICE_ID:${service.id}]`;
+                      
+                      logger.info('✅✅✅ AUTO-RECOVERED SERVICE_ID from conversation history', {
+                        serviceId: service.id,
+                        serviceName: service.name,
+                        foundInMessage: msg.content.substring(0, 100),
+                        conversationId: conversation.id
+                      });
+                      
+                      break;
+                    }
+                  }
+                  
+                  if (extractedServiceId) break;
+                }
+              }
+              
+              if (!extractedServiceId) {
+                logger.error('❌ Could not recover SERVICE_ID from conversation', {
+                  conversationId: conversation.id,
+                  recentMessagesCount: recentMessages.length
+                });
+              }
             }
           }
 
