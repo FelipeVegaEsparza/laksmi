@@ -1744,34 +1744,39 @@ ${bookingLink}`;
           const foundService = allServices.find((s: any) => {
             const normalizedServiceName = normalizeText(s.name);
             
-            // Verificar coincidencia de nombre (debe contener las palabras clave)
-            const searchWords = normalizedSearchName.split(/\s+/).filter((w: string) => w.length > 2);
-            const serviceWords = normalizedServiceName.split(/\s+/);
+            // Verificar coincidencia de nombre - más tolerante
+            // Buscar si el nombre del servicio contiene las palabras clave principales
+            const searchWords = normalizedSearchName.split(/\s+/).filter((w: string) => w.length > 3);
             
-            const matchingWords = searchWords.filter((sw: string) => 
-              serviceWords.some((sew: string) => sew.includes(sw) || sw.includes(sew))
+            // Si el nombre normalizado del servicio contiene las palabras clave
+            const nameMatch = searchWords.length > 0 && searchWords.every((word: string) => 
+              normalizedServiceName.includes(word)
             );
             
-            const nameMatch = matchingWords.length >= Math.min(2, searchWords.length);
-            
-            // Verificar coincidencia de precio (tolerante a .00)
+            // Verificar coincidencia de precio (tolerante a diferencias pequeñas)
             const servicePriceNum = parseInt(s.price.toString(), 10);
-            const priceMatch = servicePriceNum === priceNum || servicePriceNum === Math.floor(priceNum);
+            const priceDiff = Math.abs(servicePriceNum - priceNum);
+            const priceMatch = priceDiff < 100; // Tolerancia de $100
             
-            logger.info(`  Comparing with: ${s.name}`, {
-              normalizedServiceName,
-              normalizedSearchName,
-              matchingWords: matchingWords.length,
-              searchWords: searchWords.length,
-              nameMatch,
-              priceMatch,
-              servicePrice: s.price,
-              servicePriceNum,
-              searchPrice: priceNum,
-              conversationId
-            });
+            const isMatch = nameMatch && priceMatch;
             
-            return nameMatch && priceMatch;
+            if (searchWords.length > 0 && (nameMatch || priceMatch)) {
+              logger.info(`  Comparing with: ${s.name}`, {
+                normalizedServiceName,
+                normalizedSearchName,
+                searchWords,
+                nameMatch,
+                priceMatch,
+                isMatch,
+                servicePrice: s.price,
+                servicePriceNum,
+                searchPrice: priceNum,
+                priceDiff,
+                conversationId
+              });
+            }
+            
+            return isMatch;
           });
           
           if (foundService) {
