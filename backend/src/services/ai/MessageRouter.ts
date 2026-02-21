@@ -1021,9 +1021,11 @@ ${bookingLink}`;
         );
         logger.info(`Conversation escalated: ${conversation.id}`);
         
-        // 🔧 FIX: Reemplazar el mensaje de OpenAI con el mensaje del sistema que incluye el link de WhatsApp
-        // Solo si el canal es web
-        if (request.channel === 'web') {
+        // 🔧 FIX: NO reemplazar el mensaje de la IA si ya generó una respuesta válida
+        // Solo agregar el mensaje de escalación si el canal es web Y la respuesta es genérica
+        const isGenericEscalationMessage = aiResponse.message.includes('Lo siento, ha ocurrido un problema');
+        
+        if (request.channel === 'web' && isGenericEscalationMessage) {
           const escalationMessageWithLink = await this.generateEscalationMessage('client_request', request.channel);
           
           // Actualizar el mensaje en la BD directamente
@@ -1040,6 +1042,13 @@ ${bookingLink}`;
             messageId: aiMessage.id,
             channel: request.channel,
             messageLength: escalationMessageWithLink.length
+          });
+        } else {
+          logger.info('ℹ️ Escalation flagged but keeping AI response', {
+            conversationId: conversation.id,
+            channel: request.channel,
+            isGenericMessage: isGenericEscalationMessage,
+            messagePreview: aiResponse.message.substring(0, 200)
           });
         }
         
