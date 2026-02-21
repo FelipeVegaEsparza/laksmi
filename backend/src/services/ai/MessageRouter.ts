@@ -303,6 +303,15 @@ ${bookingLink}`;
       // DETECCIÓN TEMPRANA: Usuario seleccionó servicio por número
       // ============================================
       const numberMatch = request.content.match(/^\s*(\d+)\s*$/);
+      
+      logger.info('🔍 Checking for number selection', {
+        userMessage: request.content,
+        hasNumberMatch: !!numberMatch,
+        numberMatchResult: numberMatch ? numberMatch[1] : null,
+        conversationId: conversation.id,
+        channel: request.channel
+      });
+      
       if (numberMatch) {
         const selectedNumber = parseInt(numberMatch[1]);
         const serviceOptions = await ContextManager.getVariable(conversation.id, 'serviceOptions');
@@ -311,7 +320,13 @@ ${bookingLink}`;
           number: selectedNumber,
           hasServiceOptions: !!serviceOptions,
           serviceOptionsCount: serviceOptions?.length || 0,
-          conversationId: conversation.id
+          serviceOptions: serviceOptions ? serviceOptions.map((s: any, i: number) => ({ 
+            index: i + 1, 
+            name: s.name, 
+            id: s.id 
+          })) : null,
+          conversationId: conversation.id,
+          channel: request.channel
         });
         
         if (serviceOptions && Array.isArray(serviceOptions) && serviceOptions[selectedNumber - 1]) {
@@ -1649,20 +1664,22 @@ ${bookingLink}`;
     conversationId: string
   ): Promise<void> {
     try {
-      // Detectar si el mensaje contiene una lista de servicios con bullets (•) o asteriscos (*)
-      // Formato esperado: "• Nombre del servicio (X sesiones) - $precio" o variaciones
-      // Tolerante a: "desde $precio", "promo $precio", espacios, moneda, etc.
+      // Detectar si el mensaje contiene una lista de servicios
+      // Formatos soportados:
+      // 1. "• Nombre del servicio (X sesiones) - $precio"
+      // 2. "* Nombre del servicio (X sesiones) - $precio"
+      // 3. "1. Nombre del servicio (X sesiones) - $precio"
+      // 4. "1. *Nombre del servicio (X sesiones)* - $precio"
       
-      // Pattern más tolerante que acepta variaciones
-      // Acepta: "• Servicio - $precio", "• Servicio (sesiones) - $precio", "* Servicio - precio"
-      const serviceListPattern = /[•\*]\s*([^\n(]+?)(?:\s*\((\d+)\s*sesiones?\))?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
+      // Pattern que acepta múltiples formatos
+      const serviceListPattern = /(?:^|\n)\s*(?:\d+\.\s*)?[•\*]?\s*\*?([^\n(]+?)\*?(?:\s*\((\d+)\s*sesiones?\))?\*?\s*[-–—]\s*(?:desde\s+)?(?:promo\s+)?\$?\s*([\d,\.]+)/gi;
       const matches = [...aiMessage.matchAll(serviceListPattern)];
       
       logger.info('🔍 Searching for service list in AI message', {
         messageLength: aiMessage.length,
         matchesFound: matches.length,
         conversationId,
-        firstLines: aiMessage.split('\n').slice(0, 15).join('\n'),
+        firstLines: aiMessage.split('\n').slice(0, 20).join('\n'),
         matches: matches.map(m => ({
           fullMatch: m[0],
           name: m[1]?.trim(),
