@@ -78,33 +78,22 @@ export class EscalationService {
     summary?: string;
   }> {
     try {
-      // 1. Verificar confianza baja
-      if (nluResult.confidence < this.config.confidenceThreshold) {
-        const failedAttempts = (context.variables.failedAttempts || 0) + 1;
-        await ContextManager.setVariable(conversationId, 'failedAttempts', failedAttempts);
-
-        if (failedAttempts >= this.config.maxFailedAttempts) {
-          return {
-            shouldEscalate: true,
-            reason: 'failed_attempts',
-            priority: 'medium',
-            summary: `Cliente ${client.name} ha tenido ${failedAttempts} intentos fallidos de comunicación`
-          };
-        }
-      }
-
-      // 2. Detectar quejas o problemas
+      // DESHABILITADO: No escalar automáticamente por baja confianza
+      // El sistema ahora maneja números y opciones directamente
+      // Solo escalamos si el cliente lo solicita explícitamente
+      
+      // 1. Detectar solicitud explícita de hablar con humano
       const messageContent = context.lastMessages[context.lastMessages.length - 1]?.content || '';
       if (this.detectComplaint(messageContent)) {
         return {
           shouldEscalate: true,
           reason: 'client_request',
-          priority: 'low',
+          priority: 'medium',
           summary: `Cliente ${client.name} solicita hablar con un agente humano`
         };
       }
 
-      // 5. Verificar problemas de pago
+      // 2. Verificar problemas de pago (alta prioridad)
       if (this.detectPaymentIssue(messageContent)) {
         return {
           shouldEscalate: true,
@@ -114,16 +103,13 @@ export class EscalationService {
         };
       }
 
+      // NO escalar por otros motivos
       return { shouldEscalate: false };
 
     } catch (error) {
       logger.error('Error evaluating escalation need:', error);
-      return {
-        shouldEscalate: true,
-        reason: 'technical_issue',
-        priority: 'low',
-        summary: 'Error técnico en el sistema de IA'
-      };
+      // NO escalar automáticamente por errores técnicos
+      return { shouldEscalate: false };
     }
   }
 
@@ -433,15 +419,24 @@ export class EscalationService {
   // Métodos privados de detección
 
   private static detectComplaint(message: string): boolean {
-    // MEJORADO: Solo detectar quejas REALES con contexto negativo
-    // Removidas palabras que se usan en contextos normales
-    
     const lowerMessage = message.toLowerCase();
     
-    // Nivel 1: Quejas explícitas (alta confianza)
+    // Nivel 1: Solicitud EXPLÍCITA de hablar con humano (MÁXIMA PRIORIDAD)
+    const humanRequestKeywords = [
+      'hablar con un humano', 'hablar con una persona', 'hablar con alguien',
+      'quiero hablar con', 'necesito hablar con', 'contactar con',
+      'agente humano', 'persona real', 'atención humana',
+      'operador', 'representante', 'asesor',
+      'hablar con gerente', 'hablar con supervisor', 'hablar con el encargado'
+    ];
+    
+    if (humanRequestKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      return true;
+    }
+    
+    // Nivel 2: Quejas explícitas (alta confianza)
     const explicitComplaints = [
       'queja formal', 'quiero quejarme', 'presentar una queja',
-      'hablar con gerente', 'hablar con supervisor', 'hablar con el encargado',
       'quiero reembolso', 'devolver dinero', 'cancelar todo',
       'demanda', 'abogado', 'denuncia'
     ];
@@ -450,7 +445,7 @@ export class EscalationService {
       return true;
     }
     
-    // Nivel 2: Frases negativas sobre el servicio (requiere contexto)
+    // Nivel 3: Frases negativas sobre el servicio (requiere contexto)
     const negativeServicePhrases = [
       'mal servicio', 'pésimo servicio', 'horrible servicio',
       'terrible servicio', 'fatal servicio', 'desastre de servicio'
@@ -460,7 +455,7 @@ export class EscalationService {
       return true;
     }
     
-    // Nivel 3: Insatisfacción extrema (requiere intensificador)
+    // Nivel 4: Insatisfacción extrema (requiere intensificador)
     const extremeUnsatisfaction = [
       'muy insatisfecho', 'muy molesto', 'extremadamente molesto',
       'totalmente insatisfecho', 'completamente decepcionado'
@@ -471,6 +466,7 @@ export class EscalationService {
     }
     
     // NO detectar palabras sueltas como "problema", "mal", "error"
+    // NO detectar números o respuestas cortas
     // Estas son muy comunes en contextos normales
     
     return false;
