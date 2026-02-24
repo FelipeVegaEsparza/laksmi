@@ -35,7 +35,7 @@ import {
   PanTool as PanToolIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material'
-import { format, isToday, isYesterday } from 'date-fns'
+import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Conversation, Message, Client, ClientFormData } from '@/types'
 import { apiService } from '@/services/apiService'
@@ -394,8 +394,15 @@ export default function ConversationsPage() {
     }
   }
 
-  const formatMessageTime = (date: Date) => {
-    const messageDate = new Date(date)
+  const formatMessageTime = (date: Date | string) => {
+    // Si es string, parsearlo primero
+    const messageDate = typeof date === 'string' ? parseISO(date) : new Date(date)
+    
+    // Validar que la fecha es válida
+    if (isNaN(messageDate.getTime())) {
+      return 'Fecha inválida'
+    }
+    
     if (isToday(messageDate)) {
       return format(messageDate, 'HH:mm', { locale: es })
     } else if (isYesterday(messageDate)) {
@@ -667,7 +674,16 @@ export default function ConversationsPage() {
                             fontSize: '0.7rem',
                           }}
                         >
-                          {format(new Date(message.timestamp), 'HH:mm', { locale: es })}
+                          {(() => {
+                            try {
+                              const timestamp = typeof message.timestamp === 'string' 
+                                ? parseISO(message.timestamp) 
+                                : new Date(message.timestamp)
+                              return format(timestamp, 'HH:mm', { locale: es })
+                            } catch (error) {
+                              return '--:--'
+                            }
+                          })()}
                         </Typography>
                       </Paper>
                     </Box>
