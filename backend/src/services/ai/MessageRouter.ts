@@ -1287,6 +1287,40 @@ ${bookingLink}`;
         }
       }
 
+      // ============================================
+      // VERIFICACIÓN FINAL: Control humano activado durante el procesamiento
+      // ============================================
+      // Verificar una última vez antes de guardar la respuesta de la IA
+      // por si el control humano se activó mientras se procesaba el mensaje
+      const finalHumanControlCheck = await HumanTakeoverService.isUnderHumanControl(conversation.id);
+      
+      if (finalHumanControlCheck) {
+        logger.warn('🙋 Human control activated during message processing - Discarding AI response', {
+          conversationId: conversation.id,
+          clientId: client.id,
+          aiResponsePreview: aiResponse.message.substring(0, 100)
+        });
+        
+        const processingTime = Date.now() - startTime;
+        
+        return {
+          response: {
+            message: '', // No enviar respuesta de la IA
+            intent: 'human_takeover_active',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              humanControlActive: true,
+              aiResponseDiscarded: true
+            }
+          },
+          conversationId: conversation.id,
+          clientId: client.id,
+          messageId: clientMessage.id,
+          processingTime
+        };
+      }
+
       // Guardar respuesta del AI (con metadata completo incluyendo serviceId)
       const aiMessage = await ConversationModel.addMessage(conversation.id, {
         senderType: 'ai',
