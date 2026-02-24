@@ -86,6 +86,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       })
 
       newSocket.on('conversation_escalated', (data: any) => {
+        console.log('🚨 ESCALATION EVENT RECEIVED:', {
+          data,
+          timestamp: new Date().toISOString(),
+          currentNotificationsCount: state.notifications.length
+        })
+        
         const notification: Notification = {
           id: Date.now().toString(),
           type: 'warning',
@@ -94,7 +100,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           timestamp: new Date(),
           read: false,
         }
+        
         dispatch({ type: 'ADD_NOTIFICATION', payload: notification })
+        
+        console.log('✅ ESCALATION NOTIFICATION ADDED:', notification)
       })
 
       newSocket.on('low_stock_alert', (data: any) => {

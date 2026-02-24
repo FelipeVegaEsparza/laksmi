@@ -69,15 +69,25 @@ export default function ConversationsPage() {
   }, [])
 
   // Actualizar título de la pestaña cuando hay mensajes no leídos
+  // IMPORTANTE: No interferir con notificaciones de escalación del Layout
   useEffect(() => {
-    if (unreadCount > 0) {
-      document.title = `(${unreadCount}) ${originalTitleRef.current}`
-    } else {
-      document.title = originalTitleRef.current
+    // Solo actualizar título si no hay notificaciones de escalación activas
+    const hasEscalationNotifications = document.title.includes('Nueva escalación') || 
+                                       document.title.includes('escalación')
+    
+    if (!hasEscalationNotifications) {
+      if (unreadCount > 0) {
+        document.title = `(${unreadCount}) ${originalTitleRef.current}`
+      } else {
+        document.title = originalTitleRef.current
+      }
     }
 
     return () => {
-      document.title = originalTitleRef.current
+      // Solo restaurar si no hay notificaciones de escalación
+      if (!document.title.includes('Nueva escalación') && !document.title.includes('escalación')) {
+        document.title = originalTitleRef.current
+      }
     }
   }, [unreadCount])
 
