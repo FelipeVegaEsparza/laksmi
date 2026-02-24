@@ -182,12 +182,26 @@ export default function ConversationsPage() {
     }
   }, [selectedConversation])
 
-  const handleSelectConversation = (conversation: Conversation) => {
+  const handleSelectConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)
     setConversationMessages([])
 
     // Resetear contador de no leídos al seleccionar conversación
     setUnreadCount(0)
+    
+    // Sincronizar el estado del toggle con el estado real de la conversación
+    // Si la conversación está escalada, el control humano está activo (IA desactivada)
+    // Si la conversación está activa, la IA está activa
+    setAiEnabled(prev => ({
+      ...prev,
+      [conversation.id]: conversation.status !== 'escalated'
+    }))
+    
+    console.log('📋 Conversación seleccionada:', {
+      id: conversation.id,
+      status: conversation.status,
+      aiEnabled: conversation.status !== 'escalated'
+    })
   }
 
   const handleEditClient = () => {
@@ -237,21 +251,8 @@ export default function ConversationsPage() {
         // Activar AI - finalizar control humano
         console.log('📤 Enviando petición para activar IA...')
         
-        // Primero verificar si tenemos control
-        const statusResponse: any = await apiService.get(`/human-takeover/${conversationId}/status`)
-        console.log('📊 Estado actual:', statusResponse)
-        
-        if (!statusResponse?.data?.isUnderHumanControl) {
-          // Ya está en modo IA, solo actualizar UI
-          console.log('ℹ️ La conversación ya está en modo IA')
-          setAiEnabled(prev => ({
-            ...prev,
-            [conversationId]: true
-          }))
-          showNotification('La conversación ya está en modo IA', 'info')
-          return
-        }
-        
+        // SIEMPRE intentar finalizar el control humano, sin verificar estado previo
+        // Esto asegura que la BD se actualice correctamente incluso si hay desincronización
         const response = await apiService.post(`/human-takeover/${conversationId}/end`, {
           resolution: 'Control devuelto a IA por el agente'
         })
@@ -279,8 +280,11 @@ export default function ConversationsPage() {
         })
       }
 
-      // Refrescar lista de conversaciones
-      fetchConversations()
+      // Refrescar lista de conversaciones después de un pequeño delay
+      // para dar tiempo a que la BD se actualice
+      setTimeout(() => {
+        fetchConversations()
+      }, 500)
       
     } catch (error: any) {
       console.error('❌ Error toggling AI:', error)
