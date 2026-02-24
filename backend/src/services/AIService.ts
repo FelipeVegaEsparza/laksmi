@@ -85,25 +85,11 @@ NUNCA escales por:
 - Cliente confundido (explica de nuevo con más claridad)
 
 ⚠️⚠️⚠️ CUANDO NO TIENES INFORMACIÓN O USUARIO HACE PREGUNTA GENERAL:
-Si no encuentras información específica en la base de conocimientos, o el usuario hace una pregunta muy general, muestra este menú:
+Si no encuentras información específica en la base de conocimientos, responde de forma amigable:
 
-"Lo siento, no tengo esa información específica. Sin embargo, puedo ayudarte con:
+"Lo siento, no tengo esa información específica en este momento. ¿Hay algo más en lo que pueda ayudarte?"
 
-1. Ver nuestros servicios
-2. Hacer una consulta  
-3. Agendar una cita
-
-⚠️ IMPORTANTE: Responde SOLO con el número de tu opción."
-
-CÓMO INTERPRETAR LA RESPUESTA DEL USUARIO:
-- Si el usuario acaba de ver este menú de 3 opciones Y responde solo "1", "2" o "3":
-  * "1" = Quiere ver servicios → Pregunta "¿Qué tipo de servicio te interesa? (depilación, facial, corporal, manicure)"
-  * "2" = Quiere hacer consulta → Pregunta "¿Qué te gustaría saber?"
-  * "3" = Quiere agendar → Pregunta "¿Qué servicio te gustaría agendar?"
-
-- Si el usuario está viendo una lista de SERVICIOS ESPECÍFICOS con precios y responde "1", "2", etc.:
-  * Está eligiendo ese servicio de la lista
-  * Dale información sobre ese servicio específico
+NO incluyas opciones numeradas al final de tus respuestas. El sistema enviará automáticamente un menú después de tu respuesta.
 
 FORMATO GENERAL:
 - Párrafos cortos
@@ -126,50 +112,6 @@ FORMATO GENERAL:
         logger.warn('OpenAI API key not configured, using fallback response');
         return this.getFallbackResponse(userMessage);
       }
-
-      // ============================================
-      // DETECCIÓN PROGRAMÁTICA DEL MENÚ GENERAL
-      // ============================================
-      // Verificar si el último mensaje del bot fue el menú general de 3 opciones
-      const lastBotMessage = conversationHistory.length > 0 
-        ? conversationHistory[conversationHistory.length - 1] 
-        : null;
-      
-      // Detección más flexible del menú general
-      const isGeneralMenu = lastBotMessage && 
-        lastBotMessage.role === 'assistant' &&
-        (lastBotMessage.content.includes('Ver nuestros servicios') || lastBotMessage.content.includes('1. Ver')) &&
-        (lastBotMessage.content.includes('consulta') || lastBotMessage.content.includes('2. Hacer')) &&
-        (lastBotMessage.content.includes('Agendar') || lastBotMessage.content.includes('3. Agendar'));
-      
-      // Si el usuario responde con solo "1", "2" o "3" después del menú general
-      const userChoice = userMessage.trim();
-      if (isGeneralMenu && ['1', '2', '3'].includes(userChoice)) {
-        logger.info('General menu option detected', { 
-          choice: userChoice, 
-          conversationId,
-          lastMessage: lastBotMessage?.content.substring(0, 100)
-        });
-        
-        let forcedResponse = '';
-        if (userChoice === '1') {
-          forcedResponse = '¡Perfecto! 😊 ¿Qué tipo de servicio te interesa?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nPuedes decirme el nombre del servicio o categoría que te interesa.';
-        } else if (userChoice === '2') {
-          forcedResponse = '¡Claro! Estoy aquí para ayudarte. 😊\n\n¿Qué te gustaría saber sobre nuestros servicios, tratamientos o la clínica?';
-        } else if (userChoice === '3') {
-          forcedResponse = '¡Excelente! Te ayudaré a agendar tu cita. 😊\n\n¿Qué tipo de servicio te gustaría agendar?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nDime cuál te interesa y te mostraré las opciones disponibles.';
-        }
-        
-        return {
-          message: forcedResponse,
-          usedKnowledgeBase: false,
-          confidence: 1.0,
-          suggestedActions: undefined,
-        };
-      }
-      // ============================================
-      // FIN DETECCIÓN PROGRAMÁTICA
-      // ============================================
 
       // Search knowledge base for relevant information
       const knowledgeContext = await KnowledgeService.getContextForAI(userMessage, conversationId);

@@ -1349,6 +1349,46 @@ ${bookingLink}`;
         }
       });
 
+      // ============================================
+      // ENVIAR MENSAJE DE REINICIO DESPUÉS DE RESPUESTAS GENERALES
+      // ============================================
+      // Detectar si fue una respuesta general (no tiene SERVICE_ID, no es selección de servicio)
+      const isGeneralResponse = !extractedServiceId && 
+                                !aiResponse.message.includes('⚠️ IMPORTANTE: Responde SOLO con el número') &&
+                                !aiResponse.message.match(/^\d+\./m); // No empieza con lista numerada
+      
+      if (isGeneralResponse) {
+        logger.info('📨 Sending restart menu after general response', {
+          conversationId: conversation.id,
+          clientName: client.name
+        });
+        
+        // Crear mensaje de reinicio
+        const restartMessage = `¡Hola ${client.name}! 👋 Bienvenido a Laxmi, tu clínica de belleza.
+
+¿En qué puedo ayudarte hoy?
+
+1. Ver nuestros servicios
+2. Hacer una consulta
+3. Agendar una cita
+
+⚠️ IMPORTANTE: Responde SOLO con el número de tu opción.`;
+        
+        // Guardar mensaje de reinicio en la BD
+        await ConversationModel.addMessage(conversation.id, {
+          senderType: 'ai',
+          content: restartMessage,
+          metadata: {
+            intent: 'restart_menu',
+            isRestartMessage: true
+          }
+        });
+        
+        logger.info('✅ Restart menu sent', {
+          conversationId: conversation.id
+        });
+      }
+
       // Actualizar contexto con la respuesta
       await ContextManager.addMessageToContext(conversation.id, aiMessage);
 
