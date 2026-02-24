@@ -379,15 +379,32 @@ export class HumanTakeoverService {
       // Check database for takeover state
       const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
-      if (!state || !state.active || state.agentId !== humanAgentId) {
+      // Si no hay control humano activo, retornar éxito (ya está liberado)
+      if (!state || !state.active) {
+        logger.info('🔓 No active human takeover found, conversation already in AI mode', {
+          conversationId,
+          humanAgentId
+        });
+        
         return {
-          success: false,
-          message: 'No tienes control de esta conversación'
+          success: true,
+          message: 'La conversación ya está en modo IA'
         };
       }
+      
+      // CAMBIO IMPORTANTE: Permitir que cualquier agente pueda liberar el control
+      // Esto es útil cuando un agente se desconecta o hay problemas de sesión
+      // Solo verificar que haya control activo, no quién lo tiene
+      logger.info('🔓 Releasing human takeover', {
+        conversationId,
+        currentAgentId: state.agentId,
+        requestingAgentId: humanAgentId,
+        isSameAgent: state.agentId === humanAgentId
+      });
 
       // Clear takeover state in database
-      await ConversationModel.setHumanTakeover(conversationId, humanAgentId, false);
+      // Usar el agentId actual del estado, no el del request
+      await ConversationModel.setHumanTakeover(conversationId, state.agentId!, false);
 
       logger.info('🔓 Human takeover deactivated in database', {
         conversationId,
