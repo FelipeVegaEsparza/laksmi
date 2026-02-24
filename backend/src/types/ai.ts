@@ -188,7 +188,8 @@ export interface ProcessMessageResponse {
   response: AIResponse;
   conversationId: string;
   clientId: string; // ID real del cliente en la BD
-  messageId: string;
+  messageId: string; // ID del mensaje de la IA (o del cliente si no hay respuesta de IA)
+  clientMessageId?: string; // ID del mensaje del cliente
   processingTime: number;
 }
 

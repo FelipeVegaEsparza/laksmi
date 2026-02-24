@@ -282,6 +282,22 @@ const ChatWidget = () => {
           console.log('💬 Conversation ID set:', convId);
         }
         
+        // IMPORTANTE: Actualizar el ID temporal del mensaje del usuario con el ID real del servidor
+        // para evitar duplicados cuando el polling traiga los mensajes
+        const serverUserMessageId = (response as any).data?.clientMessageId || (response as any).clientMessageId;
+        if (serverUserMessageId) {
+          console.log('🔄 Updating user message ID from temp to server:', { temp: tempId, server: serverUserMessageId });
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
+          ));
+        }
+        
+        // Actualizar timestamp para que el polling no traiga este mensaje de nuevo
+        const futureTimestamp = new Date(Date.now() + 1000).toISOString();
+        setLastMessageTimestamp(futureTimestamp);
+        
+        setIsLoading(false);
+        
         // NO agregar ningún mensaje del bot
         // El agente humano responderá cuando esté listo
         return;
@@ -328,11 +344,12 @@ const ChatWidget = () => {
       
       console.log('📨 Final message to display:', messageContent);
       
-      // Extraer messageId del servidor para el mensaje del usuario
-      const serverUserMessageId = (response as any).data?.userMessageId || (response as any).userMessageId;
+      // Extraer clientMessageId del servidor para el mensaje del usuario
+      const serverUserMessageId = (response as any).data?.clientMessageId || (response as any).clientMessageId;
       
       // Reemplazar el mensaje temporal con el ID real del servidor
       if (serverUserMessageId) {
+        console.log('🔄 Updating user message ID:', { temp: tempId, server: serverUserMessageId });
         setMessages(prev => prev.map(msg => 
           msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
         ));

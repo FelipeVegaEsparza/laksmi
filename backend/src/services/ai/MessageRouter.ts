@@ -196,7 +196,8 @@ export class MessageRouter {
           },
           conversationId: conversation.id,
           clientId: client.id,
-          messageId: clientMessage.id,
+          clientMessageId: clientMessage.id, // ID del mensaje del cliente
+          messageId: clientMessage.id, // Por compatibilidad
           processingTime
         };
       }
@@ -1410,7 +1411,8 @@ ${bookingLink}`;
         response: aiResponse,
         conversationId: conversation.id,
         clientId: client.id, // Devolver el clientId real de la BD
-        messageId: aiMessage.id,
+        clientMessageId: clientMessage.id, // ID del mensaje del cliente
+        messageId: aiMessage.id, // ID del mensaje de la IA
         processingTime
       };
 
