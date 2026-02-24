@@ -159,14 +159,23 @@ export class MessageRouter {
       const { HumanTakeoverService } = await import('./HumanTakeoverService');
       const isUnderHumanControl = await HumanTakeoverService.isUnderHumanControl(conversation.id);
 
+      logger.info('🔍 HUMAN CONTROL CHECK', {
+        conversationId: conversation.id,
+        isUnderHumanControl,
+        clientId: client.id,
+        channel: request.channel,
+        messageContent: request.content.substring(0, 50)
+      });
+
       if (isUnderHumanControl) {
         const session = await HumanTakeoverService.getActiveSession(conversation.id);
         
-        logger.info('🙋 Message received but conversation is under human control - Bot will NOT respond', {
+        logger.warn('🙋 Message received but conversation is under human control - Bot will NOT respond', {
           conversationId: conversation.id,
           clientId: client.id,
           humanAgentId: session?.humanAgentId,
-          channel: request.channel
+          channel: request.channel,
+          messageContent: request.content
         });
 
         // Solo retornar confirmación de que el mensaje fue recibido

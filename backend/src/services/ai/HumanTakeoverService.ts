@@ -588,12 +588,26 @@ export class HumanTakeoverService {
       // Query database for takeover state
       const state = await ConversationModel.getHumanTakeoverState(conversationId);
       
+      logger.info('🔍 Checking human takeover state from DB', {
+        conversationId,
+        state: state ? {
+          active: state.active,
+          agentId: state.agentId,
+          lastMessageTime: state.lastMessageTime
+        } : null
+      });
+      
       if (!state || !state.active) {
+        logger.info('✅ No human control - AI can respond', { conversationId });
         return false;
       }
 
       // Si está activo, está bajo control humano - sin importar el tiempo transcurrido
       // Solo se desactiva manualmente desde el dashboard
+      logger.warn('🙋 Human control ACTIVE - AI should NOT respond', {
+        conversationId,
+        agentId: state.agentId
+      });
       return true;
     } catch (error) {
       logger.error('Database error checking human takeover state:', error);
