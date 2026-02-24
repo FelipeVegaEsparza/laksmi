@@ -43,6 +43,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import ClientForm from '@/components/ClientForm'
 import FormModal from '@/components/FormModal'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -674,16 +675,7 @@ export default function ConversationsPage() {
                             fontSize: '0.7rem',
                           }}
                         >
-                          {(() => {
-                            try {
-                              const timestamp = typeof message.timestamp === 'string' 
-                                ? parseISO(message.timestamp) 
-                                : new Date(message.timestamp)
-                              return format(timestamp, 'HH:mm', { locale: es })
-                            } catch (error) {
-                              return '--:--'
-                            }
-                          })()}
+                          {safeFormatDate(message.timestamp, 'HH:mm', '--:--')}
                         </Typography>
                       </Paper>
                     </Box>

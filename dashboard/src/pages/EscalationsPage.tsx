@@ -35,8 +35,9 @@ import {
   PlayArrow as PlayArrowIcon,
   Pause as PauseIcon,
 } from '@mui/icons-material'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { safeFormatDate } from '@/utils/dateUtils'
 import { apiService } from '@/services/apiService'
 import { useNotifications } from '@/contexts/NotificationContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -402,7 +403,7 @@ export default function EscalationsPage() {
                 )}
 
                 <Typography variant="caption" color="textSecondary">
-                  {format(new Date(escalation.timestamp), 'dd/MM/yyyy HH:mm', { locale: es })}
+                  {safeFormatDate(escalation.timestamp, 'dd/MM/yyyy HH:mm')}
                 </Typography>
 
                 {escalation.humanAgentId && (
