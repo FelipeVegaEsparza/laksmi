@@ -266,6 +266,27 @@ const ChatWidget = () => {
       
       const response = await chatApi.sendMessage(messageToSend, clientId, metadata);
       
+      console.log('Chat response:', response);
+      
+      // Verificar si el control humano está activo
+      const humanControlActive = (response as any).response?.metadata?.humanControlActive || 
+                                 (response as any).data?.response?.metadata?.humanControlActive;
+      
+      if (humanControlActive) {
+        console.log('🙋 Human control is active - not showing any bot message');
+        
+        // Guardar conversationId para polling
+        const convId = (response as any).data?.conversationId || (response as any).conversationId;
+        if (convId) {
+          setConversationId(convId);
+          console.log('💬 Conversation ID set:', convId);
+        }
+        
+        // NO agregar ningún mensaje del bot
+        // El agente humano responderá cuando esté listo
+        return;
+      }
+      
       // Extraer el mensaje de la respuesta
       let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
       
@@ -374,10 +395,30 @@ const ChatWidget = () => {
 
         const response = await chatApi.sendMessage(message, clientId, metadata);
 
+        console.log('Chat response:', response);
+
+        // Verificar si el control humano está activo
+        const humanControlActive = (response as any).response?.metadata?.humanControlActive || 
+                                   (response as any).data?.response?.metadata?.humanControlActive;
+        
+        if (humanControlActive) {
+          console.log('🙋 Human control is active - not showing any bot message');
+          
+          // Guardar conversationId para polling
+          const convId = (response as any).data?.conversationId || (response as any).conversationId;
+          if (convId) {
+            setConversationId(convId);
+            console.log('💬 Conversation ID set:', convId);
+          }
+          
+          // NO agregar ningún mensaje del bot
+          // El agente humano responderá cuando esté listo
+          setIsLoading(false);
+          return;
+        }
+
         // Extraer el mensaje de la respuesta
         let messageContent = 'Lo siento, no pude procesar tu mensaje. ¿Podrías intentarlo de nuevo?';
-
-        console.log('Chat response:', response);
 
         if (typeof response === 'string') {
           messageContent = response;

@@ -85,17 +85,9 @@ export class HumanTakeoverService {
       await ConversationModel.updateContext(conversationId, updatedContext);
       await ConversationModel.updateStatus(conversationId, 'escalated');
 
-      // Agregar mensaje del sistema
-      await ConversationModel.addMessage(conversationId, {
-        senderType: 'ai',
-        content: `Un agente humano ha tomado control de la conversación. Te atenderá personalmente.`,
-        metadata: {
-          systemMessage: true,
-          humanAgentId,
-          takeoverTime: new Date().toISOString()
-        }
-      });
-
+      // NO enviar mensaje automático - el control humano debe ser silencioso
+      // El agente humano enviará su propio mensaje cuando esté listo
+      
       logger.info(`Human takeover started: ${conversationId} by ${humanAgentId}`, {
         escalationId,
         clientId: conversation.clientId,
@@ -310,17 +302,8 @@ export class HumanTakeoverService {
       // Actualizar estado de la conversación
       await ConversationModel.updateStatus(conversationId, 'active');
 
-      // Mensaje del sistema
-      await ConversationModel.addMessage(conversationId, {
-        senderType: 'ai',
-        content: `El agente humano ha pausado el control. Puedo continuar atendiéndote mientras tanto.`,
-        metadata: {
-          systemMessage: true,
-          pausedBy: humanAgentId,
-          pauseTime: new Date().toISOString()
-        }
-      });
-
+      // NO enviar mensaje automático - mantener silencio total
+      
       logger.info(`Human takeover paused: ${conversationId} by ${humanAgentId}`);
 
       return {
@@ -363,17 +346,8 @@ export class HumanTakeoverService {
       // Actualizar estado de la conversación
       await ConversationModel.updateStatus(conversationId, 'escalated');
 
-      // Mensaje del sistema
-      await ConversationModel.addMessage(conversationId, {
-        senderType: 'ai',
-        content: `El agente humano ha reanudado el control de la conversación.`,
-        metadata: {
-          systemMessage: true,
-          resumedBy: humanAgentId,
-          resumeTime: new Date().toISOString()
-        }
-      });
-
+      // NO enviar mensaje automático - mantener silencio total
+      
       logger.info(`Human takeover resumed: ${conversationId} by ${humanAgentId}`);
 
       return {
@@ -441,18 +415,9 @@ export class HumanTakeoverService {
         }
       }
 
-      // Mensaje del sistema
-      await ConversationModel.addMessage(conversationId, {
-        senderType: 'ai',
-        content: `La conversación ha sido devuelta al asistente automático. ¿En qué más puedo ayudarte?`,
-        metadata: {
-          systemMessage: true,
-          endedBy: humanAgentId,
-          endTime: new Date().toISOString(),
-          resolution
-        }
-      });
-
+      // NO enviar mensaje automático - mantener silencio total
+      // Cuando se desactiva el control humano, la IA simplemente vuelve a estar disponible
+      
       logger.info(`Human takeover ended: ${conversationId} by ${humanAgentId}`, {
         resolution: resolution?.substring(0, 100)
       });
@@ -671,19 +636,8 @@ export class HumanTakeoverService {
         await ConversationModel.updateContext(conversationId, updatedContext);
       }
 
-      // Mensaje del sistema
-      await ConversationModel.addMessage(conversationId, {
-        senderType: 'ai',
-        content: `La conversación ha sido transferida a otro agente especializado.`,
-        metadata: {
-          systemMessage: true,
-          transferFrom: fromAgentId,
-          transferTo: toAgentId,
-          transferTime: new Date().toISOString(),
-          reason
-        }
-      });
-
+      // NO enviar mensaje automático - mantener silencio total
+      
       logger.info(`Control transferred: ${conversationId} from ${fromAgentId} to ${toAgentId}`, {
         reason
       });
