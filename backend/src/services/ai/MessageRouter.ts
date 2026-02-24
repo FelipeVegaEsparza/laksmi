@@ -164,7 +164,8 @@ export class MessageRouter {
         isUnderHumanControl,
         clientId: client.id,
         channel: request.channel,
-        messageContent: request.content.substring(0, 50)
+        messageContent: request.content.substring(0, 50),
+        timestamp: new Date().toISOString()
       });
 
       if (isUnderHumanControl) {
@@ -175,7 +176,8 @@ export class MessageRouter {
           clientId: client.id,
           humanAgentId: session?.humanAgentId,
           channel: request.channel,
-          messageContent: request.content
+          messageContent: request.content,
+          timestamp: new Date().toISOString()
         });
 
         // Solo retornar confirmación de que el mensaje fue recibido

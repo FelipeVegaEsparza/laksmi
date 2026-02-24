@@ -412,6 +412,16 @@ export class HumanTakeoverService {
         timestamp: new Date().toISOString()
       });
 
+      // VERIFICAR QUE SE DESACTIVÓ CORRECTAMENTE
+      const verifyState = await ConversationModel.getHumanTakeoverState(conversationId);
+      logger.info('✅ Verification after deactivation', {
+        conversationId,
+        verifyState: verifyState ? {
+          active: verifyState.active,
+          agentId: verifyState.agentId
+        } : null
+      });
+
       // Actualizar contexto de la conversación
       const conversation = await ConversationModel.findById(conversationId);
       if (conversation) {
