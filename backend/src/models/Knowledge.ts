@@ -180,12 +180,26 @@ export class KnowledgeModel {
   static async updateFAQ(id: string, data: UpdateFAQRequest): Promise<KnowledgeFAQ> {
     const updateData: any = {};
     
+    logger.info('🔍 updateFAQ called', {
+      id,
+      dataReceived: data,
+      hasKeywords: 'keywords' in data,
+      keywordsValue: data.keywords,
+      keywordsType: typeof data.keywords,
+      keywordsIsArray: Array.isArray(data.keywords)
+    });
+    
     if (data.categoryId) updateData.category_id = data.categoryId;
     if (data.question) updateData.question = data.question;
     if (data.answer) updateData.answer = data.answer;
-    if (data.keywords) updateData.keywords = JSON.stringify(data.keywords);
+    if ('keywords' in data) updateData.keywords = JSON.stringify(data.keywords);
     if (data.displayOrder !== undefined) updateData.display_order = data.displayOrder;
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
+    
+    logger.info('🔍 updateData prepared', {
+      updateData,
+      hasKeywordsInUpdate: 'keywords' in updateData
+    });
     
     await db('knowledge_faqs').where({ id }).update(updateData);
     
