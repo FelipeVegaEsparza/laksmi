@@ -11,6 +11,7 @@ import {
 import { format } from 'date-fns'
 import { Booking, BookingFormData, Client, Service, Professional } from '@/types'
 import { apiService } from '@/services/apiService'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 interface BookingFormProps {
   booking?: Booking | null
@@ -213,7 +214,7 @@ export default function BookingForm({ booking, onSave, onCancel }: BookingFormPr
               fullWidth
               type="datetime-local"
               label="Fecha y Hora"
-              value={format(formData.dateTime, "yyyy-MM-dd'T'HH:mm")}
+              value={safeFormatDate(formData.dateTime, "yyyy-MM-dd'T'HH:mm")}
               onChange={(e) => handleDateTimeChange(new Date(e.target.value))}
               error={!!errors.dateTime}
               helperText={errors.dateTime}
@@ -222,7 +223,7 @@ export default function BookingForm({ booking, onSave, onCancel }: BookingFormPr
                 shrink: true,
               }}
               inputProps={{
-                min: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+                min: safeFormatDate(new Date(), "yyyy-MM-dd'T'HH:mm"),
               }}
             />
           </Grid>

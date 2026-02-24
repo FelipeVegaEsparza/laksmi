@@ -25,6 +25,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Notification } from '@/types'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 interface NotificationPanelProps {
   anchorEl: HTMLElement | null
@@ -149,7 +150,7 @@ export default function NotificationPanel({ anchorEl, open, onClose }: Notificat
                         {notification.message}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {format(notification.timestamp, 'dd/MM/yyyy HH:mm', { locale: es })}
+                        {safeFormatDate(notification.timestamp, 'dd/MM/yyyy HH:mm')}
                       </Typography>
                     </Box>
                   }

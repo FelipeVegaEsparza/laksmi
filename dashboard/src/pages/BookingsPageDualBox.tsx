@@ -32,6 +32,7 @@ import { apiService } from '../services/apiService'
 import { useSnackbar } from 'notistack'
 import LoadingSpinner from '../components/LoadingSpinner'
 import BoxCalendar from '../components/BoxCalendar'
+import { safeFormatDate } from '../utils/dateUtils'
 
 const statusColors: Record<string, 'default' | 'warning' | 'success' | 'error' | 'info'> = {
   pending_payment: 'warning',
@@ -155,7 +156,7 @@ export default function BookingsPageDualBox() {
   const handleEditBooking = (booking: Booking) => {
     setSelectedBooking(booking)
     setEditedBooking({
-      dateTime: format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm"),
+      dateTime: safeFormatDate(booking.dateTime, "yyyy-MM-dd'T'HH:mm"),
       box: booking.box || 'box1',
       status: booking.status,
       notes: booking.notes || ''
@@ -416,7 +417,7 @@ export default function BookingsPageDualBox() {
               <Box>
                 <Typography variant="caption" color="text.secondary">Fecha y Hora</Typography>
                 <Typography variant="body1">
-                  {format(new Date(selectedBooking.dateTime), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}
+                  {safeFormatDate(selectedBooking.dateTime, "d 'de' MMMM 'de' yyyy 'a las' HH:mm")}
                 </Typography>
               </Box>
               <Box>

@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, isToday, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { safeFormatDate } from '../utils/dateUtils'
 import { Booking } from '../types'
 import { apiService } from '../services/apiService'
 import { useSnackbar } from 'notistack'
@@ -194,7 +195,7 @@ export default function BookingsPage() {
   const handleEditBooking = (booking: Booking) => {
     setSelectedBooking(booking)
     setEditedBooking({
-      dateTime: format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm"),
+      dateTime: safeFormatDate(booking.dateTime, "yyyy-MM-dd'T'HH:mm"),
       status: booking.status,
       notes: booking.notes || ''
     })
@@ -495,7 +496,7 @@ export default function BookingsPage() {
                   {dayBookings.slice(0, 2).map(booking => (
                     <Chip
                       key={booking.id}
-                      label={format(new Date(booking.dateTime), 'HH:mm')}
+                      label={safeFormatDate(booking.dateTime, 'HH:mm')}
                       size="small"
                       color={statusColors[booking.status]}
                       onClick={(e) => {
@@ -633,7 +634,7 @@ export default function BookingsPage() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <BlockIcon sx={{ fontSize: 20, color: 'error.main' }} />
                       <Typography variant="h6" fontWeight="600" color="error.main">
-                        {format(new Date(slot.startTime), 'HH:mm')} - {format(new Date(slot.endTime), 'HH:mm')}
+                        {safeFormatDate(slot.startTime, 'HH:mm')} - {safeFormatDate(slot.endTime, 'HH:mm')}
                       </Typography>
                     </Box>                    <Chip
                       label="Bloqueado"
@@ -683,7 +684,7 @@ export default function BookingsPage() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Schedule sx={{ fontSize: 20, color: 'primary.main' }} />
                       <Typography variant="h6" fontWeight="600">
-                        {format(new Date(booking.dateTime), 'HH:mm')}
+                        {safeFormatDate(booking.dateTime, 'HH:mm')}
                       </Typography>
                     </Box>
                     <Chip
@@ -798,10 +799,10 @@ export default function BookingsPage() {
                   >
                     <TableCell>
                       <Typography variant="body2" fontWeight="500">
-                        {format(new Date(booking.dateTime), "d 'de' MMM, yyyy", { locale: es })}
+                        {safeFormatDate(booking.dateTime, "d 'de' MMM, yyyy")}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {format(new Date(booking.dateTime), 'HH:mm')}
+                        {safeFormatDate(booking.dateTime, 'HH:mm')}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -1041,7 +1042,7 @@ export default function BookingsPage() {
                   Fecha y Hora
                 </Typography>
                 <Typography variant="body1">
-                  {format(new Date(selectedBooking.dateTime), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                  {safeFormatDate(selectedBooking.dateTime, "d 'de' MMMM, yyyy 'a las' HH:mm")}
                 </Typography>
               </Box>
 
@@ -1255,7 +1256,7 @@ export default function BookingsPage() {
               onChange={(e) => setNewBooking({ ...newBooking, dateTime: e.target.value })}
               InputLabelProps={{ shrink: true }}
               inputProps={{
-                min: format(new Date(), "yyyy-MM-dd'T'HH:mm")
+                min: safeFormatDate(new Date(), "yyyy-MM-dd'T'HH:mm")
               }}
             />
 

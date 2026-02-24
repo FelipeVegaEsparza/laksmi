@@ -3,6 +3,7 @@ import { format, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Booking } from '../types'
 import { Edit as EditIcon, Block as BlockIcon, LockOpen as UnlockIcon } from '@mui/icons-material'
+import { safeFormatDate } from '../utils/dateUtils'
 
 interface BoxCalendarProps {
   boxId: 'box1' | 'box2'
@@ -104,7 +105,7 @@ export default function BoxCalendar({
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="body2" fontWeight="bold">
-                          {format(new Date(booking.dateTime), 'HH:mm')} - {booking.service?.name || 'Servicio sin nombre'}
+                          {safeFormatDate(booking.dateTime, 'HH:mm')} - {booking.service?.name || 'Servicio sin nombre'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {booking.client?.name || 'Cliente sin nombre'}
@@ -154,7 +155,7 @@ export default function BoxCalendar({
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <BlockIcon fontSize="small" color="error" />
                           <Typography variant="body2" fontWeight="bold" color="error.dark">
-                            {format(new Date(block.startTime), 'HH:mm')} - {format(new Date(block.endTime), 'HH:mm')}
+                            {safeFormatDate(block.startTime, 'HH:mm')} - {safeFormatDate(block.endTime, 'HH:mm')}
                           </Typography>
                         </Stack>
                         <Typography variant="caption" color="error.dark" display="block" sx={{ mt: 0.5 }}>

@@ -30,6 +30,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ConversationAlert } from '@/services/conversationMonitorService'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 interface ConversationAlertsProps {
   alerts: ConversationAlert[]
@@ -194,7 +195,7 @@ export default function ConversationAlerts({
                         </Typography>
                       )}
                       <Typography variant="caption" display="block" color="textSecondary">
-                        {format(new Date(alert.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es })}
+                        {safeFormatDate(alert.timestamp, 'dd/MM/yyyy HH:mm:ss')}
                       </Typography>
                     </Box>
                   }

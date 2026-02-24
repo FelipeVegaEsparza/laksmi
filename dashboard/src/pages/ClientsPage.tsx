@@ -39,6 +39,7 @@ import FormModal from '@/components/FormModal'
 import ClientForm from '@/components/ClientForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -246,7 +247,7 @@ export default function ClientsPage() {
       id: 'createdAt',
       label: 'Registro',
       minWidth: 120,
-      format: (value: Date) => format(new Date(value), 'dd/MM/yyyy', { locale: es }),
+      format: (value: Date) => safeFormatDate(value, 'dd/MM/yyyy'),
     },
   ]
 
@@ -426,7 +427,7 @@ export default function ClientsPage() {
                           secondary={
                             <Box>
                               <Typography variant="body2" component="span">
-                                {format(new Date(booking.dateTime), 'dd/MM/yyyy HH:mm', { locale: es })}
+                                {safeFormatDate(booking.dateTime, 'dd/MM/yyyy HH:mm')}
                               </Typography>
                               {booking.notes && (
                                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

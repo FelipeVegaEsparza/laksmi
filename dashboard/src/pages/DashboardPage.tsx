@@ -29,6 +29,7 @@ import { es } from 'date-fns/locale'
 import { DashboardMetrics, Booking, Conversation } from '@/types'
 import { apiService } from '@/services/apiService'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { safeFormatDate } from '@/utils/dateUtils'
 
 interface MetricCardProps {
   title: string
@@ -234,7 +235,7 @@ export default function DashboardPage() {
                       secondary={
                         <Box>
                           <Typography variant="body2" component="span">
-                            {booking.service?.name} - {format(new Date(booking.dateTime), 'dd/MM/yyyy HH:mm', { locale: es })}
+                            {booking.service?.name} - {safeFormatDate(booking.dateTime, 'dd/MM/yyyy HH:mm')}
                           </Typography>
                           <Box sx={{ mt: 0.5 }}>
                             <Chip
@@ -283,7 +284,7 @@ export default function DashboardPage() {
                       secondary={
                         <Box>
                           <Typography variant="body2" component="span">
-                            Canal: {conversation.channel} - {format(new Date(conversation.lastActivity), 'dd/MM/yyyy HH:mm', { locale: es })}
+                            Canal: {conversation.channel} - {safeFormatDate(conversation.lastActivity, 'dd/MM/yyyy HH:mm')}
                           </Typography>
                           <Box sx={{ mt: 0.5 }}>
                             <Chip
