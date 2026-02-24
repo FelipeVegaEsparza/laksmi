@@ -334,11 +334,8 @@ const ChatWidget = () => {
         if (realClientId && realClientId !== clientId) {
           console.log('🔄 Updating clientId from temporary to real:', { old: clientId, new: realClientId });
           localStorage.setItem('chat_client_id', realClientId);
-          // Actualizar el contexto si está disponible
-          if (chatContext?.clientId !== realClientId) {
-            // El contexto se actualizará en el próximo render
-            window.location.reload(); // Recargar para actualizar el contexto
-          }
+          // NO recargar la página, el contexto se actualizará automáticamente
+          // El ChatContext ya maneja la actualización del clientId
         }
       }
       
