@@ -1299,7 +1299,7 @@ ${bookingLink}`;
       // ============================================
       // VERIFICACIÓN FINAL: Control humano activado durante el procesamiento
       // ============================================
-      // Verificar una última vez antes de guardar la respuesta de la IA
+      // Verificar una última vez ANTES de guardar la respuesta de la IA
       // por si el control humano se activó mientras se procesaba el mensaje
       const finalHumanControlCheck = await HumanTakeoverService.isUnderHumanControl(conversation.id);
       
@@ -1330,7 +1330,10 @@ ${bookingLink}`;
         };
       }
 
-      // Guardar respuesta del AI (con metadata completo incluyendo serviceId)
+      // ============================================
+      // GUARDAR RESPUESTA DEL AI
+      // ============================================
+      // Solo llegar aquí si NO hay control humano activo
       const aiMessage = await ConversationModel.addMessage(conversation.id, {
         senderType: 'ai',
         content: aiResponse.message,
