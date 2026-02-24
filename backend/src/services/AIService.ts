@@ -85,11 +85,11 @@ NUNCA escales por:
 - Cliente confundido (explica de nuevo con más claridad)
 
 ⚠️⚠️⚠️ CUANDO NO TIENES INFORMACIÓN O USUARIO HACE PREGUNTA GENERAL:
-Si no encuentras información específica en la base de conocimientos, responde de forma amigable:
+Si no encuentras información específica en la base de conocimientos, responde de forma amigable y al final agrega:
 
-"Lo siento, no tengo esa información específica en este momento. ¿Hay algo más en lo que pueda ayudarte?"
+"💡 Para reiniciar esta conversación, escribe 'hola'"
 
-NO incluyas opciones numeradas al final de tus respuestas. El sistema enviará automáticamente un menú después de tu respuesta.
+NO incluyas opciones numeradas. El usuario puede escribir "hola" para empezar de nuevo.
 
 FORMATO GENERAL:
 - Párrafos cortos
@@ -112,49 +112,6 @@ FORMATO GENERAL:
         logger.warn('OpenAI API key not configured, using fallback response');
         return this.getFallbackResponse(userMessage);
       }
-
-      // ============================================
-      // INTERCEPTAR RESPUESTAS AL MENÚ DE REINICIO
-      // ============================================
-      // Verificar si el último mensaje fue el menú de reinicio
-      const lastMessage = conversationHistory.length > 0 
-        ? conversationHistory[conversationHistory.length - 1] 
-        : null;
-      
-      const isRestartMenu = lastMessage && 
-                           lastMessage.role === 'assistant' &&
-                           lastMessage.content.includes('¿En qué puedo ayudarte hoy?') &&
-                           lastMessage.content.includes('1. Ver nuestros servicios') &&
-                           lastMessage.content.includes('2. Hacer una consulta') &&
-                           lastMessage.content.includes('3. Agendar una cita');
-      
-      const userChoice = userMessage.trim();
-      
-      if (isRestartMenu && ['1', '2', '3'].includes(userChoice)) {
-        logger.info('🎯 User responded to restart menu', {
-          choice: userChoice,
-          conversationId
-        });
-        
-        let directResponse = '';
-        if (userChoice === '1') {
-          directResponse = '¡Perfecto! 😊 ¿Qué tipo de servicio te interesa?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nPuedes decirme el nombre del servicio o categoría que te interesa.';
-        } else if (userChoice === '2') {
-          directResponse = '¡Claro! Estoy aquí para ayudarte. 😊\n\n¿Qué te gustaría saber sobre nuestros servicios, tratamientos o la clínica?';
-        } else if (userChoice === '3') {
-          directResponse = '¡Excelente! Te ayudaré a agendar tu cita. 😊\n\n¿Qué tipo de servicio te gustaría agendar?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nDime cuál te interesa y te mostraré las opciones disponibles.';
-        }
-        
-        return {
-          message: directResponse,
-          usedKnowledgeBase: false,
-          confidence: 1.0,
-          suggestedActions: undefined,
-        };
-      }
-      // ============================================
-      // FIN INTERCEPTACIÓN
-      // ============================================
 
       // Search knowledge base for relevant information
       const knowledgeContext = await KnowledgeService.getContextForAI(userMessage, conversationId);
