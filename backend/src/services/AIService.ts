@@ -146,9 +146,11 @@ FORMATO GENERAL:
         });
       }
 
-      // Add conversation history - TODA LA CONVERSACIÓN para que la IA tenga contexto completo
-      // Limitar a últimos 20 mensajes para no exceder límites de tokens
-      messages.push(...conversationHistory.slice(-20));
+      // Add conversation history - SOLO últimos 4 mensajes para enfocarse en contexto inmediato
+      // Esto evita confusión con opciones numeradas de mensajes anteriores
+      // 4 mensajes = últimos 2 intercambios (usuario-bot, usuario-bot)
+      const recentHistory = conversationHistory.slice(-4);
+      messages.push(...recentHistory);
 
       // Add current user message
       messages.push({
