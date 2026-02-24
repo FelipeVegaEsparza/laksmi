@@ -127,6 +127,45 @@ FORMATO GENERAL:
         return this.getFallbackResponse(userMessage);
       }
 
+      // ============================================
+      // DETECCIÓN PROGRAMÁTICA DEL MENÚ GENERAL
+      // ============================================
+      // Verificar si el último mensaje del bot fue el menú general de 3 opciones
+      const lastBotMessage = conversationHistory.length > 0 
+        ? conversationHistory[conversationHistory.length - 1] 
+        : null;
+      
+      const isGeneralMenu = lastBotMessage && 
+        lastBotMessage.role === 'assistant' &&
+        lastBotMessage.content.includes('1. Ver nuestros servicios') &&
+        lastBotMessage.content.includes('2. Hacer una consulta') &&
+        lastBotMessage.content.includes('3. Agendar una cita');
+      
+      // Si el usuario responde con solo "1", "2" o "3" después del menú general
+      const userChoice = userMessage.trim();
+      if (isGeneralMenu && ['1', '2', '3'].includes(userChoice)) {
+        logger.info('General menu option detected', { choice: userChoice, conversationId });
+        
+        let forcedResponse = '';
+        if (userChoice === '1') {
+          forcedResponse = '¡Perfecto! 😊 ¿Qué tipo de servicio te interesa?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nPuedes decirme el nombre del servicio o categoría que te interesa.';
+        } else if (userChoice === '2') {
+          forcedResponse = '¡Claro! Estoy aquí para ayudarte. 😊\n\n¿Qué te gustaría saber sobre nuestros servicios, tratamientos o la clínica?';
+        } else if (userChoice === '3') {
+          forcedResponse = '¡Excelente! Te ayudaré a agendar tu cita. 😊\n\n¿Qué tipo de servicio te gustaría agendar?\n\nTenemos:\n• Depilación láser\n• Tratamientos faciales\n• Tratamientos corporales\n• Manicure y pedicure\n\nDime cuál te interesa y te mostraré las opciones disponibles.';
+        }
+        
+        return {
+          message: forcedResponse,
+          usedKnowledgeBase: false,
+          confidence: 1.0,
+          suggestedActions: undefined,
+        };
+      }
+      // ============================================
+      // FIN DETECCIÓN PROGRAMÁTICA
+      // ============================================
+
       // Search knowledge base for relevant information
       const knowledgeContext = await KnowledgeService.getContextForAI(userMessage, conversationId);
       
