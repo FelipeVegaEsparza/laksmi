@@ -1148,8 +1148,6 @@ ${bookingLink}`;
           // EXTRAER SERVICE_ID DEL MENSAJE AI
           // ============================================
           let aiMessage = aiResult.message;
-          let extractedServiceId: string | null = null;
-          let extractedServiceName: string | null = null;
           
           const serviceIdMatch = aiMessage.match(/\[SERVICE_ID:([a-f0-9-]{36})\]/i);
           if (serviceIdMatch) {

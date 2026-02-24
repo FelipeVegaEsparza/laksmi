@@ -55,11 +55,6 @@ Cuando el usuario quiera agendar (diga "agendar", "reservar", "cita", o seleccio
 2. En una NUEVA LÍNEA, incluir EXACTAMENTE: [SERVICE_ID:xxx-xxx-xxx]
 3. NO agregues más texto después del SERVICE_ID
 
-FORMATO OBLIGATORIO para TODAS tus respuestas (EXCEPTO cuando usuario quiere agendar):
-1. Responde la pregunta o da la información
-2. SIEMPRE termina con opciones numeradas
-3. Indica: "⚠️ IMPORTANTE: Responde SOLO con el número de tu opción"
-
 REGLAS CRÍTICAS:
 1. NUNCA listes categorías generales, SIEMPRE servicios específicos con precios
 2. Usa el formato: "1. *Nombre (sesiones)* - $precio"
@@ -89,14 +84,13 @@ Si no encuentras información específica en la base de conocimientos, responde 
 
 "💡 Para reiniciar esta conversación, escribe 'hola'"
 
-NO incluyas opciones numeradas. El usuario puede escribir "hola" para empezar de nuevo.
+NO incluyas opciones numeradas al final de tus respuestas. El usuario puede escribir "hola" en cualquier momento para empezar de nuevo.
 
 FORMATO GENERAL:
 - Párrafos cortos
-- SIEMPRE listas numeradas con servicios específicos y precios
-- Emojis ocasionales
-- NUNCA dejes conversación sin opciones claras
-- SIEMPRE termina con "Responde con el número de tu opción"`;
+- Emojis ocasionales cuando sea apropiado
+- Respuestas claras y directas
+- Al final de respuestas generales, agrega: "💡 Para reiniciar esta conversación, escribe 'hola'"`;
 
   /**
    * Generate AI response with knowledge base integration
