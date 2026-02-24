@@ -145,7 +145,7 @@ export default function ConversationsPage() {
         if (unreadMessages.length > 0) {
           console.log('🔔 New unread messages detected:', unreadMessages.length)
           setUnreadCount(prev => prev + unreadMessages.length)
-          playNotificationSound()
+          // Sonido de notificación desactivado
         }
       }
 
@@ -156,15 +156,7 @@ export default function ConversationsPage() {
     }
   }
 
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3') // Sonido suave de notificación
-      audio.volume = 0.5
-      audio.play().catch(e => console.warn('Error playing sound:', e))
-    } catch (error) {
-      console.error('Error initializing audio:', error)
-    }
-  }
+
 
   useEffect(() => {
     fetchConversations()
