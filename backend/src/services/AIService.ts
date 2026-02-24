@@ -135,16 +135,21 @@ FORMATO GENERAL:
         ? conversationHistory[conversationHistory.length - 1] 
         : null;
       
+      // Detección más flexible del menú general
       const isGeneralMenu = lastBotMessage && 
         lastBotMessage.role === 'assistant' &&
-        lastBotMessage.content.includes('1. Ver nuestros servicios') &&
-        lastBotMessage.content.includes('2. Hacer una consulta') &&
-        lastBotMessage.content.includes('3. Agendar una cita');
+        (lastBotMessage.content.includes('Ver nuestros servicios') || lastBotMessage.content.includes('1. Ver')) &&
+        (lastBotMessage.content.includes('consulta') || lastBotMessage.content.includes('2. Hacer')) &&
+        (lastBotMessage.content.includes('Agendar') || lastBotMessage.content.includes('3. Agendar'));
       
       // Si el usuario responde con solo "1", "2" o "3" después del menú general
       const userChoice = userMessage.trim();
       if (isGeneralMenu && ['1', '2', '3'].includes(userChoice)) {
-        logger.info('General menu option detected', { choice: userChoice, conversationId });
+        logger.info('General menu option detected', { 
+          choice: userChoice, 
+          conversationId,
+          lastMessage: lastBotMessage?.content.substring(0, 100)
+        });
         
         let forcedResponse = '';
         if (userChoice === '1') {
