@@ -389,6 +389,12 @@ export class HumanTakeoverService {
       // Clear takeover state in database
       await ConversationModel.setHumanTakeover(conversationId, humanAgentId, false);
 
+      logger.info('🔓 Human takeover deactivated in database', {
+        conversationId,
+        humanAgentId,
+        timestamp: new Date().toISOString()
+      });
+
       // Actualizar contexto de la conversación
       const conversation = await ConversationModel.findById(conversationId);
       if (conversation) {
