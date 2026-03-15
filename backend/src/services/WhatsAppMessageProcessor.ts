@@ -1,6 +1,6 @@
 import { ClientModel } from '../models/Client';
 import { ConversationModel } from '../models/Conversation';
-import { MessageRouter } from './ai/MessageRouter';
+import { ChatbotOrchestrator } from './chatbot';
 import { WhatsAppConversationLogger } from './WhatsAppConversationLogger';
 import { TwilioWebhookPayload } from './TwilioService';
 import { ProcessMessageRequest, ConversationChannel } from '../types/ai';
@@ -98,8 +98,8 @@ export class WhatsAppMessageProcessor {
         }
       };
 
-      // Procesar con el router de IA
-      const aiResponse = await MessageRouter.processMessage(aiRequest);
+      // Procesar con el nuevo ChatbotOrchestrator
+      const aiResponse = await ChatbotOrchestrator.processMessage(aiRequest);
 
       // Registrar mensaje entrante en el logger
       await WhatsAppConversationLogger.logIncomingMessage(

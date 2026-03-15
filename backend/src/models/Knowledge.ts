@@ -1,4 +1,5 @@
 import db from '../config/database';
+import logger from '../utils/logger';
 import {
   KnowledgeCategory,
   KnowledgeArticle,

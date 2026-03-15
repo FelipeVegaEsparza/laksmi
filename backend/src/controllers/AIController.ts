@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { MessageRouter } from '../services/ai/MessageRouter';
+import { ChatbotOrchestrator } from '../services/chatbot';
 import { ContextManager } from '../services/ai/ContextManager';
 import { NLUService } from '../services/ai/NLUService';
 // import { DialogManager } from '../services/ai/DialogManager';
@@ -14,7 +14,7 @@ export class AIController {
     try {
       const messageRequest: ProcessMessageRequest = req.body;
       
-      const result = await MessageRouter.processMessage(messageRequest);
+      const result = await ChatbotOrchestrator.processMessage(messageRequest);
       
       res.json({
         success: true,
@@ -119,7 +119,7 @@ export class AIController {
         return;
       }
 
-      const result = await MessageRouter.processWhatsAppMessage(twilioPayload);
+      const result = await ChatbotOrchestrator.processWhatsAppMessage(twilioPayload);
       
       // Responder a Twilio con el mensaje del AI
       const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
@@ -386,7 +386,7 @@ export class AIController {
       
       const [conversationStats, routerStats, contextStats, nluStats] = await Promise.all([
         ConversationModel.getConversationStats(dateFrom, dateTo),
-        MessageRouter.getStats(),
+        ChatbotOrchestrator.getStats(),
         ContextManager.getStats(),
         NLUService.getStats()
       ]);
@@ -414,7 +414,7 @@ export class AIController {
   static async getConfig(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const config = {
-        messageRouter: MessageRouter.getConfig(),
+        messageRouter: ChatbotOrchestrator.getConfig(),
         contextManager: ContextManager.getConfig(),
         nlu: NLUService.getConfig()
         // dialogManager: DialogManager.getConfig()
@@ -440,7 +440,7 @@ export class AIController {
       
       switch (component) {
         case 'messageRouter':
-          MessageRouter.updateConfig(config);
+          ChatbotOrchestrator.updateConfig(config);
           break;
         case 'contextManager':
           ContextManager.updateConfig(config);
