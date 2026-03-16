@@ -27,11 +27,23 @@ export async function handleFreeQuery(
   conversationHistory: { role: string; content: string }[]
 ): Promise<{ message: string; nextState: ChatState; metadata?: Record<string, any> }> {
   try {
+    const faqAnswer = await knowledgeBase.search(userMessage);
+
+    if (faqAnswer) {
+      logger.info('FAQ answer found, returning directly without OpenAI', {
+        userMessage: userMessage.substring(0, 50)
+      });
+
+      return {
+        message: faqAnswer + '\n\n💡 Escribe \'hola\' para volver al inicio',
+        nextState: ChatState.FREE_QUERY,
+        metadata: { fromFAQ: true }
+      };
+    }
+
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-development') {
       return handleFallbackQuery(userMessage);
     }
-
-    const faqAnswer = await knowledgeBase.search(userMessage);
 
     const services = serviceMatcher.getAllServices();
     const categories = serviceMatcher.getCategories();
@@ -47,13 +59,6 @@ export async function handleFreeQuery(
       })),
       { role: 'user', content: userMessage }
     ];
-
-    if (faqAnswer) {
-      messages.splice(1, 0, {
-        role: 'system',
-        content: `PREGUNTAS FRECUENTES:\n${faqAnswer}`
-      });
-    }
 
     messages.splice(1, 0, {
       role: 'system',
