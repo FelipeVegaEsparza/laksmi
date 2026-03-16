@@ -4,8 +4,22 @@ import logger from '@/utils/logger';
 export class ServiceMatcher {
   private services: Service[] = [];
   private servicesByCategory: Map<string, Service[]> = new Map();
+  private lastLoad: Date | null = null;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
-  async loadServices(): Promise<void> {
+  async loadServices(forceReload = false): Promise<void> {
+    // Recargar si ha pasado el tiempo TTL o si es forzado
+    if (!forceReload && this.lastLoad) {
+      const timeSinceLastLoad = Date.now() - this.lastLoad.getTime();
+      if (timeSinceLastLoad < this.CACHE_TTL_MS && this.services.length > 0) {
+        logger.info('ServiceMatcher using cached services', { 
+          count: this.services.length, 
+          ageMs: timeSinceLastLoad 
+        });
+        return;
+      }
+    }
+
     try {
       const { ServiceService } = await import('../../ServiceService');
       const result = await ServiceService.getServices({ isActive: true, limit: 300 });
@@ -30,11 +44,18 @@ export class ServiceMatcher {
         this.servicesByCategory.get(category)!.push(service);
       }
 
-      logger.info(`ServiceMatcher loaded ${this.services.length} services`);
+      this.lastLoad = new Date();
+      logger.info(`ServiceMatcher loaded ${this.services.length} services (forceReload: ${forceReload})`);
     } catch (error) {
       logger.error('Error loading services:', error);
-      this.services = [];
+      if (this.services.length === 0) {
+        this.services = [];
+      }
     }
+  }
+
+  async ensureLoaded(): Promise<void> {
+    await this.loadServices();
   }
 
   findByName(query: string): Service | null {
@@ -113,10 +134,17 @@ export class ServiceMatcher {
   }
 
   getAllServices(): Service[] {
+    if (this.services.length === 0) {
+      this.loadServices(true); // Carga sincrónica si no hay datos
+    }
     return this.services;
   }
 
   getCategories(): { name: string; count: number }[] {
+    if (this.services.length === 0) {
+      this.loadServices(true);
+    }
+
     const categories: Map<string, number> = new Map();
 
     for (const [category, services] of this.servicesByCategory.entries()) {
