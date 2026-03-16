@@ -77,6 +77,7 @@ export interface ProcessMessageResponse {
   conversationId: string;
   clientId: string;
   messageId: string;
+  clientMessageId?: string;
   processingTime: number;
 }
 

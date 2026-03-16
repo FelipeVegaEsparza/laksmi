@@ -23,7 +23,8 @@ export class ConversationFlow {
     logger.info('ConversationFlow processing', {
       currentState: chatContext.currentState,
       awaitingOption: chatContext.awaitingOption,
-      message: normalizedMessage.substring(0, 50)
+      message: normalizedMessage.substring(0, 50),
+      isFreeQuery: this.isFreeQuery(normalizedMessage)
     });
 
     let result: FlowResult;
@@ -347,13 +348,12 @@ ${bookingLink}
     }
 
     if (this.isFreeQuery(message)) {
-      const history = (context as any).history || [];
-      const result = await handleFreeQuerySync(message, history);
       return {
-        message: result.message,
+        message: '',
         nextState: ChatState.FREE_QUERY,
-        metadata: result.metadata
-      };
+        awaitingOption: undefined,
+        isFreeQuery: true
+      } as FlowResult;
     }
 
     return {

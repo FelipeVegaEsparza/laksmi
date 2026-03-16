@@ -57,7 +57,7 @@ export class ChatbotOrchestrator {
 
       const client = await ClientModel.findById(request.clientId);
 
-      await this.saveUserMessage(conversation.id, request);
+      const userMessageResult = await this.saveUserMessage(conversation.id, request);
 
       const services = serviceMatcher.getAllServices();
       const categories = serviceMatcher.getCategories();
@@ -154,6 +154,7 @@ export class ChatbotOrchestrator {
         conversationId: conversation.id,
         clientId: request.clientId,
         messageId: aiMessage.id,
+        clientMessageId: userMessageResult.id,
         processingTime
       };
 
@@ -219,13 +220,14 @@ ${bookingLink}
 ¿Te gustaría algo más?`;
   }
 
-  private static async saveUserMessage(conversationId: string, request: ProcessMessageRequest): Promise<void> {
-    await ConversationModel.addMessage(conversationId, {
+  private static async saveUserMessage(conversationId: string, request: ProcessMessageRequest): Promise<{ id: string }> {
+    const message = await ConversationModel.addMessage(conversationId, {
       senderType: 'client',
       content: request.content,
       mediaUrl: request.mediaUrl,
       metadata: request.metadata
     });
+    return { id: message.id };
   }
 
   private static validateRequest(request: ProcessMessageRequest): void {

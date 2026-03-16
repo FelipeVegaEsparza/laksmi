@@ -342,7 +342,8 @@ const ChatWidget = () => {
       console.log('📨 Final message to display:', messageContent);
       
       // Extraer clientMessageId del servidor para el mensaje del usuario
-      const serverUserMessageId = (response as any).data?.clientMessageId || (response as any).clientMessageId;
+      // La respuesta ya viene como response.data.data desde la API
+      const serverUserMessageId = (response as any).clientMessageId;
       
       // Reemplazar el mensaje temporal con el ID real del servidor
       if (serverUserMessageId) {
