@@ -61,6 +61,14 @@ export class ConversationFlow {
       }
     }
 
+    if (this.isFreeQuery(message)) {
+      return {
+        message: 'Entiendo tu pregunta. Déjame buscar esa información...',
+        nextState: ChatState.FREE_QUERY,
+        awaitingOption: undefined
+      };
+    }
+
     if (num && num >= 1 && num <= categories.length) {
       const category = categories[num - 1];
       const categoryServices = serviceMatcher.getServicesByCategory(category.name);
@@ -110,6 +118,14 @@ export class ConversationFlow {
     const num = this.extractNumber(message);
 
     if (!num) {
+      if (this.isFreeQuery(message)) {
+        return {
+          message: 'Entiendo tu pregunta. Déjame buscar esa información...',
+          nextState: ChatState.FREE_QUERY,
+          awaitingOption: undefined
+        };
+      }
+
       const service = serviceMatcher.fuzzyMatch(message);
       if (service) {
         return this.showServiceDetails(service, context);
@@ -143,6 +159,14 @@ export class ConversationFlow {
     const { chatContext } = context;
     const num = this.extractNumber(message);
     const serviceId = chatContext.selectedServiceId;
+
+    if (this.isFreeQuery(message)) {
+      return {
+        message: 'Entiendo tu pregunta. Déjame buscar esa información...',
+        nextState: ChatState.FREE_QUERY,
+        awaitingOption: undefined
+      };
+    }
 
     if (!serviceId) {
       return {
@@ -300,6 +324,16 @@ ${bookingLink}
       };
     }
 
+    if (this.isFreeQuery(message)) {
+      const history = (context as any).history || [];
+      const result = await handleFreeQuerySync(message, history);
+      return {
+        message: result.message,
+        nextState: ChatState.FREE_QUERY,
+        metadata: result.metadata
+      };
+    }
+
     return {
       message: '¿Qué te gustaría hacer?\n\n1. Ver servicios\n2. Hacer consulta\n3. Agendar',
       nextState: ChatState.SERVICE_CATEGORY,
@@ -360,6 +394,38 @@ ${bookingLink}
     const affirmative = ['sí', 'si', 'claro', 'ok', 'perfecto', 'dale', 'si,', 'sí,', 'confirmo', 'quiero', 'agendar', 'reservar'];
     const normalized = message.toLowerCase().trim();
     return affirmative.some(a => normalized === a || normalized.startsWith(a + ' '));
+  }
+
+  private static isFreeQuery(message: string): boolean {
+    const normalized = message.toLowerCase().trim();
+    
+    const questionPatterns = [
+      '?',
+      '¿',
+      'donde', 'dónde',
+      'como', 'cómo',
+      'cuanto', 'cuánto',
+      'cual', 'cuál',
+      'cuando', 'cuándo',
+      'por que', 'por qué',
+      'necesito saber',
+      'me pueden decir',
+      'tienen información',
+      'quiero saber',
+      'me gustaría saber',
+      'horario',
+      'ubicación',
+      'dirección',
+      'direccion',
+      'teléfono',
+      'telefono',
+      'contacto',
+      'abi',
+      'cerrado',
+      'ubicados'
+    ];
+    
+    return questionPatterns.some(p => normalized.includes(p));
   }
 }
 
