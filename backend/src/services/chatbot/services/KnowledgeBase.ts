@@ -118,7 +118,7 @@ export class KnowledgeBase {
     }
 
     if (bestMatch && bestScore > 0) {
-      return `**${bestMatch.question}**\n\n${bestMatch.answer}`;
+      return bestMatch.answer;
     }
 
     return this.getCompanyInfoResponse(query);

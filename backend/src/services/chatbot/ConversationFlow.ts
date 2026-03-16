@@ -11,6 +11,7 @@ interface FlowResult {
   serviceOptions?: ServiceOption[];
   awaitingOption?: 'category' | 'service' | 'detail' | 'booking';
   metadata?: Record<string, any>;
+  isFreeQuery?: boolean;
 }
 
 export class ConversationFlow {
@@ -25,22 +26,40 @@ export class ConversationFlow {
       message: normalizedMessage.substring(0, 50)
     });
 
+    let result: FlowResult;
+
     switch (chatContext.awaitingOption) {
       case 'category':
-        return this.handleCategorySelection(message, context);
+        result = this.handleCategorySelection(message, context);
+        break;
 
       case 'service':
-        return this.handleServiceSelection(message, context);
+        result = this.handleServiceSelection(message, context);
+        break;
 
       case 'detail':
-        return this.handleDetailSelection(message, context);
+        result = this.handleDetailSelection(message, context);
+        break;
 
       case 'booking':
-        return this.handleBookingSelection(message, context);
+        result = this.handleBookingSelection(message, context);
+        break;
 
       default:
-        return this.handleFreeInput(message, context);
+        result = await this.handleFreeInput(message, context);
     }
+
+    if ((result as any).isFreeQuery) {
+      const history = (context as any).history || [];
+      const freeQueryResult = await handleFreeQuerySync(message, history);
+      return {
+        message: freeQueryResult.message,
+        nextState: freeQueryResult.nextState,
+        metadata: freeQueryResult.metadata
+      };
+    }
+
+    return result;
   }
 
   private static handleCategorySelection(message: string, context: StateContext): FlowResult {
@@ -63,9 +82,10 @@ export class ConversationFlow {
 
     if (this.isFreeQuery(message)) {
       return {
-        message: 'Entiendo tu pregunta. Déjame buscar esa información...',
         nextState: ChatState.FREE_QUERY,
-        awaitingOption: undefined
+        awaitingOption: undefined,
+        message: '',
+        isFreeQuery: true
       };
     }
 
@@ -120,10 +140,11 @@ export class ConversationFlow {
     if (!num) {
       if (this.isFreeQuery(message)) {
         return {
-          message: 'Entiendo tu pregunta. Déjame buscar esa información...',
+          message: '',
           nextState: ChatState.FREE_QUERY,
-          awaitingOption: undefined
-        };
+          awaitingOption: undefined,
+          isFreeQuery: true
+        } as FlowResult;
       }
 
       const service = serviceMatcher.fuzzyMatch(message);
@@ -162,10 +183,11 @@ export class ConversationFlow {
 
     if (this.isFreeQuery(message)) {
       return {
-        message: 'Entiendo tu pregunta. Déjame buscar esa información...',
+        message: '',
         nextState: ChatState.FREE_QUERY,
-        awaitingOption: undefined
-      };
+        awaitingOption: undefined,
+        isFreeQuery: true
+      } as FlowResult;
     }
 
     if (!serviceId) {
