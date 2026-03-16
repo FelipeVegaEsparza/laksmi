@@ -221,12 +221,14 @@ ${bookingLink}
   }
 
   private static async saveUserMessage(conversationId: string, request: ProcessMessageRequest): Promise<{ id: string }> {
+    logger.info('💾 Saving user message', { conversationId, content: request.content.substring(0, 30) });
     const message = await ConversationModel.addMessage(conversationId, {
       senderType: 'client',
       content: request.content,
       mediaUrl: request.mediaUrl,
       metadata: request.metadata
     });
+    logger.info('✅ User message saved', { messageId: message.id });
     return { id: message.id };
   }
 

@@ -127,10 +127,11 @@ const ChatWidget = () => {
             timestamp: new Date(msg.timestamp)
           }));
 
-          // Agregar solo mensajes que no existen ya
+          // Agregar solo mensajes que no existen ya (por ID O por contenido+sender)
           setMessages(prev => {
-            const existingIds = new Set(prev.map(m => m.id));
-            const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+            // Crear clave única para cada mensaje: sender + contenido
+            const existingKeys = new Set(prev.map(m => `${m.sender}:${m.content}`));
+            const uniqueNewMessages = newMessages.filter(m => !existingKeys.has(`${m.sender}:${m.content}`));
             
             if (uniqueNewMessages.length > 0) {
               console.log('📨 New messages received from polling:', uniqueNewMessages.length);
@@ -340,10 +341,13 @@ const ChatWidget = () => {
       }
       
       console.log('📨 Final message to display:', messageContent);
+      console.log('📨 Full response:', JSON.stringify(response));
       
       // Extraer clientMessageId del servidor para el mensaje del usuario
-      // La respuesta tiene estructura: { data: { clientMessageId, messageId, ... } }
-      const serverUserMessageId = (response as any).data?.clientMessageId || (response as any).clientMessageId;
+      // El API wrapper devuelve response.data.data directamente
+      const serverUserMessageId = (response as any).clientMessageId;
+      
+      console.log('🔍 clientMessageId found:', serverUserMessageId);
       
       // Reemplazar el mensaje temporal con el ID real del servidor
       if (serverUserMessageId) {
@@ -351,6 +355,8 @@ const ChatWidget = () => {
         setMessages(prev => prev.map(msg => 
           msg.id === tempId ? { ...msg, id: serverUserMessageId } : msg
         ));
+      } else {
+        console.log('⚠️ No clientMessageId found in response!');
       }
       
       // Extraer messageId del servidor para el mensaje del AI
