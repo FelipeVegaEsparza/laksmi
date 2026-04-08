@@ -14,13 +14,14 @@ REGLAS:
 2. Usa emojis ocasionalmente
 3. Si el usuario pregunta por un servicio específico, menciona el nombre y precio
 4. Si el usuario quiere agendar, pregunta qué servicio le interesa
-5. Si no tienes información, sé honesto y ofrece alternativas
+5. Si no tienes información suficiente o no estás seguro, di explícitamente "No tengo información sobre esto"
 6. Al final de respuestas generales, agrega: "💡 Escribe 'hola' para volver al inicio"
 
 NUNCA:
 - Inventar precios o información
 - Ser excesivamente largo
-- Mencionar que eres una IA`;
+- Mencionar que eres una IA
+- Dar respuestas vagas o inciertas sin admitir que no sabes`;
 
 export async function handleFreeQuery(
   userMessage: string,
@@ -74,6 +75,41 @@ export async function handleFreeQuery(
 
     let response = completion.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
 
+    // Detectar si la IA no sabe la respuesta
+    const uncertaintyPhrases = [
+      'no tengo información',
+      'no puedo ayudarte',
+      'no estoy seguro',
+      'no sé',
+      'no tengo esa información',
+      'no dispongo',
+      'no cuento con',
+      'lamentablemente no',
+      'desafortunadamente no'
+    ];
+
+    const responseNormalized = response.toLowerCase();
+    const isUncertain = uncertaintyPhrases.some(phrase => responseNormalized.includes(phrase));
+
+    // Si la IA no sabe la respuesta, escalar automáticamente
+    if (isUncertain) {
+      logger.info('AI is uncertain about the answer, escalating conversation', {
+        userMessage: userMessage.substring(0, 50),
+        aiResponse: response.substring(0, 100)
+      });
+
+      return {
+        message: 'Entiendo tu consulta, pero prefiero que un ejecutivo especializado te responda para darte la información más precisa. En un momento te atenderá un miembro de nuestro equipo. 👨‍💼',
+        nextState: ChatState.ESCALATION,
+        metadata: {
+          escalationReason: 'ai_uncertain',
+          needsHumanEscalation: true,
+          originalQuery: userMessage,
+          aiResponse: response
+        }
+      };
+    }
+
     const detectedService = serviceMatcher.fuzzyMatch(userMessage);
     let bookingLink: string | undefined;
 
@@ -104,6 +140,7 @@ export async function handleFreeQuery(
 function handleFallbackQuery(userMessage: string): {
   message: string;
   nextState: ChatState;
+  metadata?: Record<string, any>;
 } {
   const faqKeywords = [
     'horario', 'ubicación', 'dirección', 'contacto', 'teléfono',
@@ -128,9 +165,19 @@ function handleFallbackQuery(userMessage: string): {
     }
   }
 
+  // Si no coincide con ninguna palabra clave conocida, escalar automáticamente
+  logger.info('No FAQ match found, escalating conversation', {
+    userMessage: userMessage.substring(0, 50)
+  });
+
   return {
-    message: 'Gracias por tu mensaje. ¿Hay algo específico en lo que pueda ayudarte?\n\n1. Ver servicios\n2. Agendar cita\n3. Hablar con un agente',
-    nextState: ChatState.FREE_QUERY
+    message: 'Entiendo tu consulta, pero prefiero que un ejecutivo especializado te responda para darte la información más precisa. En un momento te atenderá un miembro de nuestro equipo. 👨‍💼',
+    nextState: ChatState.ESCALATION,
+    metadata: {
+      escalationReason: 'no_faq_match',
+      needsHumanEscalation: true,
+      originalQuery: userMessage
+    }
   };
 }
 
