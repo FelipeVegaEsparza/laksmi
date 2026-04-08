@@ -135,7 +135,7 @@ export interface Conversation {
   id: string
   clientId: string
   channel: 'web' | 'whatsapp'
-  status: 'active' | 'closed' | 'escalated'
+  status: 'active' | 'closed' | 'escalated' | 'resolved' | 'waiting'
   context: any
   lastActivity: Date
   createdAt: Date
