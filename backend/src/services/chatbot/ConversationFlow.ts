@@ -364,7 +364,17 @@ ${bookingLink}
   }
 
   private static showCategories(context: StateContext, forBooking = false): FlowResult {
-    const categories = serviceMatcher.getCategories();
+    // Use categories from context instead of calling serviceMatcher again
+    const categories = context.categories;
+
+    if (!categories || categories.length === 0) {
+      logger.error('showCategories called but no categories in context');
+      return {
+        message: 'Lo siento, no puedo cargar las categorías en este momento. Por favor, intenta de nuevo.',
+        nextState: ChatState.SERVICE_CATEGORY,
+        awaitingOption: 'category'
+      };
+    }
 
     let message = forBooking
       ? '¡Perfecto! Primero dime qué categoría te interesa.\n\n'

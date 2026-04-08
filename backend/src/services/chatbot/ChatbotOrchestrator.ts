@@ -59,9 +59,6 @@ export class ChatbotOrchestrator {
 
       const userMessageResult = await this.saveUserMessage(conversation.id, request);
 
-      // Asegurar que los servicios estén cargados antes de obtenerlos
-      await serviceMatcher.ensureLoaded();
-      
       const services = serviceMatcher.getAllServices();
       const categories = serviceMatcher.getCategories();
 

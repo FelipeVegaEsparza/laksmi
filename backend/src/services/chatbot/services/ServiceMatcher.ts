@@ -138,6 +138,12 @@ export class ServiceMatcher {
   }
 
   getCategories(): { name: string; count: number }[] {
+    // Si no hay servicios cargados, retornar array vacío en lugar de intentar cargar
+    if (this.services.length === 0) {
+      logger.warn('ServiceMatcher.getCategories() called but no services loaded');
+      return [];
+    }
+
     const categories: Map<string, number> = new Map();
 
     for (const [category, services] of this.servicesByCategory.entries()) {
