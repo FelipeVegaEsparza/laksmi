@@ -53,7 +53,7 @@ export interface UserPreferences {
 }
 
 export type ConversationChannel = 'web' | 'whatsapp';
-export type ConversationStatus = 'active' | 'closed' | 'escalated' | 'waiting';
+export type ConversationStatus = 'active' | 'closed' | 'escalated' | 'waiting' | 'resolved';
 export type BookingStep = 'service_selection' | 'date_selection' | 'time_selection' | 'confirmation' | 'completed';
 
 export interface Intent {
