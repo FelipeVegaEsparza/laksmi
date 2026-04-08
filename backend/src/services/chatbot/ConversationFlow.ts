@@ -138,18 +138,11 @@ export class ConversationFlow {
         };
       }
 
-      let serviceList = `Estos son los servicios de ${category.name}:\n\n`;
-
-      categoryServices.forEach((service, i) => {
-        const price = service.price ? `$${service.price.toLocaleString('es-CL')}` : 'Consultar';
-        const sessions = service.sessions ? ` (${service.sessions} sesiones)` : '';
-        serviceList += `${i + 1}. *${service.name}${sessions}* - ${price}\n`;
-      });
-
-      serviceList += '\n⚠️ Responde con el número del servicio que te interesa.';
+      // Generar lista de servicios dividida en múltiples mensajes si es necesario
+      const serviceMessages = this.generateServiceListMessages(category.name, categoryServices);
 
       return {
-        message: serviceList,
+        message: serviceMessages.join('\n\n---\n\n'),
         nextState: ChatState.SERVICE_LIST,
         selectedCategory: category.name,
         serviceOptions: categoryServices.map(s => ({
@@ -259,7 +252,7 @@ export class ConversationFlow {
         return {
           message: `💰 Precio de ${service.name}:
 
-• Precio: $${service.price?.toLocaleString('es-CL') || 'Consultar'}
+• Precio: ${service.price?.toLocaleString('es-CL') || 'Consultar'}
 • Sesiones: ${service.sessions || 'Consultar'}
 • Duración: ${service.duration || 'Consultar'} minutos
 
@@ -471,6 +464,53 @@ ${bookingLink}
     return menu;
   }
 
+  /**
+   * Genera mensajes de lista de servicios divididos para cumplir con el límite de WhatsApp (1600 chars)
+   * Divide la lista en múltiples mensajes si excede 1400 caracteres
+   */
+  private static generateServiceListMessages(categoryName: string, services: Service[]): string[] {
+    const MAX_MESSAGE_LENGTH = 1400; // Límite seguro para WhatsApp (1600 - margen)
+    const messages: string[] = [];
+    
+    let currentMessage = `Estos son los servicios de ${categoryName}:\n\n`;
+    let currentIndex = 0;
+    let partNumber = 1;
+    
+    services.forEach((service, i) => {
+      const price = service.price ? `${service.price.toLocaleString('es-CL')}` : 'Consultar';
+      const sessions = service.sessions ? ` (${service.sessions} sesiones)` : '';
+      const serviceLine = `${i + 1}. *${service.name}${sessions}* - ${price}\n`;
+      
+      // Si agregar este servicio excede el límite, guardar el mensaje actual y empezar uno nuevo
+      if (currentMessage.length + serviceLine.length > MAX_MESSAGE_LENGTH) {
+        // Agregar footer al mensaje actual
+        currentMessage += `\n⚠️ Responde con el número del servicio que te interesa.`;
+        messages.push(currentMessage);
+        
+        // Empezar nuevo mensaje
+        partNumber++;
+        currentMessage = `Servicios de ${categoryName} (parte ${partNumber}):\n\n${serviceLine}`;
+      } else {
+        currentMessage += serviceLine;
+      }
+    });
+    
+    // Agregar el último mensaje
+    if (currentMessage.length > 0) {
+      currentMessage += `\n⚠️ Responde con el número del servicio que te interesa.`;
+      messages.push(currentMessage);
+    }
+    
+    logger.info('Service list split into messages', {
+      categoryName,
+      totalServices: services.length,
+      messageCount: messages.length,
+      messageLengths: messages.map(m => m.length)
+    });
+    
+    return messages;
+  }
+
   private static extractNumber(message: string): number | null {
     const match = message.trim().match(/^\d+$/);
     return match ? parseInt(match[0], 10) : null;
@@ -563,4 +603,3 @@ async function handleFreeQuerySync(
 ): Promise<{ message: string; nextState: ChatState; metadata?: Record<string, any> }> {
   return handleFreeQuery(message, history);
 }
-
