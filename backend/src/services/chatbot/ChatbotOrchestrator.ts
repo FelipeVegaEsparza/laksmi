@@ -135,6 +135,11 @@ export class ChatbotOrchestrator {
         nextState = flowResult.nextState;
         metadata = flowResult.metadata || {};
 
+        // Guardar mensajes adicionales en metadata si existen
+        if (flowResult.additionalMessages && flowResult.additionalMessages.length > 0) {
+          metadata.additionalMessages = flowResult.additionalMessages;
+        }
+
         chatContext.currentState = nextState;
         if (flowResult.selectedCategory) {
           chatContext.selectedCategory = flowResult.selectedCategory;

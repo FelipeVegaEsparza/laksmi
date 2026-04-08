@@ -39,7 +39,8 @@ export class TwilioController {
         logger.info('✅ Sending TwiML response with message', {
           messageLength: result.response.length,
           clientId: result.clientId,
-          conversationId: result.conversationId
+          conversationId: result.conversationId,
+          hasAdditionalMessages: !!(result as any).additionalMessages
         });
 
         // Generar TwiML response usando el SDK de Twilio
@@ -50,6 +51,52 @@ export class TwilioController {
         // Responder con TwiML XML
         res.type('text/xml');
         res.status(200).send(twiml.toString());
+
+        // Enviar mensajes adicionales si existen (de forma asíncrona, después de responder)
+        const additionalMessages = (result as any).additionalMessages;
+        if (additionalMessages && Array.isArray(additionalMessages) && additionalMessages.length > 0) {
+          // Enviar mensajes adicionales de forma asíncrona
+          setImmediate(async () => {
+            try {
+              const phoneNumber = payload.From.replace('whatsapp:', '');
+              logger.info('📤 Sending additional messages', {
+                count: additionalMessages.length,
+                to: phoneNumber
+              });
+
+              for (let i = 0; i < additionalMessages.length; i++) {
+                const additionalMessage = additionalMessages[i];
+                logger.info(`📤 Sending additional message ${i + 1}/${additionalMessages.length}`, {
+                  messageLength: additionalMessage.length
+                });
+
+                const sendResult = await TwilioService.sendWhatsAppMessage({
+                  to: phoneNumber,
+                  body: additionalMessage
+                });
+
+                if (sendResult.success) {
+                  logger.info(`✅ Additional message ${i + 1} sent successfully`, {
+                    messageSid: sendResult.messageSid
+                  });
+                } else {
+                  logger.error(`❌ Failed to send additional message ${i + 1}`, {
+                    error: sendResult.error
+                  });
+                }
+
+                // Pequeña pausa entre mensajes para evitar rate limiting
+                if (i < additionalMessages.length - 1) {
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              }
+
+              logger.info('✅ All additional messages sent');
+            } catch (error: any) {
+              logger.error('❌ Error sending additional messages:', error);
+            }
+          });
+        }
       } else {
         logger.warn('⚠️  No response generated, sending empty TwiML');
         

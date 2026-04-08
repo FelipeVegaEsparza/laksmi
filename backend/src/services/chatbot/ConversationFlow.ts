@@ -12,6 +12,7 @@ interface FlowResult {
   awaitingOption?: 'category' | 'service' | 'detail' | 'booking';
   metadata?: Record<string, any>;
   isFreeQuery?: boolean;
+  additionalMessages?: string[]; // Para mensajes adicionales que deben enviarse por separado
 }
 
 export class ConversationFlow {
@@ -142,7 +143,8 @@ export class ConversationFlow {
       const serviceMessages = this.generateServiceListMessages(category.name, categoryServices);
 
       return {
-        message: serviceMessages.join('\n\n---\n\n'),
+        message: serviceMessages[0], // Primer mensaje
+        additionalMessages: serviceMessages.slice(1), // Mensajes adicionales
         nextState: ChatState.SERVICE_LIST,
         selectedCategory: category.name,
         serviceOptions: categoryServices.map(s => ({

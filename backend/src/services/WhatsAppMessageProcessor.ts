@@ -135,20 +135,40 @@ export class WhatsAppMessageProcessor {
         );
       }
 
+      // Preparar respuesta principal
+      let mainResponse = aiResponse.response.message || undefined;
+
+      // Verificar si hay mensajes adicionales que deben enviarse
+      const additionalMessages = aiResponse.response.metadata?.additionalMessages;
+      if (additionalMessages && Array.isArray(additionalMessages) && additionalMessages.length > 0) {
+        logger.info('Additional messages detected, will be sent separately', {
+          count: additionalMessages.length,
+          conversationId: aiResponse.conversationId
+        });
+        
+        // Agregar los mensajes adicionales al metadata para que TwilioController los envíe
+        if (!aiResponse.response.metadata) {
+          aiResponse.response.metadata = {};
+        }
+        aiResponse.response.metadata.additionalMessages = additionalMessages;
+      }
+
       logger.info('WhatsApp message processed successfully', {
         clientId: processedMessage.clientId,
         conversationId: aiResponse.conversationId,
         responseLength: aiResponse.response.message?.length || 0,
         processingTime: aiResponse.processingTime,
         escalated: aiResponse.response.needsHumanEscalation,
-        humanControlActive: isHumanControlActive
+        humanControlActive: isHumanControlActive,
+        hasAdditionalMessages: !!additionalMessages
       });
 
       return {
         success: true,
-        response: aiResponse.response.message || undefined, // No enviar respuesta si está bajo control humano
+        response: mainResponse,
         clientId: processedMessage.clientId,
-        conversationId: aiResponse.conversationId
+        conversationId: aiResponse.conversationId,
+        additionalMessages: additionalMessages // Pasar mensajes adicionales al controller
       };
 
     } catch (error: any) {
