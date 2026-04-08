@@ -134,17 +134,10 @@ export class ServiceMatcher {
   }
 
   getAllServices(): Service[] {
-    if (this.services.length === 0) {
-      this.loadServices(true); // Carga sincrónica si no hay datos
-    }
     return this.services;
   }
 
   getCategories(): { name: string; count: number }[] {
-    if (this.services.length === 0) {
-      this.loadServices(true);
-    }
-
     const categories: Map<string, number> = new Map();
 
     for (const [category, services] of this.servicesByCategory.entries()) {
