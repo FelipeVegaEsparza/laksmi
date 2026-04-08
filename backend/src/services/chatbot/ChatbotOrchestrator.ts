@@ -55,6 +55,38 @@ export class ChatbotOrchestrator {
         request.channel
       );
 
+      // Verificar si la conversación está escalada o bajo control humano
+      if (conversation.status === 'escalated' || conversation.humanTakeoverActive) {
+        const client = await ClientModel.findById(request.clientId);
+        
+        // Guardar el mensaje del usuario pero no generar respuesta de IA
+        await this.saveUserMessage(conversation.id, request);
+        
+        logger.info('Conversation is escalated or under human control, not generating AI response', {
+          conversationId: conversation.id,
+          status: conversation.status,
+          humanTakeoverActive: conversation.humanTakeoverActive
+        });
+
+        // Retornar respuesta indicando que está bajo control humano
+        return {
+          response: {
+            message: '', // No enviar mensaje de IA
+            intent: 'escalated',
+            entities: [],
+            needsHumanEscalation: false,
+            metadata: {
+              humanControlActive: true,
+              escalated: true
+            }
+          },
+          conversationId: conversation.id,
+          clientId: request.clientId,
+          messageId: 'escalated',
+          processingTime: Date.now() - startTime
+        };
+      }
+
       const client = await ClientModel.findById(request.clientId);
 
       const userMessageResult = await this.saveUserMessage(conversation.id, request);
