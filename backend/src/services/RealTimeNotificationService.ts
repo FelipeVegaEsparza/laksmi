@@ -313,7 +313,7 @@ export class RealTimeNotificationService {
    */
   static async sendConversationStateUpdate(
     conversationId: string,
-    status: 'active' | 'escalated' | 'resolved',
+    status: 'active' | 'escalated' | 'resolved' | 'closed' | 'waiting',
     humanTakeoverActive: boolean,
     agentId?: string
   ): Promise<void> {

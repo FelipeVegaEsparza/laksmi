@@ -4,7 +4,7 @@ import { Notification } from '@/types'
 import { useAuth } from './AuthContext'
 
 interface ConversationStateCache {
-  status: 'active' | 'escalated' | 'resolved'
+  status: 'active' | 'escalated' | 'resolved' | 'closed' | 'waiting'
   humanTakeoverActive: boolean
   agentId?: string
   lastUpdate: Date
@@ -149,7 +149,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       // Handle conversation state updates
       newSocket.on('conversation_state_updated', (data: {
         conversationId: string
-        status: 'active' | 'escalated' | 'resolved'
+        status: 'active' | 'escalated' | 'resolved' | 'closed' | 'waiting'
         humanTakeoverActive: boolean
         timestamp: string
         agentId?: string
