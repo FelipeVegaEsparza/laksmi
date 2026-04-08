@@ -44,8 +44,13 @@ export class HumanTakeoverService {
       // Check if already under human control (from database)
       const existingState = await ConversationModel.getHumanTakeoverState(conversationId);
       if (existingState?.active) {
-        if (existingState.agentId === humanAgentId) {
-          // Build session object for backward compatibility
+        // If no agent is assigned yet (escalated by AI but no human took control)
+        // Allow this agent to take control
+        if (!existingState.agentId) {
+          logger.info(`Conversation ${conversationId} was escalated but no agent assigned yet. Allowing ${humanAgentId} to take control.`);
+          // Continue to assign control below
+        } else if (existingState.agentId === humanAgentId) {
+          // Same agent already has control - return success
           const session: HumanTakeoverSession = {
             conversationId,
             humanAgentId,
@@ -65,6 +70,7 @@ export class HumanTakeoverService {
             session
           };
         } else {
+          // Different agent has control - return error
           return {
             success: false,
             message: `La conversación ya está siendo controlada por otro agente`
