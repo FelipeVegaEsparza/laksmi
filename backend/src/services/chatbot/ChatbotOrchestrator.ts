@@ -126,6 +126,19 @@ export class ChatbotOrchestrator {
 
       await ContextPreserver.saveContext(conversation.id, chatContext);
 
+      // Si se necesita escalación humana, escalar la conversación
+      if (nextState === ChatState.ESCALATION || metadata.needsHumanEscalation) {
+        await ConversationModel.escalateConversation(
+          conversation.id,
+          metadata.escalationReason || 'user_requested',
+          undefined // No hay agente asignado aún
+        );
+        logger.info(`Conversation escalated to human agent`, {
+          conversationId: conversation.id,
+          reason: metadata.escalationReason || 'user_requested'
+        });
+      }
+
       const aiMessage = await ConversationModel.addMessage(conversation.id, {
         senderType: 'ai',
         content: response,
@@ -206,6 +219,7 @@ export class ChatbotOrchestrator {
 1. Ver servicios
 2. Hacer una consulta
 3. Agendar una cita
+4. Chatear con un ejecutivo
 
 ⚠️ Responde con el número de tu opción.`;
   }

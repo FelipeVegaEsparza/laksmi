@@ -82,7 +82,7 @@ export class ConversationFlow {
     const isSelectingCategory = chatContext.lastBotMessage?.includes('Responde con el número de la categoría');
 
     // Si NO estamos seleccionando categorías, manejar opciones del menú inicial
-    if (!isSelectingCategory && num && num >= 1 && num <= 3) {
+    if (!isSelectingCategory && num && num >= 1 && num <= 4) {
       if (num === 1) {
         return this.showCategories(context);
       } else if (num === 2) {
@@ -93,6 +93,17 @@ export class ConversationFlow {
         };
       } else if (num === 3) {
         return this.showCategories(context, true);
+      } else if (num === 4) {
+        // Escalar la conversación a un ejecutivo humano
+        return {
+          message: 'Perfecto, te estoy conectando con un ejecutivo. En un momento te atenderá un miembro de nuestro equipo. 👨‍💼',
+          nextState: ChatState.ESCALATION,
+          awaitingOption: undefined,
+          metadata: {
+            escalationReason: 'user_requested',
+            needsHumanEscalation: true
+          }
+        };
       }
     }
 
@@ -364,7 +375,7 @@ ${bookingLink}
     }
 
     return {
-      message: '¿Qué te gustaría hacer?\n\n1. Ver servicios\n2. Hacer consulta\n3. Agendar',
+      message: '¿Qué te gustaría hacer?\n\n1. Ver servicios\n2. Hacer consulta\n3. Agendar\n4. Chatear con un ejecutivo',
       nextState: ChatState.SERVICE_CATEGORY,
       awaitingOption: 'category'
     };
