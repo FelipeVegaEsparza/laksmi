@@ -53,6 +53,7 @@ export class WhatsAppMessageProcessor {
     error?: string;
     clientId?: string;
     conversationId?: string;
+    additionalMessages?: string[];
   }> {
     try {
       // Extraer información básica del payload
