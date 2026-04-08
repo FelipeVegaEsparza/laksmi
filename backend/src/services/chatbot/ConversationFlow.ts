@@ -319,9 +319,16 @@ ${service.description ? `\n📝 ${service.description}` : ''}
 
 ${bookingLink}
 
-¿Te gustaría algo más?`,
-          nextState: ChatState.BOOKING,
-          awaitingOption: undefined,
+¿Te gustaría algo más?
+
+1. Ver servicios
+2. Hacer una consulta
+3. Agendar otra cita
+4. Chatear con un ejecutivo
+
+⚠️ Responde con el número de tu opción.`,
+          nextState: ChatState.SERVICE_CATEGORY,
+          awaitingOption: 'category',
           selectedService: service,
           metadata: { bookingLink }
         };
@@ -350,8 +357,16 @@ ${bookingLink}
 
 ${bookingLink}
 
-¿Te puedo ayudar con algo más?`,
-            nextState: ChatState.BOOKING,
+¿Te gustaría algo más?
+
+1. Ver servicios
+2. Hacer una consulta
+3. Agendar otra cita
+4. Chatear con un ejecutivo
+
+⚠️ Responde con el número de tu opción.`,
+            nextState: ChatState.SERVICE_CATEGORY,
+            awaitingOption: 'category',
             metadata: { bookingLink }
           };
         }
@@ -359,7 +374,14 @@ ${bookingLink}
     }
 
     return {
-      message: '¿Hay algo más en lo que pueda ayudarte?\n\n1. Ver servicios\n2. Hacer consulta\n3. Volver al inicio',
+      message: '¿Hay algo más en lo que pueda ayudarte?
+
+1. Ver servicios
+2. Hacer una consulta
+3. Agendar una cita
+4. Chatear con un ejecutivo
+
+⚠️ Responde con el número de tu opción.',
       nextState: ChatState.SERVICE_CATEGORY,
       awaitingOption: 'category'
     };
@@ -581,7 +603,13 @@ ${bookingLink}
       'error',
       'mal',
       'incorrecto',
-      'equivocado'
+      'equivocado',
+      'quiero hablar',
+      'hablar con alguien',
+      'hablar con persona',
+      'atención humana',
+      'ejecutivo',
+      'operador'
     ];
     
     // Verificar si el mensaje es muy corto y negativo
@@ -594,6 +622,15 @@ ${bookingLink}
     
     // Verificar si coincide con algún patrón fuera de contexto
     const matchesPattern = outOfContextPatterns.some(p => normalized.includes(p));
+    
+    // Log para debugging
+    if (matchesPattern || isShortNegative) {
+      logger.info('Out of context detected', {
+        message: normalized,
+        matchedPattern: outOfContextPatterns.find(p => normalized.includes(p)),
+        isShortNegative
+      });
+    }
     
     return matchesPattern || isShortNegative;
   }

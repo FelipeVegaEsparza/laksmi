@@ -118,11 +118,13 @@ export class ChatbotOrchestrator {
         if (service) {
           const bookingLink = bookingLinkGenerator.generateFromService(service);
           response = this.generateBookingResponse(service.name, bookingLink);
-          nextState = ChatState.BOOKING;
+          nextState = ChatState.SERVICE_CATEGORY;
           metadata = { bookingLink, serviceId: service.id, serviceName: service.name };
           chatContext.selectedServiceId = service.id;
           chatContext.selectedServiceName = service.name;
           chatContext.selectedServiceSlug = service.slug;
+          chatContext.currentState = nextState;
+          chatContext.awaitingOption = 'category';
         } else {
           response = 'Para agendar necesito saber qué servicio te interesa. ¿Cuál tratamiento te gustaría?';
           nextState = ChatState.SERVICE_CATEGORY;
@@ -268,7 +270,14 @@ export class ChatbotOrchestrator {
 
 ${bookingLink}
 
-¿Te gustaría algo más?`;
+¿Te gustaría algo más?
+
+1. Ver servicios
+2. Hacer una consulta
+3. Agendar otra cita
+4. Chatear con un ejecutivo
+
+⚠️ Responde con el número de tu opción.`;
   }
 
   private static async saveUserMessage(conversationId: string, request: ProcessMessageRequest): Promise<{ id: string }> {
