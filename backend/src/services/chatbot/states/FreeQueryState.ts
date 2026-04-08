@@ -23,11 +23,82 @@ NUNCA:
 - Mencionar que eres una IA
 - Dar respuestas vagas o inciertas sin admitir que no sabes`;
 
+/**
+ * Verifica si el mensaje del usuario está dentro del contexto de la clínica de belleza
+ * Usa OpenAI para determinar si la pregunta es relevante
+ */
+async function checkIfInContext(userMessage: string): Promise<boolean> {
+  // Si no hay OpenAI disponible, asumir que está en contexto para no bloquear
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-development') {
+    return true;
+  }
+
+  try {
+    const contextCheckPrompt = `Eres un filtro de contexto para una clínica de belleza.
+
+Tu trabajo es determinar si el mensaje del usuario está relacionado con:
+- Servicios de belleza (tratamientos faciales, corporales, depilación, etc.)
+- Información de la clínica (horarios, ubicación, contacto, precios)
+- Agendar citas o reservas
+- Consultas sobre tratamientos de belleza
+
+Responde SOLO con "SI" si el mensaje está relacionado con estos temas.
+Responde SOLO con "NO" si el mensaje es sobre cualquier otro tema (clima, deportes, política, chistes, conversación general, etc.)
+
+Mensaje del usuario: "${userMessage}"
+
+Respuesta (SI o NO):`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Eres un clasificador de contexto. Responde solo SI o NO.' },
+        { role: 'user', content: contextCheckPrompt }
+      ],
+      temperature: 0.1,
+      max_tokens: 10
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim().toUpperCase() || 'NO';
+    
+    logger.info('Context check result', {
+      userMessage: userMessage.substring(0, 50),
+      isInContext: response === 'SI',
+      rawResponse: response
+    });
+
+    return response === 'SI';
+  } catch (error) {
+    logger.error('Error checking context:', error);
+    // En caso de error, asumir que está en contexto para no bloquear
+    return true;
+  }
+}
+
 export async function handleFreeQuery(
   userMessage: string,
   conversationHistory: { role: string; content: string }[]
 ): Promise<{ message: string; nextState: ChatState; metadata?: Record<string, any> }> {
   try {
+    // PRIMERO: Verificar si el mensaje está dentro del contexto de la clínica
+    const isInContext = await checkIfInContext(userMessage);
+    
+    if (!isInContext) {
+      logger.info('Message is out of clinic context, escalating', {
+        userMessage: userMessage.substring(0, 50)
+      });
+
+      return {
+        message: 'Entiendo que necesitas ayuda específica. Te estoy conectando con un ejecutivo que podrá atenderte mejor. En un momento te responderá un miembro de nuestro equipo. 👨‍💼',
+        nextState: ChatState.ESCALATION,
+        metadata: {
+          escalationReason: 'out_of_clinic_context',
+          needsHumanEscalation: true,
+          originalQuery: userMessage
+        }
+      };
+    }
+
     const faqAnswer = await knowledgeBase.search(userMessage);
 
     if (faqAnswer) {
