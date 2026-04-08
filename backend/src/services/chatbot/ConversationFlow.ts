@@ -76,6 +76,24 @@ export class ConversationFlow {
       };
     }
 
+    // Detectar mensajes fuera de contexto
+    if (this.isOutOfContext(message)) {
+      logger.info('Out of context message in category selection, escalating', {
+        message: message.substring(0, 50)
+      });
+
+      return {
+        message: 'Entiendo que necesitas ayuda específica. Te estoy conectando con un ejecutivo que podrá atenderte mejor. En un momento te responderá un miembro de nuestro equipo. 👨‍💼',
+        nextState: ChatState.ESCALATION,
+        awaitingOption: undefined,
+        metadata: {
+          escalationReason: 'out_of_context',
+          needsHumanEscalation: true,
+          originalMessage: message
+        }
+      };
+    }
+
     // Verificar si estamos en el menú inicial o seleccionando categorías
     // Si el último mensaje del bot contiene "Responde con el número de la categoría", 
     // entonces estamos seleccionando categorías
@@ -374,6 +392,24 @@ ${bookingLink}
       } as FlowResult;
     }
 
+    // Detectar mensajes fuera de contexto que deben escalar
+    if (this.isOutOfContext(message)) {
+      logger.info('Out of context message detected, escalating', {
+        message: message.substring(0, 50)
+      });
+
+      return {
+        message: 'Entiendo que necesitas ayuda específica. Te estoy conectando con un ejecutivo que podrá atenderte mejor. En un momento te responderá un miembro de nuestro equipo. 👨‍💼',
+        nextState: ChatState.ESCALATION,
+        awaitingOption: undefined,
+        metadata: {
+          escalationReason: 'out_of_context',
+          needsHumanEscalation: true,
+          originalMessage: message
+        }
+      };
+    }
+
     return {
       message: '¿Qué te gustaría hacer?\n\n1. Ver servicios\n2. Hacer consulta\n3. Agendar\n4. Chatear con un ejecutivo',
       nextState: ChatState.SERVICE_CATEGORY,
@@ -476,6 +512,48 @@ ${bookingLink}
     ];
     
     return questionPatterns.some(p => normalized.includes(p));
+  }
+
+  private static isOutOfContext(message: string): boolean {
+    const normalized = message.toLowerCase().trim();
+    
+    // Frases que indican rechazo o confusión sin contexto claro
+    const outOfContextPatterns = [
+      'no quiero eso',
+      'no quiero',
+      'no me interesa',
+      'no gracias',
+      'eso no',
+      'no es lo que busco',
+      'no entiendo',
+      'esto no es lo que pedí',
+      'no me sirve',
+      'no lo necesito',
+      'cancelar',
+      'salir',
+      'no sé',
+      'no se',
+      'ayuda',
+      'help',
+      'no funciona',
+      'error',
+      'mal',
+      'incorrecto',
+      'equivocado'
+    ];
+    
+    // Verificar si el mensaje es muy corto y negativo
+    const isShortNegative = normalized.length < 20 && (
+      normalized.includes('no') || 
+      normalized.includes('nada') ||
+      normalized.includes('ninguno') ||
+      normalized.includes('ninguna')
+    );
+    
+    // Verificar si coincide con algún patrón fuera de contexto
+    const matchesPattern = outOfContextPatterns.some(p => normalized.includes(p));
+    
+    return matchesPattern || isShortNegative;
   }
 }
 
