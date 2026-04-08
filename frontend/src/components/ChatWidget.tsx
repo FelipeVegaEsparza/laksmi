@@ -67,15 +67,19 @@ const ChatWidget = () => {
     // Primero, convertir saltos de línea a <br>
     let formattedText = text.replace(/\n/g, '<br>');
     
-    // Regex para detectar URLs (http, https, www)
-    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
+    // Regex mejorado para detectar URLs (http, https, www)
+    // Se detiene en espacios, <, >, comillas, y otros caracteres especiales
+    const urlRegex = /(https?:\/\/[^\s<>"']+)|(www\.[^\s<>"']+)/g;
     
     formattedText = formattedText.replace(urlRegex, (url) => {
+      // Limpiar la URL de caracteres finales no deseados
+      let cleanUrl = url.replace(/[.,;:!?]+$/, ''); // Remover puntuación al final
+      
       // Si la URL no tiene protocolo, agregar https://
-      const href = url.startsWith('http') ? url : `https://${url}`;
+      const href = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
       
       // Agregar onclick para forzar la apertura en nueva pestaña
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${href}', '_blank'); return false;" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${url}</a>`;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${href}', '_blank'); return false;" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${cleanUrl}</a>`;
     });
     
     return formattedText;
