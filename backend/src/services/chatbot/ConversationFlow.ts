@@ -67,7 +67,22 @@ export class ConversationFlow {
     const { services, categories, chatContext } = context;
     const num = this.extractNumber(message);
 
-    if (num && num >= 1 && num <= 3) {
+    if (this.isFreeQuery(message)) {
+      return {
+        nextState: ChatState.FREE_QUERY,
+        awaitingOption: undefined,
+        message: '',
+        isFreeQuery: true
+      };
+    }
+
+    // Verificar si estamos en el menú inicial o seleccionando categorías
+    // Si el último mensaje del bot contiene "Responde con el número de la categoría", 
+    // entonces estamos seleccionando categorías
+    const isSelectingCategory = chatContext.lastBotMessage?.includes('Responde con el número de la categoría');
+
+    // Si NO estamos seleccionando categorías, manejar opciones del menú inicial
+    if (!isSelectingCategory && num && num >= 1 && num <= 3) {
       if (num === 1) {
         return this.showCategories(context);
       } else if (num === 2) {
@@ -81,15 +96,7 @@ export class ConversationFlow {
       }
     }
 
-    if (this.isFreeQuery(message)) {
-      return {
-        nextState: ChatState.FREE_QUERY,
-        awaitingOption: undefined,
-        message: '',
-        isFreeQuery: true
-      };
-    }
-
+    // Si estamos seleccionando categorías, verificar que el número esté en el rango
     if (num && num >= 1 && num <= categories.length) {
       const category = categories[num - 1];
       const categoryServices = serviceMatcher.getServicesByCategory(category.name);
@@ -467,3 +474,4 @@ async function handleFreeQuerySync(
 ): Promise<{ message: string; nextState: ChatState; metadata?: Record<string, any> }> {
   return handleFreeQuery(message, history);
 }
+
