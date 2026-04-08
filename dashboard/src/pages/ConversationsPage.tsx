@@ -62,7 +62,7 @@ export default function ConversationsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [clientModalOpen, setClientModalOpen] = useState(false)
 
-  const { showNotification } = useNotifications()
+  const { showNotification, subscribeToConversationUpdates, getConversationState } = useNotifications()
 
   // Guardar el título original al montar
   useEffect(() => {
@@ -173,6 +173,55 @@ export default function ConversationsPage() {
       return () => clearInterval(interval)
     }
   }, [selectedConversation])
+
+  // Subscribe to real-time conversation state updates
+  useEffect(() => {
+    const unsubscribe = subscribeToConversationUpdates((conversationId) => {
+      console.log('🔄 Real-time update for conversation:', conversationId)
+      
+      const updatedState = getConversationState(conversationId)
+      if (!updatedState) return
+
+      // Update conversations array
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { 
+              ...conv, 
+              status: updatedState.status,
+              humanTakeoverActive: updatedState.humanTakeoverActive,
+              humanTakeoverAgentId: updatedState.agentId || null,
+              lastActivity: updatedState.lastUpdate
+            }
+          : conv
+      ))
+
+      // Update selected conversation if applicable
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(prev => prev ? ({
+          ...prev,
+          status: updatedState.status,
+          humanTakeoverActive: updatedState.humanTakeoverActive,
+          humanTakeoverAgentId: updatedState.agentId || null,
+          lastActivity: updatedState.lastUpdate
+        }) : null)
+      }
+
+      // Update aiEnabled map
+      setAiEnabled(prev => ({
+        ...prev,
+        [conversationId]: !updatedState.humanTakeoverActive
+      }))
+
+      console.log('✅ Conversation state updated in UI:', {
+        conversationId,
+        status: updatedState.status,
+        humanTakeoverActive: updatedState.humanTakeoverActive,
+        aiEnabled: !updatedState.humanTakeoverActive
+      })
+    })
+
+    return unsubscribe
+  }, [subscribeToConversationUpdates, getConversationState, selectedConversation])
 
   const handleSelectConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation)

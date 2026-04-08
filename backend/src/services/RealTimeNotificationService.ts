@@ -307,6 +307,45 @@ export class RealTimeNotificationService {
     logger.info(`Escalation status update sent: ${escalationId}`, { status, humanAgentId });
   }
 
+  /**
+   * Enviar actualización de estado de conversación
+   * Emite eventos en tiempo real cuando el estado de una conversación cambia
+   */
+  static async sendConversationStateUpdate(
+    conversationId: string,
+    status: 'active' | 'escalated' | 'resolved',
+    humanTakeoverActive: boolean,
+    agentId?: string
+  ): Promise<void> {
+    if (!this.io) {
+      logger.warn('Real-time notification service not initialized');
+      return;
+    }
+
+    try {
+      const eventPayload = {
+        conversationId,
+        status,
+        humanTakeoverActive,
+        timestamp: new Date().toISOString(),
+        ...(agentId && { agentId })
+      };
+
+      // Emitir evento a todos los clientes dashboard autenticados
+      this.io.emit('conversation_state_updated', eventPayload);
+
+      logger.info(`Conversation state update sent: ${conversationId}`, {
+        status,
+        humanTakeoverActive,
+        agentId,
+        connectedUsers: this.connectedUsers.size
+      });
+    } catch (error) {
+      logger.error(`Error sending conversation state update for ${conversationId}:`, error);
+      // No lanzar error - el cambio de estado debe completarse aunque falle la notificación
+    }
+  }
+
   // Métodos privados
 
   private static broadcastToAuthorizedUsers(notification: NotificationData): void {

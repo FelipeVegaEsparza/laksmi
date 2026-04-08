@@ -1,6 +1,7 @@
 import db from '../config/database';
 import { Conversation, ConversationContext, ConversationChannel, ConversationStatus, Message } from '../types/ai';
 import logger from '../utils/logger';
+import { RealTimeNotificationService } from '../services/RealTimeNotificationService';
 
 export class ConversationModel {
   static async findById(id: string): Promise<Conversation | null> {
@@ -84,7 +85,24 @@ export class ConversationModel {
       return null;
     }
 
-    return this.findById(id);
+    const updatedConversation = await this.findById(id);
+    
+    // Emitir evento de actualización de estado en tiempo real
+    if (updatedConversation) {
+      try {
+        await RealTimeNotificationService.sendConversationStateUpdate(
+          id,
+          status,
+          updatedConversation.humanTakeoverActive || false,
+          updatedConversation.humanTakeoverAgentId || undefined
+        );
+      } catch (error) {
+        logger.error(`Error emitting conversation state update for ${id}:`, error);
+        // No lanzar error - la actualización debe completarse aunque falle la notificación
+      }
+    }
+    
+    return updatedConversation;
   }
 
   static async addMessage(conversationId: string, message: Omit<Message, 'id' | 'conversationId' | 'timestamp'>): Promise<Message> {
@@ -214,7 +232,24 @@ export class ConversationModel {
     };
 
     await this.updateContext(id, updatedContext);
-    return this.updateStatus(id, 'escalated');
+    const updatedConversation = await this.updateStatus(id, 'escalated');
+    
+    // Emitir evento de actualización de estado en tiempo real
+    if (updatedConversation) {
+      try {
+        await RealTimeNotificationService.sendConversationStateUpdate(
+          id,
+          'escalated',
+          updatedConversation.humanTakeoverActive || false,
+          humanAgentId
+        );
+      } catch (error) {
+        logger.error(`Error emitting conversation state update for ${id}:`, error);
+        // No lanzar error - la escalación debe completarse aunque falle la notificación
+      }
+    }
+    
+    return updatedConversation;
   }
 
   /**
@@ -236,6 +271,22 @@ export class ConversationModel {
         last_human_message_time: active ? new Date() : null,
         updated_at: new Date()
       });
+    
+    // Emitir evento de actualización de estado en tiempo real
+    try {
+      const conversation = await this.findById(conversationId);
+      if (conversation) {
+        await RealTimeNotificationService.sendConversationStateUpdate(
+          conversationId,
+          active ? 'escalated' : 'active',
+          active,
+          active ? agentId : undefined
+        );
+      }
+    } catch (error) {
+      logger.error(`Error emitting conversation state update for ${conversationId}:`, error);
+      // No lanzar error - el cambio de estado debe completarse aunque falle la notificación
+    }
   }
 
   /**
