@@ -74,7 +74,8 @@ const ChatWidget = () => {
       // Si la URL no tiene protocolo, agregar https://
       const href = url.startsWith('http') ? url : `https://${url}`;
       
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${url}</a>`;
+      // Agregar onclick para forzar la apertura en nueva pestaña
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${href}', '_blank'); return false;" style="color: ${themeColors.primary}; text-decoration: underline; font-weight: 500; cursor: pointer;">${url}</a>`;
     });
     
     return formattedText;
