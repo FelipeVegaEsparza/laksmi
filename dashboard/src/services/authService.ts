@@ -27,7 +27,7 @@ class AuthService {
   }
 
   async verifyToken(token: string): Promise<User> {
-    const response = await axios.get<ApiResponse<User>>(
+    const response = await axios.get<ApiResponse<{ user: User }>>(
       `${this.baseURL}/verify`,
       {
         headers: {
@@ -40,7 +40,7 @@ class AuthService {
       throw new Error(response.data.error || 'Token verification failed')
     }
     
-    return response.data.data
+    return response.data.data.user
   }
 
   async refreshToken(): Promise<LoginResponse> {
