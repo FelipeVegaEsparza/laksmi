@@ -178,6 +178,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           return
         }
 
+        console.log('🔍 Escalation check:', {
+          status: data.status,
+          humanTakeoverActive: data.humanTakeoverActive,
+          agentId: data.agentId,
+          hasAgentId: !!data.agentId,
+          alreadyPlayed: playedEscalationsRef.current.has(data.conversationId),
+          shouldShowModal: data.status === 'escalated' && data.humanTakeoverActive && !data.agentId && !playedEscalationsRef.current.has(data.conversationId)
+        })
+
         // Update conversation state cache
         const stateCache: ConversationStateCache = {
           status: data.status,
