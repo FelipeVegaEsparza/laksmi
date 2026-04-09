@@ -90,8 +90,6 @@ export default function Layout({ children }: LayoutProps) {
   // Hook para notificaciones de escalación con sonido y título
   useEscalationNotification(unreadCount)
 
-  console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError, 'User:', user, 'Auth Loading:', isLoading)
-
   // Cargar estado inicial del modo mantenimiento
   useEffect(() => {
     const fetchMaintenanceMode = async () => {
@@ -190,7 +188,6 @@ export default function Layout({ children }: LayoutProps) {
             src={companyLogo}
             alt={companyName}
             onError={() => {
-              console.error('❌ Layout - Error loading logo, showing fallback')
               setLogoError(true)
             }}
             sx={{
