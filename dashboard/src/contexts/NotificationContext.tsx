@@ -104,8 +104,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Initialize audio element
   useEffect(() => {
-    audioRef.current = new Audio('/notification.mp3')
-    audioRef.current.volume = 0.5
+    const initAudio = async () => {
+      try {
+        audioRef.current = new Audio('/notification.mp3')
+        audioRef.current.volume = 0.5
+        
+        // Preload the audio
+        audioRef.current.load()
+        
+        console.log('🔊 Audio initialized successfully')
+      } catch (error) {
+        console.error('❌ Error initializing audio:', error)
+      }
+    }
+    
+    initAudio()
   }, [])
 
   // Toggle audio and save preference
@@ -116,9 +129,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       
       // Play a test sound when enabling
       if (newValue && audioRef.current) {
-        audioRef.current.play().catch(error => {
-          console.log('Audio test playback blocked:', error)
-        })
+        console.log('🔊 Playing test sound...')
+        
+        // Reset audio to beginning
+        audioRef.current.currentTime = 0
+        
+        const playPromise = audioRef.current.play()
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('✅ Test sound played successfully')
+            })
+            .catch(error => {
+              console.error('❌ Audio playback blocked by browser:', error)
+              alert('⚠️ El navegador bloqueó la reproducción de audio. Por favor, interactúa con la página (haz clic en cualquier lugar) y vuelve a activar las notificaciones de audio.')
+            })
+        }
       }
       
       return newValue
@@ -206,11 +233,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
           
+          console.log('🚨 New escalation detected, attempting to play audio...', {
+            audioEnabled,
+            hasAudioRef: !!audioRef.current,
+            conversationId: data.conversationId
+          })
+          
           // Only play if audio is enabled
           if (audioEnabled && audioRef.current) {
-            audioRef.current.play().catch(error => {
-              console.log('Audio playback blocked:', error)
-            })
+            // Reset audio to beginning
+            audioRef.current.currentTime = 0
+            
+            const playPromise = audioRef.current.play()
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log('✅ Escalation audio played successfully')
+                })
+                .catch(error => {
+                  console.error('❌ Audio playback blocked:', error)
+                })
+            }
+          } else {
+            console.log('⚠️ Audio not played:', { audioEnabled, hasAudioRef: !!audioRef.current })
           }
         }
 
