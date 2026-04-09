@@ -37,6 +37,8 @@ import {
   Category as CategoryIcon,
   MenuBook as KnowledgeIcon,
   Business as BusinessIcon,
+  VolumeUp as VolumeUpIcon,
+  VolumeOff as VolumeOffIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -83,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { unreadCount } = useNotifications()
+  const { unreadCount, audioEnabled, toggleAudio } = useNotifications()
   const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
 
   // Hook para notificaciones de escalación con sonido y título
@@ -390,6 +392,29 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Connection Status */}
           <ConnectionStatus />
+
+          {/* Audio Notifications Toggle */}
+          <Tooltip title={audioEnabled ? "Notificaciones de audio activadas (click para desactivar)" : "Notificaciones de audio desactivadas (click para activar)"}>
+            <IconButton
+              size="large"
+              aria-label="toggle audio notifications"
+              color="inherit"
+              onClick={toggleAudio}
+              sx={{
+                backgroundColor: audioEnabled ? 'rgba(76, 175, 80, 0.2)' : 'rgba(158, 158, 158, 0.2)',
+                '&:hover': {
+                  backgroundColor: audioEnabled ? 'rgba(76, 175, 80, 0.3)' : 'rgba(158, 158, 158, 0.3)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              {audioEnabled ? (
+                <VolumeUpIcon sx={{ color: '#4caf50' }} />
+              ) : (
+                <VolumeOffIcon sx={{ color: '#9e9e9e' }} />
+              )}
+            </IconButton>
+          </Tooltip>
 
           {/* Notifications */}
           <IconButton

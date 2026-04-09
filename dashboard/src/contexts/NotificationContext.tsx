@@ -19,6 +19,8 @@ interface NotificationContextType {
   showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
   getConversationState: (conversationId: string) => ConversationStateCache | undefined
   subscribeToConversationUpdates: (callback: (conversationId: string) => void) => () => void
+  audioEnabled: boolean
+  toggleAudio: () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -94,11 +96,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const conversationUpdateCallbacksRef = useRef<Set<(conversationId: string) => void>>(new Set())
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const playedEscalationsRef = useRef<Set<string>>(new Set())
+  const [audioEnabled, setAudioEnabled] = React.useState(() => {
+    // Load audio preference from localStorage
+    const saved = localStorage.getItem('audioNotificationsEnabled')
+    return saved === 'true'
+  })
 
   // Initialize audio element
   useEffect(() => {
     audioRef.current = new Audio('/notification.mp3')
     audioRef.current.volume = 0.5
+  }, [])
+
+  // Toggle audio and save preference
+  const toggleAudio = useCallback(() => {
+    setAudioEnabled(prev => {
+      const newValue = !prev
+      localStorage.setItem('audioNotificationsEnabled', String(newValue))
+      
+      // Play a test sound when enabling
+      if (newValue && audioRef.current) {
+        audioRef.current.play().catch(error => {
+          console.log('Audio test playback blocked:', error)
+        })
+      }
+      
+      return newValue
+    })
   }, [])
 
   useEffect(() => {
@@ -178,9 +202,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Play audio notification for new escalations
         if (data.status === 'escalated' && !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
-          audioRef.current?.play().catch(error => {
-            console.log('Audio playback blocked:', error)
-          })
+          
+          // Only play if audio is enabled
+          if (audioEnabled && audioRef.current) {
+            audioRef.current.play().catch(error => {
+              console.log('Audio playback blocked:', error)
+            })
+          }
         }
 
         // Clear played escalation when conversation becomes active
@@ -248,6 +276,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     showNotification,
     getConversationState,
     subscribeToConversationUpdates,
+    audioEnabled,
+    toggleAudio,
   }
 
   return (
