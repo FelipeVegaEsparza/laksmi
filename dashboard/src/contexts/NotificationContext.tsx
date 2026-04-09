@@ -170,21 +170,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         agentId?: string
         clientName?: string
       }) => {
-        console.log('🔄 CONVERSATION STATE UPDATE RECEIVED:', data)
+        console.log('🔄 CONVERSATION STATE UPDATE RECEIVED:', JSON.stringify(data, null, 2))
         
         // Validate event payload - be more lenient with types
         if (!data.conversationId || !data.status) {
-          console.error('Invalid conversation state update payload - missing required fields:', data)
+          console.error('❌ Invalid conversation state update payload - missing required fields:', data)
           return
         }
+
+        console.log('✅ Validation passed, processing event...')
 
         // Convert humanTakeoverActive to boolean if it's not already
         const humanTakeoverActive = Boolean(data.humanTakeoverActive)
 
         console.log('🔍 Escalation check:', {
+          conversationId: data.conversationId,
           status: data.status,
           humanTakeoverActive: humanTakeoverActive,
           agentId: data.agentId,
+          clientName: data.clientName,
           hasAgentId: !!data.agentId,
           alreadyPlayed: playedEscalationsRef.current.has(data.conversationId),
           shouldShowModal: data.status === 'escalated' && humanTakeoverActive && !data.agentId && !playedEscalationsRef.current.has(data.conversationId)
