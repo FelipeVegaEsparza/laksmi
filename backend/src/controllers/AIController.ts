@@ -28,6 +28,9 @@ export class AIController {
           preferences: []
         });
         logger.info(`Created new web client: ${client.id}`);
+        
+        // Update messageRequest with the actual client ID from database
+        messageRequest.clientId = client.id;
       }
       
       const result = await ChatbotOrchestrator.processMessage(messageRequest);
