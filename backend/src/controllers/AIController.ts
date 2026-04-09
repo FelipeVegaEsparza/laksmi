@@ -14,6 +14,22 @@ export class AIController {
     try {
       const messageRequest: ProcessMessageRequest = req.body;
       
+      // Ensure client exists before processing message (similar to WhatsApp flow)
+      // This prevents foreign key constraint errors when creating conversations
+      const { ClientModel } = await import('../models/Client');
+      let client = await ClientModel.findById(messageRequest.clientId);
+      
+      if (!client) {
+        // Create client if it doesn't exist
+        client = await ClientModel.create({
+          phone: messageRequest.clientId, // Use clientId as phone for web clients
+          name: `Cliente Web ${messageRequest.clientId.slice(-4)}`,
+          allergies: [],
+          preferences: []
+        });
+        logger.info(`Created new web client: ${client.id}`);
+      }
+      
       const result = await ChatbotOrchestrator.processMessage(messageRequest);
       
       res.json({
