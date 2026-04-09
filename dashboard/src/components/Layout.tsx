@@ -221,7 +221,12 @@ export default function Layout({ children }: LayoutProps) {
 
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
         {(() => {
-          console.log('🔍 Menu render check:', { isLoading, hasUser: !!user, userRole: user?.role })
+          console.log('🔍 Menu render check:', { 
+            isLoading, 
+            hasUser: !!user, 
+            userRole: user?.role,
+            userObject: user 
+          })
           
           if (isLoading) {
             console.log('⏳ Skipping menu render - auth is loading')
@@ -229,14 +234,18 @@ export default function Layout({ children }: LayoutProps) {
           }
           
           if (!user) {
-            console.log('❌ Skipping menu render - no user')
+            console.log('❌ Skipping menu render - no user', { user })
             return null
           }
           
           console.log('✅ Rendering menu for user:', user.username, 'role:', user.role)
           
           return menuItems
-            .filter((item) => item.roles.includes(user.role))
+            .filter((item) => {
+              const hasRole = item.roles.includes(user.role)
+              console.log(`  - ${item.text}: ${hasRole ? '✓' : '✗'} (user role: ${user.role})`)
+              return hasRole
+            })
             .map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
