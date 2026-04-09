@@ -122,14 +122,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
     
     initAudio()
+
+    // Initialize Web Audio API on first user interaction (any click)
+    const handleFirstInteraction = async () => {
+      if (audioEnabled && !audioContextRef.current) {
+        console.log('🔊 First user interaction detected, initializing Web Audio API...')
+        await initWebAudio()
+        
+        // Remove listener after first interaction
+        document.removeEventListener('click', handleFirstInteraction)
+        document.removeEventListener('touchstart', handleFirstInteraction)
+      }
+    }
+
+    // Add listeners for first user interaction
+    if (audioEnabled) {
+      document.addEventListener('click', handleFirstInteraction)
+      document.addEventListener('touchstart', handleFirstInteraction)
+    }
     
     // Cleanup
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close()
       }
+      document.removeEventListener('click', handleFirstInteraction)
+      document.removeEventListener('touchstart', handleFirstInteraction)
     }
-  }, [])
+  }, [audioEnabled, initWebAudio])
 
   // Initialize Web Audio API on first user interaction
   const initWebAudio = useCallback(async () => {
