@@ -220,9 +220,24 @@ export default function Layout({ children }: LayoutProps) {
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
 
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
-        {!isLoading && user && menuItems
-          .filter((item) => item.roles.includes(user.role))
-          .map((item) => (
+        {(() => {
+          console.log('🔍 Menu render check:', { isLoading, hasUser: !!user, userRole: user?.role })
+          
+          if (isLoading) {
+            console.log('⏳ Skipping menu render - auth is loading')
+            return null
+          }
+          
+          if (!user) {
+            console.log('❌ Skipping menu render - no user')
+            return null
+          }
+          
+          console.log('✅ Rendering menu for user:', user.username, 'role:', user.role)
+          
+          return menuItems
+            .filter((item) => item.roles.includes(user.role))
+            .map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               selected={location.pathname === item.path}
@@ -281,7 +296,8 @@ export default function Layout({ children }: LayoutProps) {
               />
             </ListItemButton>
           </ListItem>
-        ))}
+        ))
+        })()}
       </List>
 
       <Box
