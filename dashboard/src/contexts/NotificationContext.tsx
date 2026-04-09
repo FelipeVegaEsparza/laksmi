@@ -200,7 +200,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         })
 
         // Play audio notification for new escalations
-        if (data.status === 'escalated' && !playedEscalationsRef.current.has(data.conversationId)) {
+        // Only play when escalated AND human takeover is active (not when deactivating)
+        if (data.status === 'escalated' && 
+            data.humanTakeoverActive && 
+            !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
           
           // Only play if audio is enabled
@@ -211,8 +214,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           }
         }
 
-        // Clear played escalation when conversation becomes active
-        if (data.status === 'active') {
+        // Clear played escalation when conversation becomes active or human takeover ends
+        if (data.status === 'active' || !data.humanTakeoverActive) {
           playedEscalationsRef.current.delete(data.conversationId)
         }
 
