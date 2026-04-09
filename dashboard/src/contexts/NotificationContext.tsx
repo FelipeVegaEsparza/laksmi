@@ -109,6 +109,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [, setSocket] = React.useState<Socket | null>(null)
   const conversationUpdateCallbacksRef = useRef<Set<(conversationId: string) => void>>(new Set())
   const playedEscalationsRef = useRef<Set<string>>(new Set())
+  const currentEscalationAlertRef = useRef<EscalationAlert | null>(null)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentEscalationAlertRef.current = state.escalationAlert
+  }, [state.escalationAlert])
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -185,9 +191,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           payload: { conversationId: data.conversationId, state: stateCache }
         })
 
-        // Show modal alert for new escalations
+        // Show modal alert for new escalations (only when NO agent has taken control yet)
         if (data.status === 'escalated' && 
             data.humanTakeoverActive && 
+            !data.agentId &&  // Only show if no agent has taken control
             !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
           
@@ -206,8 +213,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           })
         }
 
-        // Clear played escalation when conversation becomes active or human takeover ends
-        if (data.status === 'active' || !data.humanTakeoverActive) {
+        // Dismiss modal when:
+        // 1. Agent takes control (agentId is present)
+        // 2. Conversation becomes active
+        // 3. Human takeover ends
+        if (data.agentId || data.status === 'active' || !data.humanTakeoverActive) {
+          // Clear the escalation alert if it's for this conversation
+          if (currentEscalationAlertRef.current?.conversationId === data.conversationId) {
+            console.log('✅ Dismissing escalation alert - agent took control or conversation changed state', {
+              conversationId: data.conversationId,
+              agentId: data.agentId,
+              status: data.status,
+              humanTakeoverActive: data.humanTakeoverActive
+            })
+            dispatch({ type: 'SET_ESCALATION_ALERT', payload: null })
+          }
           playedEscalationsRef.current.delete(data.conversationId)
         }
 
