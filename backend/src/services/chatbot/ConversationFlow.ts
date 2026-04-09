@@ -374,14 +374,14 @@ ${bookingLink}
     }
 
     return {
-      message: '¿Hay algo más en lo que pueda ayudarte?
+      message: `¿Hay algo más en lo que pueda ayudarte?
 
 1. Ver servicios
 2. Hacer una consulta
 3. Agendar una cita
 4. Chatear con un ejecutivo
 
-⚠️ Responde con el número de tu opción.',
+⚠️ Responde con el número de tu opción.`,
       nextState: ChatState.SERVICE_CATEGORY,
       awaitingOption: 'category'
     };
