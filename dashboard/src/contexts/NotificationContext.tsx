@@ -172,25 +172,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }) => {
         console.log('🔄 CONVERSATION STATE UPDATE RECEIVED:', data)
         
-        // Validate event payload
-        if (!data.conversationId || !data.status || typeof data.humanTakeoverActive !== 'boolean') {
-          console.error('Invalid conversation state update payload:', data)
+        // Validate event payload - be more lenient with types
+        if (!data.conversationId || !data.status) {
+          console.error('Invalid conversation state update payload - missing required fields:', data)
           return
         }
 
+        // Convert humanTakeoverActive to boolean if it's not already
+        const humanTakeoverActive = Boolean(data.humanTakeoverActive)
+
         console.log('🔍 Escalation check:', {
           status: data.status,
-          humanTakeoverActive: data.humanTakeoverActive,
+          humanTakeoverActive: humanTakeoverActive,
           agentId: data.agentId,
           hasAgentId: !!data.agentId,
           alreadyPlayed: playedEscalationsRef.current.has(data.conversationId),
-          shouldShowModal: data.status === 'escalated' && data.humanTakeoverActive && !data.agentId && !playedEscalationsRef.current.has(data.conversationId)
+          shouldShowModal: data.status === 'escalated' && humanTakeoverActive && !data.agentId && !playedEscalationsRef.current.has(data.conversationId)
         })
 
         // Update conversation state cache
         const stateCache: ConversationStateCache = {
           status: data.status,
-          humanTakeoverActive: data.humanTakeoverActive,
+          humanTakeoverActive: humanTakeoverActive,
           agentId: data.agentId,
           lastUpdate: new Date(data.timestamp)
         }
@@ -202,7 +205,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         // Show modal alert for new escalations (only when NO agent has taken control yet)
         if (data.status === 'escalated' && 
-            data.humanTakeoverActive && 
+            humanTakeoverActive && 
             !data.agentId &&  // Only show if no agent has taken control
             !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
@@ -226,14 +229,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // 1. Agent takes control (agentId is present)
         // 2. Conversation becomes active
         // 3. Human takeover ends
-        if (data.agentId || data.status === 'active' || !data.humanTakeoverActive) {
+        if (data.agentId || data.status === 'active' || !humanTakeoverActive) {
           // Clear the escalation alert if it's for this conversation
           if (currentEscalationAlertRef.current?.conversationId === data.conversationId) {
             console.log('✅ Dismissing escalation alert - agent took control or conversation changed state', {
               conversationId: data.conversationId,
               agentId: data.agentId,
               status: data.status,
-              humanTakeoverActive: data.humanTakeoverActive
+              humanTakeoverActive: humanTakeoverActive
             })
             dispatch({ type: 'SET_ESCALATION_ALERT', payload: null })
           }
