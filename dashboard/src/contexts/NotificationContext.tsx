@@ -110,20 +110,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const initAudio = async () => {
       try {
-        // Create audio element
+        // Create audio element as fallback
         audioRef.current = new Audio('/notification.mp3')
         audioRef.current.volume = 0.5
         audioRef.current.load()
         
-        // Create Web Audio API context
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-        
-        // Load audio file into buffer
-        const response = await fetch('/notification.mp3')
-        const arrayBuffer = await response.arrayBuffer()
-        audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer)
-        
-        console.log('🔊 Audio initialized successfully')
+        console.log('🔊 Audio element initialized successfully')
       } catch (error) {
         console.error('❌ Error initializing audio:', error)
       }
@@ -139,61 +131,101 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [])
 
-  // Function to play audio using Web Audio API
-  const playAudioNotification = useCallback(() => {
+  // Initialize Web Audio API on first user interaction
+  const initWebAudio = useCallback(async () => {
+    if (audioContextRef.current && audioBufferRef.current) {
+      return // Already initialized
+    }
+
+    try {
+      console.log('🔊 Initializing Web Audio API...')
+      
+      // Create Web Audio API context
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      
+      // Load audio file into buffer
+      const response = await fetch('/notification.mp3')
+      const arrayBuffer = await response.arrayBuffer()
+      audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer)
+      
+      console.log('✅ Web Audio API initialized successfully')
+    } catch (error) {
+      console.error('❌ Error initializing Web Audio API:', error)
+    }
+  }, [])
+
+  // Function to play audio using Web Audio API or fallback to HTMLAudioElement
+  const playAudioNotification = useCallback(async () => {
     if (!audioEnabled) {
       console.log('⚠️ Audio is disabled')
       return
     }
 
-    if (!audioContextRef.current || !audioBufferRef.current) {
-      console.error('❌ Audio context or buffer not initialized')
-      return
+    // Try Web Audio API first
+    if (audioContextRef.current && audioBufferRef.current) {
+      try {
+        // Resume audio context if suspended
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume()
+        }
+
+        // Create a new source node
+        const source = audioContextRef.current.createBufferSource()
+        source.buffer = audioBufferRef.current
+        
+        // Create gain node for volume control
+        const gainNode = audioContextRef.current.createGain()
+        gainNode.gain.value = 0.5
+        
+        // Connect nodes
+        source.connect(gainNode)
+        gainNode.connect(audioContextRef.current.destination)
+        
+        // Play
+        source.start(0)
+        
+        console.log('✅ Audio played successfully using Web Audio API')
+        setAudioUnlocked(true)
+        return
+      } catch (error) {
+        console.error('❌ Error playing audio with Web Audio API:', error)
+      }
     }
 
-    try {
-      // Resume audio context if suspended (required by some browsers)
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume()
+    // Fallback to HTMLAudioElement
+    if (audioRef.current) {
+      try {
+        audioRef.current.currentTime = 0
+        await audioRef.current.play()
+        console.log('✅ Audio played successfully using HTMLAudioElement')
+        setAudioUnlocked(true)
+      } catch (error) {
+        console.error('❌ Error playing audio with HTMLAudioElement:', error)
       }
-
-      // Create a new source node
-      const source = audioContextRef.current.createBufferSource()
-      source.buffer = audioBufferRef.current
-      
-      // Create gain node for volume control
-      const gainNode = audioContextRef.current.createGain()
-      gainNode.gain.value = 0.5
-      
-      // Connect nodes
-      source.connect(gainNode)
-      gainNode.connect(audioContextRef.current.destination)
-      
-      // Play
-      source.start(0)
-      
-      console.log('✅ Audio played successfully using Web Audio API')
-      setAudioUnlocked(true)
-    } catch (error) {
-      console.error('❌ Error playing audio:', error)
+    } else {
+      console.error('❌ No audio method available')
     }
   }, [audioEnabled])
 
   // Toggle audio and save preference
-  const toggleAudio = useCallback(() => {
-    setAudioEnabled(prev => {
-      const newValue = !prev
-      localStorage.setItem('audioNotificationsEnabled', String(newValue))
+  const toggleAudio = useCallback(async () => {
+    const newValue = !audioEnabled
+    setAudioEnabled(newValue)
+    localStorage.setItem('audioNotificationsEnabled', String(newValue))
+    
+    // Initialize Web Audio API and play test sound when enabling
+    if (newValue) {
+      console.log('🔊 Enabling audio notifications...')
       
-      // Play a test sound when enabling
-      if (newValue) {
-        console.log('🔊 Playing test sound...')
+      // Initialize Web Audio API on first enable
+      await initWebAudio()
+      
+      // Play test sound
+      setTimeout(() => {
         playAudioNotification()
-      }
-      
-      return newValue
-    })
-  }, [playAudioNotification])
+      }, 100)
+    }
+  }, [audioEnabled, initWebAudio, playAudioNotification])
 
   useEffect(() => {
     if (isAuthenticated && token) {
