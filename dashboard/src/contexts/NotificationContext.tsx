@@ -10,6 +10,12 @@ interface ConversationStateCache {
   lastUpdate: Date
 }
 
+interface EscalationAlert {
+  conversationId: string
+  clientName: string
+  timestamp: Date
+}
+
 interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
@@ -19,9 +25,8 @@ interface NotificationContextType {
   showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
   getConversationState: (conversationId: string) => ConversationStateCache | undefined
   subscribeToConversationUpdates: (callback: (conversationId: string) => void) => () => void
-  audioEnabled: boolean
-  toggleAudio: () => void
-  playAudioNotification: () => void
+  escalationAlert: EscalationAlert | null
+  dismissEscalationAlert: () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -33,15 +38,18 @@ type NotificationAction =
   | { type: 'CLEAR_NOTIFICATION'; payload: string }
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
   | { type: 'UPDATE_CONVERSATION_STATE'; payload: { conversationId: string; state: ConversationStateCache } }
+  | { type: 'SET_ESCALATION_ALERT'; payload: EscalationAlert | null }
 
 interface NotificationState {
   notifications: Notification[]
   conversationStateCache: Map<string, ConversationStateCache>
+  escalationAlert: EscalationAlert | null
 }
 
 const initialState: NotificationState = {
   notifications: [],
   conversationStateCache: new Map(),
+  escalationAlert: null,
 }
 
 function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
@@ -85,6 +93,11 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         ...state,
         conversationStateCache: newCache,
       }
+    case 'SET_ESCALATION_ALERT':
+      return {
+        ...state,
+        escalationAlert: action.payload,
+      }
     default:
       return state
   }
@@ -95,157 +108,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { isAuthenticated, token } = useAuth()
   const [, setSocket] = React.useState<Socket | null>(null)
   const conversationUpdateCallbacksRef = useRef<Set<(conversationId: string) => void>>(new Set())
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const audioBufferRef = useRef<AudioBuffer | null>(null)
   const playedEscalationsRef = useRef<Set<string>>(new Set())
-  const [audioEnabled, setAudioEnabled] = React.useState(() => {
-    // Load audio preference from localStorage
-    const saved = localStorage.getItem('audioNotificationsEnabled')
-    return saved === 'true'
-  })
-  const [audioUnlocked, setAudioUnlocked] = React.useState(false)
-
-  // Initialize audio element and Web Audio API
-  useEffect(() => {
-    const initAudio = async () => {
-      try {
-        // Create audio element as fallback
-        audioRef.current = new Audio('/notification.mp3')
-        audioRef.current.volume = 0.5
-        audioRef.current.load()
-        
-        console.log('🔊 Audio element initialized successfully')
-      } catch (error) {
-        console.error('❌ Error initializing audio:', error)
-      }
-    }
-    
-    initAudio()
-
-    // Initialize Web Audio API on first user interaction (any click)
-    const handleFirstInteraction = async () => {
-      if (audioEnabled && !audioContextRef.current) {
-        console.log('🔊 First user interaction detected, initializing Web Audio API...')
-        await initWebAudio()
-        
-        // Remove listener after first interaction
-        document.removeEventListener('click', handleFirstInteraction)
-        document.removeEventListener('touchstart', handleFirstInteraction)
-      }
-    }
-
-    // Add listeners for first user interaction
-    if (audioEnabled) {
-      document.addEventListener('click', handleFirstInteraction)
-      document.addEventListener('touchstart', handleFirstInteraction)
-    }
-    
-    // Cleanup
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
-      document.removeEventListener('click', handleFirstInteraction)
-      document.removeEventListener('touchstart', handleFirstInteraction)
-    }
-  }, [audioEnabled, initWebAudio])
-
-  // Initialize Web Audio API on first user interaction
-  const initWebAudio = useCallback(async () => {
-    if (audioContextRef.current && audioBufferRef.current) {
-      return // Already initialized
-    }
-
-    try {
-      console.log('🔊 Initializing Web Audio API...')
-      
-      // Create Web Audio API context
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-      
-      // Load audio file into buffer
-      const response = await fetch('/notification.mp3')
-      const arrayBuffer = await response.arrayBuffer()
-      audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer)
-      
-      console.log('✅ Web Audio API initialized successfully')
-    } catch (error) {
-      console.error('❌ Error initializing Web Audio API:', error)
-    }
-  }, [])
-
-  // Function to play audio using Web Audio API or fallback to HTMLAudioElement
-  const playAudioNotification = useCallback(async () => {
-    if (!audioEnabled) {
-      console.log('⚠️ Audio is disabled')
-      return
-    }
-
-    // Try Web Audio API first
-    if (audioContextRef.current && audioBufferRef.current) {
-      try {
-        // Resume audio context if suspended
-        if (audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume()
-        }
-
-        // Create a new source node
-        const source = audioContextRef.current.createBufferSource()
-        source.buffer = audioBufferRef.current
-        
-        // Create gain node for volume control
-        const gainNode = audioContextRef.current.createGain()
-        gainNode.gain.value = 0.5
-        
-        // Connect nodes
-        source.connect(gainNode)
-        gainNode.connect(audioContextRef.current.destination)
-        
-        // Play
-        source.start(0)
-        
-        console.log('✅ Audio played successfully using Web Audio API')
-        setAudioUnlocked(true)
-        return
-      } catch (error) {
-        console.error('❌ Error playing audio with Web Audio API:', error)
-      }
-    }
-
-    // Fallback to HTMLAudioElement
-    if (audioRef.current) {
-      try {
-        audioRef.current.currentTime = 0
-        await audioRef.current.play()
-        console.log('✅ Audio played successfully using HTMLAudioElement')
-        setAudioUnlocked(true)
-      } catch (error) {
-        console.error('❌ Error playing audio with HTMLAudioElement:', error)
-      }
-    } else {
-      console.error('❌ No audio method available')
-    }
-  }, [audioEnabled])
-
-  // Toggle audio and save preference
-  const toggleAudio = useCallback(async () => {
-    const newValue = !audioEnabled
-    setAudioEnabled(newValue)
-    localStorage.setItem('audioNotificationsEnabled', String(newValue))
-    
-    // Initialize Web Audio API and play test sound when enabling
-    if (newValue) {
-      console.log('🔊 Enabling audio notifications...')
-      
-      // Initialize Web Audio API on first enable
-      await initWebAudio()
-      
-      // Play test sound
-      setTimeout(() => {
-        playAudioNotification()
-      }, 100)
-    }
-  }, [audioEnabled, initWebAudio, playAudioNotification])
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -299,6 +162,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         humanTakeoverActive: boolean
         timestamp: string
         agentId?: string
+        clientName?: string
       }) => {
         console.log('🔄 CONVERSATION STATE UPDATE RECEIVED:', data)
         
@@ -321,20 +185,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           payload: { conversationId: data.conversationId, state: stateCache }
         })
 
-        // Play audio notification for new escalations
-        // Only play when escalated AND human takeover is active (not when deactivating)
+        // Show modal alert for new escalations
         if (data.status === 'escalated' && 
             data.humanTakeoverActive && 
             !playedEscalationsRef.current.has(data.conversationId)) {
           playedEscalationsRef.current.add(data.conversationId)
           
-          console.log('🚨 New escalation detected, attempting to play audio...', {
-            audioEnabled,
+          console.log('🚨 New escalation detected, showing modal alert...', {
             conversationId: data.conversationId,
-            audioUnlocked
+            clientName: data.clientName
           })
           
-          playAudioNotification()
+          dispatch({
+            type: 'SET_ESCALATION_ALERT',
+            payload: {
+              conversationId: data.conversationId,
+              clientName: data.clientName || 'Cliente',
+              timestamp: new Date(data.timestamp)
+            }
+          })
         }
 
         // Clear played escalation when conversation becomes active or human takeover ends
@@ -391,6 +260,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [])
 
+  const dismissEscalationAlert = useCallback(() => {
+    dispatch({ type: 'SET_ESCALATION_ALERT', payload: null })
+  }, [])
+
   const unreadCount = state.notifications.filter(n => !n.read).length
 
   const value: NotificationContextType = {
@@ -402,9 +275,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     showNotification,
     getConversationState,
     subscribeToConversationUpdates,
-    audioEnabled,
-    toggleAudio,
-    playAudioNotification,
+    escalationAlert: state.escalationAlert,
+    dismissEscalationAlert,
   }
 
   return (

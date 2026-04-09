@@ -90,11 +90,16 @@ export class ConversationModel {
     // Emitir evento de actualización de estado en tiempo real
     if (updatedConversation) {
       try {
+        // Obtener nombre del cliente
+        const client = await db('clients').where({ id: updatedConversation.clientId }).first();
+        const clientName = client?.name || 'Cliente';
+        
         await RealTimeNotificationService.sendConversationStateUpdate(
           id,
           status,
           updatedConversation.humanTakeoverActive || false,
-          updatedConversation.humanTakeoverAgentId || undefined
+          updatedConversation.humanTakeoverAgentId || undefined,
+          clientName
         );
       } catch (error) {
         logger.error(`Error emitting conversation state update for ${id}:`, error);
@@ -237,11 +242,16 @@ export class ConversationModel {
     // Emitir evento de actualización de estado en tiempo real
     if (updatedConversation) {
       try {
+        // Obtener nombre del cliente
+        const client = await db('clients').where({ id: updatedConversation.clientId }).first();
+        const clientName = client?.name || 'Cliente';
+        
         await RealTimeNotificationService.sendConversationStateUpdate(
           id,
           'escalated',
           updatedConversation.humanTakeoverActive || false,
-          humanAgentId
+          humanAgentId,
+          clientName
         );
       } catch (error) {
         logger.error(`Error emitting conversation state update for ${id}:`, error);
@@ -276,11 +286,16 @@ export class ConversationModel {
     try {
       const conversation = await this.findById(conversationId);
       if (conversation) {
+        // Obtener nombre del cliente
+        const client = await db('clients').where({ id: conversation.clientId }).first();
+        const clientName = client?.name || 'Cliente';
+        
         await RealTimeNotificationService.sendConversationStateUpdate(
           conversationId,
           active ? 'escalated' : 'active',
           active,
-          active ? agentId : undefined
+          active ? agentId : undefined,
+          clientName
         );
       }
     } catch (error) {

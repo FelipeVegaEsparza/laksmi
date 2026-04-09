@@ -315,7 +315,8 @@ export class RealTimeNotificationService {
     conversationId: string,
     status: 'active' | 'escalated' | 'resolved' | 'closed' | 'waiting',
     humanTakeoverActive: boolean,
-    agentId?: string
+    agentId?: string,
+    clientName?: string
   ): Promise<void> {
     if (!this.io) {
       logger.warn('Real-time notification service not initialized');
@@ -328,7 +329,8 @@ export class RealTimeNotificationService {
         status,
         humanTakeoverActive,
         timestamp: new Date().toISOString(),
-        ...(agentId && { agentId })
+        ...(agentId && { agentId }),
+        ...(clientName && { clientName })
       };
 
       // Emitir evento a todos los clientes dashboard autenticados
@@ -338,6 +340,7 @@ export class RealTimeNotificationService {
         status,
         humanTakeoverActive,
         agentId,
+        clientName,
         connectedUsers: this.connectedUsers.size
       });
     } catch (error) {
