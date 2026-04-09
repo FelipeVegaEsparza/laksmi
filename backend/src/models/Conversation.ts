@@ -237,7 +237,18 @@ export class ConversationModel {
     };
 
     await this.updateContext(id, updatedContext);
-    const updatedConversation = await this.updateStatus(id, 'escalated');
+    
+    // Actualizar status Y activar human takeover
+    await db('conversations')
+      .where({ id })
+      .update({
+        status: 'escalated',
+        human_takeover_active: true,
+        last_activity: new Date(),
+        updated_at: new Date()
+      });
+    
+    const updatedConversation = await this.findById(id);
     
     // Emitir evento de actualización de estado en tiempo real
     if (updatedConversation) {
@@ -249,7 +260,7 @@ export class ConversationModel {
         await RealTimeNotificationService.sendConversationStateUpdate(
           id,
           'escalated',
-          updatedConversation.humanTakeoverActive || false,
+          true, // humanTakeoverActive siempre true cuando se escala
           humanAgentId,
           clientName
         );
