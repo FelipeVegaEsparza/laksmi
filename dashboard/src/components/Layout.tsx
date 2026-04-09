@@ -83,14 +83,14 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const { unreadCount } = useNotifications()
   const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
 
   // Hook para notificaciones de escalación con sonido y título
   useEscalationNotification(unreadCount)
 
-  console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError)
+  console.log('🎨 Layout render - Logo:', companyLogo, 'Name:', companyName, 'Loading:', logoLoading, 'Error:', logoError, 'User:', user, 'Auth Loading:', isLoading)
 
   // Cargar estado inicial del modo mantenimiento
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function Layout({ children }: LayoutProps) {
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
 
       <List sx={{ px: 1.5, py: 2, flexGrow: 1, overflowY: 'auto' }}>
-        {user && menuItems
+        {!isLoading && user && menuItems
           .filter((item) => item.roles.includes(user.role))
           .map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
