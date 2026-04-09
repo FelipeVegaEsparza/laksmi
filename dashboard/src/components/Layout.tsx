@@ -85,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { unreadCount, audioEnabled, toggleAudio } = useNotifications()
+  const { unreadCount, audioEnabled, toggleAudio, playAudioNotification } = useNotifications()
   const { logoUrl: companyLogo, companyName, loading: logoLoading } = useCompanySettings()
 
   // Hook para notificaciones de escalación con sonido y título
@@ -415,6 +415,29 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </IconButton>
           </Tooltip>
+
+          {/* Test Audio Button (only show when audio is enabled) */}
+          {audioEnabled && (
+            <Tooltip title="Probar sonido de notificación">
+              <IconButton
+                size="small"
+                aria-label="test audio"
+                color="inherit"
+                onClick={playAudioNotification}
+                sx={{
+                  ml: -1,
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(33, 150, 243, 0.3)',
+                  },
+                }}
+              >
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 'bold' }}>
+                  🔔
+                </Typography>
+              </IconButton>
+            </Tooltip>
+          )}
 
           {/* Notifications */}
           <IconButton

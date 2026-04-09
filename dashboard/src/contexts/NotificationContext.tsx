@@ -21,6 +21,7 @@ interface NotificationContextType {
   subscribeToConversationUpdates: (callback: (conversationId: string) => void) => () => void
   audioEnabled: boolean
   toggleAudio: () => void
+  playAudioNotification: () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -95,22 +96,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [, setSocket] = React.useState<Socket | null>(null)
   const conversationUpdateCallbacksRef = useRef<Set<(conversationId: string) => void>>(new Set())
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const audioBufferRef = useRef<AudioBuffer | null>(null)
   const playedEscalationsRef = useRef<Set<string>>(new Set())
   const [audioEnabled, setAudioEnabled] = React.useState(() => {
     // Load audio preference from localStorage
     const saved = localStorage.getItem('audioNotificationsEnabled')
     return saved === 'true'
   })
+  const [audioUnlocked, setAudioUnlocked] = React.useState(false)
 
-  // Initialize audio element
+  // Initialize audio element and Web Audio API
   useEffect(() => {
     const initAudio = async () => {
       try {
+        // Create audio element
         audioRef.current = new Audio('/notification.mp3')
         audioRef.current.volume = 0.5
-        
-        // Preload the audio
         audioRef.current.load()
+        
+        // Create Web Audio API context
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+        
+        // Load audio file into buffer
+        const response = await fetch('/notification.mp3')
+        const arrayBuffer = await response.arrayBuffer()
+        audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer)
         
         console.log('🔊 Audio initialized successfully')
       } catch (error) {
@@ -119,7 +130,54 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
     
     initAudio()
+    
+    // Cleanup
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+    }
   }, [])
+
+  // Function to play audio using Web Audio API
+  const playAudioNotification = useCallback(() => {
+    if (!audioEnabled) {
+      console.log('⚠️ Audio is disabled')
+      return
+    }
+
+    if (!audioContextRef.current || !audioBufferRef.current) {
+      console.error('❌ Audio context or buffer not initialized')
+      return
+    }
+
+    try {
+      // Resume audio context if suspended (required by some browsers)
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume()
+      }
+
+      // Create a new source node
+      const source = audioContextRef.current.createBufferSource()
+      source.buffer = audioBufferRef.current
+      
+      // Create gain node for volume control
+      const gainNode = audioContextRef.current.createGain()
+      gainNode.gain.value = 0.5
+      
+      // Connect nodes
+      source.connect(gainNode)
+      gainNode.connect(audioContextRef.current.destination)
+      
+      // Play
+      source.start(0)
+      
+      console.log('✅ Audio played successfully using Web Audio API')
+      setAudioUnlocked(true)
+    } catch (error) {
+      console.error('❌ Error playing audio:', error)
+    }
+  }, [audioEnabled])
 
   // Toggle audio and save preference
   const toggleAudio = useCallback(() => {
@@ -128,29 +186,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       localStorage.setItem('audioNotificationsEnabled', String(newValue))
       
       // Play a test sound when enabling
-      if (newValue && audioRef.current) {
+      if (newValue) {
         console.log('🔊 Playing test sound...')
-        
-        // Reset audio to beginning
-        audioRef.current.currentTime = 0
-        
-        const playPromise = audioRef.current.play()
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('✅ Test sound played successfully')
-            })
-            .catch(error => {
-              console.error('❌ Audio playback blocked by browser:', error)
-              alert('⚠️ El navegador bloqueó la reproducción de audio. Por favor, interactúa con la página (haz clic en cualquier lugar) y vuelve a activar las notificaciones de audio.')
-            })
-        }
+        playAudioNotification()
       }
       
       return newValue
     })
-  }, [])
+  }, [playAudioNotification])
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -235,29 +278,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           
           console.log('🚨 New escalation detected, attempting to play audio...', {
             audioEnabled,
-            hasAudioRef: !!audioRef.current,
-            conversationId: data.conversationId
+            conversationId: data.conversationId,
+            audioUnlocked
           })
           
-          // Only play if audio is enabled
-          if (audioEnabled && audioRef.current) {
-            // Reset audio to beginning
-            audioRef.current.currentTime = 0
-            
-            const playPromise = audioRef.current.play()
-            
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  console.log('✅ Escalation audio played successfully')
-                })
-                .catch(error => {
-                  console.error('❌ Audio playback blocked:', error)
-                })
-            }
-          } else {
-            console.log('⚠️ Audio not played:', { audioEnabled, hasAudioRef: !!audioRef.current })
-          }
+          playAudioNotification()
         }
 
         // Clear played escalation when conversation becomes active or human takeover ends
@@ -327,6 +352,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     subscribeToConversationUpdates,
     audioEnabled,
     toggleAudio,
+    playAudioNotification,
   }
 
   return (
