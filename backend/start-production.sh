@@ -19,12 +19,7 @@ echo "✅ Migraciones SQL completadas"
 
 echo "🌱 Cargando datos iniciales en segundo plano..."
 # Ejecutar seeds en segundo plano (no bloqueante)
-node dist/scripts/run-seeds.js & echo "⚠️  Seeds ejecutándose en segundo plano"
-
-echo "🔄 Poblando slugs de servicios y productos..."
-# Ejecutar scripts de población de slugs (solo se ejecutan si es necesario)
-node scripts/populate-service-slugs.js || echo "⚠️  Slugs de servicios ya poblados o error"
-node scripts/populate-product-slugs.js || echo "⚠️  Slugs de productos ya poblados o error"
+node dist/scripts/run-seeds.js &
 
 echo "✅ Base de datos lista"
 echo "🚀 Iniciando servidor..."
